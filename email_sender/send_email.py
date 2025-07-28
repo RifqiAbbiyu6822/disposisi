@@ -80,7 +80,7 @@ class EmailSender:
             
         except Exception as e:
             return None, f"Error membaca data email: {str(e)}"
-        
+    
     def send_disposisi_email(self, position, nama_pengirim, nomor_surat, perihal, instruksi):
         """Send disposition email to a specific position"""
         try:

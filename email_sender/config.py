@@ -1,19 +1,13 @@
 import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # Email configuration - support multiple sources
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
-EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
 
-# Email credentials - try multiple sources
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER') or os.getenv('SENDER_EMAIL', '')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD') or os.getenv('SENDER_PASSWORD', '')
-
+EMAIL_HOST_USER = 'magangjcc@gmail.com'
+EMAIL_HOST_PASSWORD = 'cygh bhpt fqnb yexb'
 # If still empty, try to get from email_sender config
 if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
     try:
