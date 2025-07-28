@@ -1,0 +1,462 @@
+import tkinter as tk
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.lib.utils import ImageReader
+import logging
+from typing import Dict, Any
+import PyPDF2
+
+logging.basicConfig(
+    filename='app.log',
+    level=logging.ERROR,
+    format='%(asctime)s %(levelname)s:%(name)s:%(message)s'
+)
+import traceback
+
+def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
+    try:
+        # FIX: Check and handle file permissions before creating PDF
+        import os
+        import tempfile
+        
+        # Try to create a temporary file first to test permissions
+        try:
+            temp_dir = os.path.dirname(filepath)
+            if not os.path.exists(temp_dir):
+                os.makedirs(temp_dir, exist_ok=True)
+            
+            # Test write permissions by creating a temporary file
+            temp_file = os.path.join(temp_dir, f"temp_{os.getpid()}.tmp")
+            with open(temp_file, 'w') as f:
+                f.write("test")
+            os.remove(temp_file)
+            
+        except (PermissionError, OSError) as e:
+            # If permission denied, use user's Documents folder as fallback
+            import os.path
+            fallback_dir = os.path.expanduser("~/Documents")
+            filename = os.path.basename(filepath)
+            filepath = os.path.join(fallback_dir, filename)
+        
+        # Check if file already exists and is open
+        if os.path.exists(filepath):
+            try:
+                # Try to open file in append mode to check if it's locked
+                with open(filepath, 'a'):
+                    pass
+            except PermissionError:
+                # File is open, create with timestamp suffix
+                import time
+                timestamp = int(time.time())
+                name, ext = os.path.splitext(filepath)
+                filepath = f"{name}_{timestamp}{ext}"
+        # FIX: Add default values for missing required fields
+        default_values = {
+            'tgl_terima': '',
+            'kode_klasifikasi': '',
+            'indeks': '',
+            'harap_selesai_tgl': '',
+            'rahasia': 0,
+            'penting': 0,
+            'segera': 0,
+            'no_agenda': '',
+            'no_surat': '',
+            'tgl_surat': '',
+            'perihal': '',
+            'asal_surat': '',
+            'ditujukan': ''
+        }
+        
+        # Apply default values for missing fields
+        for field, default_value in default_values.items():
+            if field not in data or data[field] is None:
+                data[field] = default_value
+        
+        c = canvas.Canvas(filepath, pagesize=A4)
+        width, height = A4
+        VERTICAL_SPACING = 0.7 * cm  
+        LINE_HEIGHT = 0.6 * cm      
+        CHECKBOX_SIZE = 0.4 * cm    
+        MARGIN_LEFT = 2.0 * cm    
+        MARGIN_RIGHT = 2.0 * cm     
+        FONT_SIZE = 12
+        def draw_checkbox(x, y, text, checked, bold=False):
+            box_size = CHECKBOX_SIZE
+            box_y = y - box_size/2
+            c.rect(x, box_y, box_size, box_size)
+            
+            # Force conversion to boolean - handle all possible input types
+            is_checked = False
+            
+            # Handle boolean values
+            if isinstance(checked, bool):
+                is_checked = checked
+            # Handle integer values (0/1)
+            elif isinstance(checked, int):
+                is_checked = checked != 0
+            # Handle string values ("0"/"1", "true"/"false", etc.)
+            elif isinstance(checked, str):
+                is_checked = checked.lower() in ('true', '1', 'yes', 'y', 'on')
+            # Handle any other type by converting to string first
+            else:
+                try:
+                    str_val = str(checked).lower()
+                    is_checked = str_val in ('true', '1', 'yes', 'y', 'on') and str_val != '0'
+                except:
+                    is_checked = False
+            
+            # Draw checkmark if checked
+            if is_checked:
+                c.setFont("Helvetica-Bold", FONT_SIZE)
+                c.drawString(x + box_size/2 - c.stringWidth("✓", "Helvetica-Bold", FONT_SIZE)/2,
+                             box_y + box_size/2 - FONT_SIZE/2.5, "✓")
+            
+            c.setFont("Helvetica-Bold" if bold else "Helvetica", FONT_SIZE)
+            label_y = y - FONT_SIZE/2.5/2
+            c.drawString(x + box_size + 0.3*cm, label_y, text)
+        def draw_field_flex(x, y, label, value, colon_x, value_width=8*cm, font_size=FONT_SIZE):
+            c.setFont("Helvetica", font_size)
+            c.drawString(x, y, label)
+            c.drawString(colon_x, y, ":")
+            value_x = colon_x + 0.3*cm
+            max_width = value_width
+            lines = wrap_text(str(value), max_width, font_size=font_size) if value else []
+            for i, line in enumerate(lines):
+                c.drawString(value_x, y - (i * 0.6*cm), line)
+            return y - (len(lines) if lines else 1) * 0.6*cm - 0.2*cm
+        def draw_field_vertical_flex(x, y, label, value, colon_x, value_width=8*cm, font_size=FONT_SIZE):
+            c.setFont("Helvetica", font_size)
+            c.drawString(x, y, label)
+            c.drawString(colon_x, y, ":")
+            value_x = x
+            value_y = y - 0.7*cm
+            max_width = value_width
+            lines = wrap_text(str(value), max_width, font_size=font_size) if value else []
+            for i, line in enumerate(lines):
+                c.drawString(value_x, value_y - (i * 0.6*cm), line)
+            return value_y - (len(lines) if lines else 1) * 0.6*cm - 0.2*cm
+        def format_tanggal(val):
+            import datetime
+            if not val:
+                return ''
+            try:
+                if len(val) > 10:
+                    dt = datetime.datetime.strptime(val[:19], '%Y-%m-%d %H:%M:%S')
+                    return dt.strftime('%d-%m-%Y')
+                else:
+                    dt = datetime.datetime.strptime(val, '%Y-%m-%d')
+                    return dt.strftime('%d-%m-%Y')
+            except Exception:
+                return val
+        def wrap_text(text, max_width, font_size=12):
+            c.setFont("Helvetica", font_size)
+            lines = []
+            current_line = ""
+            words = text.split(' ')
+            for word in words:
+                test_line = current_line + word + ' '
+                if c.stringWidth(test_line) <= max_width:
+                    current_line = test_line
+                else:
+                    if current_line:
+                        lines.append(current_line.strip())
+                    current_line = word + ' '
+            if current_line:
+                lines.append(current_line.strip())
+            return lines
+        x_disposisi = MARGIN_LEFT + 12*cm
+        y_disposisi = height - 2.5*cm
+        c.setFont("Helvetica-Bold", 22)
+        c.drawString(x_disposisi, y_disposisi, "DISPOSISI")
+        try:
+            kop_path = "kop.jpeg"
+            kop_width_px = 170
+            kop_height_px = 100
+            px_to_cm = 2.54 / 96
+            kop_width_cm = kop_width_px * px_to_cm
+            kop_height_cm = kop_height_px * px_to_cm
+            kop_width_pt = kop_width_cm * cm
+            kop_height_pt = kop_height_cm * cm
+            kop_x = MARGIN_LEFT
+            disposisi_center_y = y_disposisi + 0.5*cm
+            kop_y = disposisi_center_y - kop_height_pt/2 + kop_height_pt
+            from reportlab.lib.utils import ImageReader
+            c.drawImage(kop_path, kop_x, kop_y - kop_height_pt, kop_width_pt, kop_height_pt, preserveAspectRatio=False, mask='auto')
+        except Exception as e:
+            pass
+        y_klasifikasi_start = y_disposisi - 1.5*cm
+        x_klasifikasi = x_disposisi
+        draw_checkbox(x_klasifikasi, y_klasifikasi_start, "RAHASIA", data.get("rahasia", 0), bold=True)
+        draw_checkbox(x_klasifikasi, y_klasifikasi_start - LINE_HEIGHT, "PENTING", data.get("penting", 0), bold=True)
+        draw_checkbox(x_klasifikasi, y_klasifikasi_start - 2*LINE_HEIGHT, "SEGERA", data.get("segera", 0), bold=True)
+        klasifikasi_labels = ["Tanggal Penerimaan", "Kode / Klasifikasi", "Indeks"]
+        max_label_width = max([c.stringWidth(label + " ", "Helvetica", FONT_SIZE) for label in klasifikasi_labels])
+        colon_x_klasifikasi = x_klasifikasi + max_label_width + 0.2*cm
+        y_field_klasifikasi = y_klasifikasi_start - 3.2*LINE_HEIGHT
+        klasifikasi_width = 8*cm
+        y_field_klasifikasi = draw_field_vertical_flex(x_klasifikasi, y_field_klasifikasi, "Tanggal Penerimaan", format_tanggal(data.get("tgl_terima", "")), colon_x_klasifikasi, klasifikasi_width)
+        y_field_klasifikasi = draw_field_vertical_flex(x_klasifikasi, y_field_klasifikasi, "Kode / Klasifikasi", data.get("kode_klasifikasi", ""), colon_x_klasifikasi, klasifikasi_width)
+        y_field_klasifikasi = draw_field_vertical_flex(x_klasifikasi, y_field_klasifikasi, "Indeks", data.get("indeks", ""), colon_x_klasifikasi, klasifikasi_width)
+        y_checkbox_segera_top = y_klasifikasi_start - 2*LINE_HEIGHT + 0.2*cm  
+        y_start = y_checkbox_segera_top
+        x_left = MARGIN_LEFT
+        label_no_agenda = "No. Agenda"
+        colon_x_left = x_left + c.stringWidth(label_no_agenda + " ", "Helvetica", FONT_SIZE)
+        y_detil = y_checkbox_segera_top
+        y_detil = draw_field_flex(x_left, y_detil, label_no_agenda, data.get("no_agenda", ""), colon_x_left)
+        y_detil = draw_field_flex(x_left, y_detil, "No. Surat", data.get("no_surat", ""), colon_x_left)
+        y_detil = draw_field_flex(x_left, y_detil, "Tgl. Surat", format_tanggal(data.get("tgl_surat", "")), colon_x_left)
+        y_detil = draw_field_flex(x_left, y_detil, "Perihal", data.get("perihal", ""), colon_x_left)
+        y_detil = draw_field_flex(x_left, y_detil, "Asal Surat", data.get("asal_surat", ""), colon_x_left)
+        y_detil = draw_field_flex(x_left, y_detil, "Ditujukan", data.get("ditujukan", ""), colon_x_left)
+        y_middle = y_detil - 0.32*cm
+        c.setFont("Helvetica-Bold", FONT_SIZE)
+        c.drawString(x_left, y_middle, "Disposisi Kepada :")
+        y_disp = y_middle - VERTICAL_SPACING
+        baris_y = [y_disp]
+        for i in range(1, 4):
+            baris_y.append(baris_y[-1] - LINE_HEIGHT)
+        draw_checkbox(x_left, baris_y[0], "", data.get("dir_utama", 0))
+        c.setFont("Helvetica", FONT_SIZE)
+        c.drawString(x_left + CHECKBOX_SIZE + 0.3*cm, baris_y[0] - FONT_SIZE/2.5/2, "Direktur Utama")
+        keu = data.get("dir_keu", 0)
+        teknik = data.get("dir_teknik", 0)
+        keu_teknik_checked = bool(keu or teknik)
+        draw_checkbox(x_left, baris_y[1], "", keu_teknik_checked)
+        label_keu = "Direktur Keuangan"
+        label_teknik = "Direktur Teknik"
+        label_gabungan = f"{label_keu} / {label_teknik}"
+        x_label = x_left + CHECKBOX_SIZE + 0.3*cm
+        c.setFont("Helvetica", FONT_SIZE)
+        c.drawString(x_label, baris_y[1] - FONT_SIZE/2.5/2, label_gabungan)
+        width_keu = c.stringWidth(label_keu, "Helvetica", FONT_SIZE)
+        width_slash = c.stringWidth(" / ", "Helvetica", FONT_SIZE)
+        width_teknik = c.stringWidth(label_teknik, "Helvetica", FONT_SIZE)
+        y_strike = baris_y[1] - FONT_SIZE/2.5/2 + 0.2*cm
+        if keu and not teknik:
+            c.saveState()
+            c.setLineWidth(1)
+            x_teknik = x_label + width_keu + width_slash
+            c.line(x_teknik, y_strike, x_teknik + width_teknik, y_strike)
+            c.restoreState()
+        elif teknik and not keu:
+            c.saveState()
+            c.setLineWidth(1)
+            x_keu = x_label
+            c.line(x_keu, y_strike, x_keu + width_keu, y_strike)
+            c.restoreState()
+        gm_keu = data.get("gm_keu", 0)
+        gm_ops = data.get("gm_ops", 0)
+        gm_gabungan_checked = bool(gm_keu or gm_ops)
+        draw_checkbox(x_left, baris_y[2], "", gm_gabungan_checked)
+        label_gm_keu = "GM Keuangan & Administrasi"
+        label_gm_ops = "GM Operasional & Pemeliharaan"
+        label_gm_gabungan = f"{label_gm_keu} / {label_gm_ops}"
+        x_label_gm = x_left + CHECKBOX_SIZE + 0.3*cm
+        c.setFont("Helvetica", FONT_SIZE)
+        c.drawString(x_label_gm, baris_y[2] - FONT_SIZE/2.5/2, label_gm_gabungan)
+        width_gm_keu = c.stringWidth(label_gm_keu, "Helvetica", FONT_SIZE)
+        width_gm_slash = c.stringWidth(" / ", "Helvetica", FONT_SIZE)
+        width_gm_ops = c.stringWidth(label_gm_ops, "Helvetica", FONT_SIZE)
+        y_strike_gm = baris_y[2] - FONT_SIZE/2.5/2 + 0.2*cm
+        if gm_keu and not gm_ops:
+            c.saveState()
+            c.setLineWidth(1)
+            x_gm_ops = x_label_gm + width_gm_keu + width_gm_slash
+            c.line(x_gm_ops, y_strike_gm, x_gm_ops + width_gm_ops, y_strike_gm)
+            c.restoreState()
+        elif gm_ops and not gm_keu:
+            c.saveState()
+            c.setLineWidth(1)
+            x_gm_keu = x_label_gm
+            c.line(x_gm_keu, y_strike_gm, x_gm_keu + width_gm_keu, y_strike_gm)
+            c.restoreState()
+        draw_checkbox(x_left, baris_y[3], "", data.get("manager", 0))
+        c.setFont("Helvetica", FONT_SIZE)
+        c.drawString(x_left + CHECKBOX_SIZE + 0.3*cm, baris_y[3] - FONT_SIZE/2.5/2, "Manager")
+        y_untuk = y_disp - 4.0*LINE_HEIGHT - 0.2*cm  # Reduced spacing before "Untuk di" section
+        c.setFont("Helvetica-Bold", FONT_SIZE)
+        c.drawString(x_left, y_untuk, "Untuk di :")
+        c.setFont("Helvetica", FONT_SIZE)
+        y_untuk_item = y_untuk - 0.3*cm  # Reduced spacing after "Untuk di" label
+        draw_checkbox(x_left, y_untuk_item, "Ketahui & File", data.get("ketahui_file", 0))
+        draw_checkbox(x_left, y_untuk_item - LINE_HEIGHT, "Proses Selesai", data.get("proses_selesai", 0))
+        draw_checkbox(x_left, y_untuk_item - 2*LINE_HEIGHT, "Teliti & Pendapat", data.get("teliti_pendapat", 0))
+        draw_checkbox(x_left, y_untuk_item - 3*LINE_HEIGHT, "Buatkan Resume", data.get("buatkan_resume", 0))
+        draw_checkbox(x_left, y_untuk_item - 4*LINE_HEIGHT, "Edarkan", data.get("edarkan", 0))
+        draw_checkbox(x_left, y_untuk_item - 5*LINE_HEIGHT, "Sesuai Disposisi", data.get("sesuai_disposisi", 0))
+        draw_checkbox(x_left, y_untuk_item - 6*LINE_HEIGHT, "Bicarakan dengan Saya", data.get("bicarakan_saya", 0))
+        y_field_tambahan = y_untuk_item - 7*LINE_HEIGHT - 0.32*cm
+        # Label with colon
+        bicarakan_label = "Bicarakan dengan :"
+        bicarakan_isi = str(data.get('bicarakan_dengan', ''))
+        bicarakan_checked = bool(bicarakan_isi.strip())
+        draw_checkbox(x_left, y_field_tambahan, bicarakan_label, bicarakan_checked)
+        
+        # Position text below label with 12pt (0.42cm) spacing
+        value_x_bicarakan = x_left + CHECKBOX_SIZE + 0.5*cm  # Indented from checkbox
+        value_y_bicarakan = y_field_tambahan - 0.6*cm  # 12pt spacing below label
+        # Adjusted wrapping width
+        value_width_bicarakan = 7*cm
+        bicarakan_lines = wrap_text(bicarakan_isi, value_width_bicarakan, font_size=FONT_SIZE) if bicarakan_isi else []
+        
+        # Draw all lines with proper indentation
+        for i, line in enumerate(bicarakan_lines):
+            c.drawString(value_x_bicarakan, value_y_bicarakan - (i * 0.4*cm), line)
+        
+        # Spacing between sections
+        line_height = 0.4*cm
+        lines_count = max(1, len(bicarakan_lines))
+        EXTRA_SPACING = 0.2 * cm  # Spacing between sections
+        y_field_tambahan2 = value_y_bicarakan - (lines_count * line_height) - EXTRA_SPACING
+        # Label with colon
+        teruskan_label = "Teruskan Kepada :"
+        teruskan_isi = str(data.get('teruskan_kepada', ''))
+        teruskan_checked = bool(teruskan_isi.strip())
+        draw_checkbox(x_left, y_field_tambahan2, teruskan_label, teruskan_checked)
+        
+        # Position text below label with 12pt (0.42cm) spacing
+        value_x_teruskan = x_left + CHECKBOX_SIZE + 0.5*cm  # Indented from checkbox
+        value_y_teruskan = y_field_tambahan2 - 0.6*cm  # 12pt spacing below label
+        # Adjusted wrapping width
+        value_width_teruskan = 7*cm
+        teruskan_lines = wrap_text(teruskan_isi, value_width_teruskan, font_size=FONT_SIZE) if teruskan_isi else []
+        
+        # Draw all lines with proper indentation
+        for i, line in enumerate(teruskan_lines):
+            c.drawString(value_x_teruskan, value_y_teruskan - (i * 0.4*cm), line)
+        
+        # Spacing after teruskan section
+        lines_count = max(1, len(teruskan_lines))
+        y_field_tambahan3 = value_y_teruskan - (lines_count * 0.4*cm) - 0.3*cm
+        y_deadline_label = y_field_tambahan3 - 0.32*cm
+        c.setFont("Helvetica-Bold", FONT_SIZE)
+        c.drawString(x_left, y_deadline_label, "Harap diselesaikan Tanggal :")
+        y_deadline_box = y_deadline_label - 0.32*cm
+        deadline_box_height = 0.8*cm
+        c.rect(x_left, y_deadline_box - deadline_box_height, 7*cm, deadline_box_height)
+        if data.get('harap_selesai_tgl', ''):
+            c.setFont("Helvetica", FONT_SIZE)
+            c.drawString(x_left + 0.3*cm, y_deadline_box - 0.6*cm, format_tanggal(data.get('harap_selesai_tgl', '')))
+        blok_kiri_width = 7.0*cm
+        x_instruksi = x_left + blok_kiri_width + 0.2*cm
+        y_checkbox_manager_disp = y_disp - 3*LINE_HEIGHT
+        y_label_instruksi = y_checkbox_manager_disp
+        c.setFont("Helvetica-Bold", FONT_SIZE)
+        c.drawString(x_instruksi, y_label_instruksi, "Isi Instruksi / Informasi")
+        table_x = x_instruksi
+        margin_bawah = 2.0*cm
+        n_rows = 5
+        instruksi_table_width = width - table_x - 1.2*cm
+        # Get instruction data
+        isi_instruksi = data.get("isi_instruksi", [])
+        
+        # Ensure isi_instruksi is a list of dictionaries
+        if not isinstance(isi_instruksi, list):
+            isi_instruksi = []
+        
+        n_rows = max(1, len(isi_instruksi))
+        # Kolom tanggal kembali ke 20%, dan wrapping jika terlalu panjang
+        col_widths = [instruksi_table_width*0.20, instruksi_table_width*0.55, instruksi_table_width*0.25]
+        instruksi_lines_per_row = []
+        INSTRUKSI_FONT_SIZE = 10
+        
+        for row in range(n_rows):
+            instruksi = ""
+            if len(isi_instruksi) > row and isinstance(isi_instruksi[row], dict):
+                instruksi = str(isi_instruksi[row].get("instruksi", ""))
+            instruksi_lines = wrap_text(instruksi, col_widths[1] - 0.3*cm, font_size=INSTRUKSI_FONT_SIZE) if instruksi else []
+            instruksi_lines_per_row.append(max(1, len(instruksi_lines)))
+        # Definisikan table_y_top dan table_y_bottom sebelum digunakan
+        table_y_top = y_label_instruksi - 0.4*cm  # Reduced spacing between label and table
+        table_y_bottom = margin_bawah
+        min_row_height = (table_y_top - table_y_bottom) / n_rows
+        row_heights = []
+        for lines in instruksi_lines_per_row:
+            row_heights.append(max(min_row_height, lines * 0.6*cm + 0.3*cm))
+        total_height = sum(row_heights)
+        if total_height > (table_y_top - table_y_bottom):
+            table_y = table_y_top + (total_height - (table_y_top - table_y_bottom))
+        else:
+            table_y = table_y_top
+        # Jika semua instruksi kosong, gambar satu kotak kosong besar tanpa kolom
+        if not isi_instruksi or all((not d.get('posisi') and not d.get('instruksi') and not d.get('tanggal')) for d in isi_instruksi if isinstance(d, dict)):
+            table_y_top = y_label_instruksi - 0.4*cm
+            table_y_bottom = margin_bawah
+            c.rect(table_x, table_y_bottom, instruksi_table_width, table_y_top - table_y_bottom, stroke=1, fill=0)
+            # Tidak perlu gambar kolom atau isi apapun
+            c.save()
+            return
+        c.line(table_x, table_y, table_x + sum(col_widths), table_y)
+        y_row = table_y
+        row_bottoms = [y_row]
+        for row in range(n_rows):
+            x_cursor = table_x
+            posisi = ""
+            instruksi = tanggal = ""
+            
+            # Get instruction data for this row
+            if len(isi_instruksi) > row and isinstance(isi_instruksi[row], dict):
+                posisi = str(isi_instruksi[row].get("posisi", ""))
+                instruksi = str(isi_instruksi[row].get("instruksi", ""))
+                tanggal = str(isi_instruksi[row].get("tanggal", ""))
+            posisi_lines = wrap_text(posisi, col_widths[0] - 0.3*cm, font_size=INSTRUKSI_FONT_SIZE) if posisi else [""]
+            instruksi_lines = wrap_text(instruksi, col_widths[1] - 0.3*cm, font_size=INSTRUKSI_FONT_SIZE) if instruksi else [""]
+            row_height = row_heights[row]
+            y_row -= row_height
+            row_bottoms.append(y_row)
+            total_lines = len(posisi_lines)
+            text_block_height = total_lines * (0.6 * cm)
+            y_start_posisi = (y_row + row_height) - ((row_height - text_block_height) / 2) - (0.4 * cm)
+            for i, line in enumerate(posisi_lines):
+                c.setFont("Helvetica", INSTRUKSI_FONT_SIZE)
+                text_width = c.stringWidth(line, "Helvetica", INSTRUKSI_FONT_SIZE)
+                cell_width = col_widths[0]
+                x_center = x_cursor + (cell_width - text_width) / 2
+                y_line = y_start_posisi - (i * 0.6 * cm)
+                if line.strip() != "":
+                    c.drawString(x_center, y_line, line)
+            x_cursor += col_widths[0]
+            # CENTER isi instruksi
+            y_start_instruksi = y_row + row_height - 0.3*cm
+            for i, line in enumerate(instruksi_lines):
+                c.setFont("Helvetica", INSTRUKSI_FONT_SIZE)
+                text_width = c.stringWidth(line, "Helvetica", INSTRUKSI_FONT_SIZE)
+                cell_width = col_widths[1]
+                x_center = x_cursor + (cell_width - text_width) / 2
+                y_line = y_start_instruksi - i*0.6*cm
+                if line.strip() != "":
+                    c.drawString(x_center, y_line, line)
+            x_cursor += col_widths[1]
+            # CENTER tanggal instruksi
+            tanggal_lines = wrap_text(tanggal, col_widths[2] - 0.3*cm, font_size=FONT_SIZE) if tanggal else [""]
+            for i, line in enumerate(tanggal_lines):
+                c.setFont("Helvetica", FONT_SIZE)
+                text_width = c.stringWidth(line, "Helvetica", FONT_SIZE)
+                cell_width = col_widths[2]
+                x_center = x_cursor + (cell_width - text_width) / 2
+                y_line = y_row + row_height - 0.3*cm - 0.4*cm - i*0.6*cm
+                if line.strip() != "":
+                    c.drawString(x_center, y_line, line)
+        for i in range(len(col_widths)+1):
+            x = table_x + sum(col_widths[:i])
+            c.line(x, table_y, x, y_row)
+        for y in row_bottoms:
+            c.line(table_x, y, table_x + sum(col_widths), y)
+        c.save()
+    except Exception as e:
+        logging.error(f"save_form_to_pdf: {e}", exc_info=True)
+        try:
+            from tkinter import messagebox
+            messagebox.showerror("Export PDF", f"Gagal ekspor ke PDF: {e}")
+        except Exception:
+            pass
+
+def merge_pdfs(pdf_files, output_path):
+    """Gabungkan beberapa file PDF menjadi satu file output_path."""
+    merger = PyPDF2.PdfMerger()
+    for pdf in pdf_files:
+        merger.append(pdf)
+    merger.write(output_path)
+    merger.close()

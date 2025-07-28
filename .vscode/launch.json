@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: coba.py",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/coba.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "stopOnEntry": false
+    }
+  ]
+} 

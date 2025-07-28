@@ -1,0 +1,324 @@
+2025-07-08 08:24:09,609 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 08:26:00,103 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 08:41:03,224 ERROR:root:save_form_to_pdf: [Errno 13] Permission denied: 'C:/Users/imneo/Documents/0.pdf'
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 311, in save_form_to_pdf
+    c.save()
+  File "C:\Users\imneo\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\reportlab\pdfgen\canvas.py", line 1301, in save
+    self._doc.SaveToFile(self._filename, self)
+  File "C:\Users\imneo\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\reportlab\pdfbase\pdfdoc.py", line 208, in SaveToFile
+    f = open(filename, "wb")
+        ^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:/Users/imneo/Documents/0.pdf'
+2025-07-08 08:41:06,820 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 08:41:13,281 ERROR:root:save_form_to_pdf: [Errno 13] Permission denied: 'C:/Users/imneo/Documents/0.pdf'
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 311, in save_form_to_pdf
+    c.save()
+  File "C:\Users\imneo\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\reportlab\pdfgen\canvas.py", line 1301, in save
+    self._doc.SaveToFile(self._filename, self)
+  File "C:\Users\imneo\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\reportlab\pdfbase\pdfdoc.py", line 208, in SaveToFile
+    f = open(filename, "wb")
+        ^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:/Users/imneo/Documents/0.pdf'
+2025-07-08 08:41:15,759 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 08:41:30,438 ERROR:root:save_form_to_pdf: [Errno 13] Permission denied: 'C:/Users/imneo/Documents/0.pdf'
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 311, in save_form_to_pdf
+    c.save()
+  File "C:\Users\imneo\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\reportlab\pdfgen\canvas.py", line 1301, in save
+    self._doc.SaveToFile(self._filename, self)
+  File "C:\Users\imneo\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\reportlab\pdfbase\pdfdoc.py", line 208, in SaveToFile
+    f = open(filename, "wb")
+        ^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:/Users/imneo/Documents/0.pdf'
+2025-07-08 08:41:32,337 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 08:41:39,141 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 08:48:14,208 ERROR:root:save_form_to_pdf: [Errno 13] Permission denied: 'C:/Users/imneo/Documents/0.pdf'
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 305, in save_form_to_pdf
+    c.save()
+  File "C:\Users\imneo\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\reportlab\pdfgen\canvas.py", line 1301, in save
+    self._doc.SaveToFile(self._filename, self)
+  File "C:\Users\imneo\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\reportlab\pdfbase\pdfdoc.py", line 208, in SaveToFile
+    f = open(filename, "wb")
+        ^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:/Users/imneo/Documents/0.pdf'
+2025-07-08 08:48:21,508 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 08:48:27,360 ERROR:root:save_form_to_pdf: [Errno 13] Permission denied: 'C:/Users/imneo/Documents/0.pdf'
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 305, in save_form_to_pdf
+    c.save()
+  File "C:\Users\imneo\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\reportlab\pdfgen\canvas.py", line 1301, in save
+    self._doc.SaveToFile(self._filename, self)
+  File "C:\Users\imneo\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\reportlab\pdfbase\pdfdoc.py", line 208, in SaveToFile
+    f = open(filename, "wb")
+        ^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:/Users/imneo/Documents/0.pdf'
+2025-07-08 08:48:31,354 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 08:48:38,949 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 08:53:12,581 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 08:56:06,818 ERROR:root:save_form_to_pdf: [Errno 13] Permission denied: 'C:/Users/imneo/Documents/0.pdf'
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 306, in save_form_to_pdf
+    c.save()
+  File "C:\Users\imneo\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\reportlab\pdfgen\canvas.py", line 1301, in save
+    self._doc.SaveToFile(self._filename, self)
+  File "C:\Users\imneo\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\reportlab\pdfbase\pdfdoc.py", line 208, in SaveToFile
+    f = open(filename, "wb")
+        ^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:/Users/imneo/Documents/0.pdf'
+2025-07-08 08:56:09,241 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 08:56:15,349 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 08:58:03,267 ERROR:root:save_form_to_pdf: [Errno 13] Permission denied: 'C:/Users/imneo/Documents/0.pdf'
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 306, in save_form_to_pdf
+    c.save()
+  File "C:\Users\imneo\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\reportlab\pdfgen\canvas.py", line 1301, in save
+    self._doc.SaveToFile(self._filename, self)
+  File "C:\Users\imneo\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\reportlab\pdfbase\pdfdoc.py", line 208, in SaveToFile
+    f = open(filename, "wb")
+        ^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:/Users/imneo/Documents/0.pdf'
+2025-07-08 08:58:05,551 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 08:58:15,349 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 09:12:25,296 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 09:13:57,864 ERROR:root:save_form_to_pdf: [Errno 13] Permission denied: 'C:/Users/imneo/Documents/0.pdf'
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 318, in save_form_to_pdf
+    c.save()
+  File "C:\Users\imneo\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\reportlab\pdfgen\canvas.py", line 1301, in save
+    self._doc.SaveToFile(self._filename, self)
+  File "C:\Users\imneo\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\reportlab\pdfbase\pdfdoc.py", line 208, in SaveToFile
+    f = open(filename, "wb")
+        ^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:/Users/imneo/Documents/0.pdf'
+2025-07-08 09:14:00,063 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 09:14:14,805 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 09:16:03,957 ERROR:root:[DB ERROR] insert_form: Error binding parameter 27: type 'list' is not supported
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.ProgrammingError: Error binding parameter 27: type 'list' is not supported
+2025-07-08 09:26:25,922 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 09:35:34,772 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 09:42:36,025 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 09:44:30,755 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 10:36:24,969 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 10:42:24,250 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 10:45:10,476 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 10:50:41,861 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 10:53:28,290 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 10:54:35,535 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 10:56:07,157 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 11:01:40,876 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 11:03:15,228 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 11:04:43,229 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 13:45:42,510 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 13:48:38,454 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 14:32:54,943 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 14:33:15,161 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 16:29:25,028 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-08 16:29:45,436 ERROR:root:[DB ERROR] insert_form: table form_history has no column named dir_keu
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\db_handler.py", line 81, in insert_form
+    c.execute(sql, list(data.values()))
+sqlite3.OperationalError: table form_history has no column named dir_keu
+2025-07-09 13:29:39,406 ERROR:root:save_form_to_pdf: name 'table_y_top' is not defined
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 264, in save_form_to_pdf
+    min_row_height = (table_y_top - table_y_bottom) / n_rows
+                      ^^^^^^^^^^^
+NameError: name 'table_y_top' is not defined
+2025-07-15 08:45:46,031 ERROR:root:save_form_to_pdf: 'tgl_terima'
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 117, in save_form_to_pdf
+    y_field_klasifikasi = draw_field_vertical_flex(x_klasifikasi, y_field_klasifikasi, "Tanggal Penerimaan", format_tanggal(data["tgl_terima"]), colon_x_klasifikasi, klasifikasi_width)
+                                                                                                                            ~~~~^^^^^^^^^^^^^^
+KeyError: 'tgl_terima'
+2025-07-15 08:46:29,576 ERROR:root:save_form_to_pdf: 'tgl_terima'
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 117, in save_form_to_pdf
+    y_field_klasifikasi = draw_field_vertical_flex(x_klasifikasi, y_field_klasifikasi, "Tanggal Penerimaan", format_tanggal(data["tgl_terima"]), colon_x_klasifikasi, klasifikasi_width)
+                                                                                                                            ~~~~^^^^^^^^^^^^^^
+KeyError: 'tgl_terima'
+2025-07-15 09:51:58,738 ERROR:root:save_form_to_pdf: 'tgl_terima'
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 117, in save_form_to_pdf
+    y_field_klasifikasi = draw_field_vertical_flex(x_klasifikasi, y_field_klasifikasi, "Tanggal Penerimaan", format_tanggal(data["tgl_terima"]), colon_x_klasifikasi, klasifikasi_width)
+                                                                                                                            ~~~~^^^^^^^^^^^^^^
+KeyError: 'tgl_terima'
+2025-07-15 09:54:47,185 ERROR:root:save_form_to_pdf: 'kode_klasifikasi'
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 118, in save_form_to_pdf
+    y_field_klasifikasi = draw_field_vertical_flex(x_klasifikasi, y_field_klasifikasi, "Kode / Klasifikasi", data["kode_klasifikasi"], colon_x_klasifikasi, klasifikasi_width)
+                                                                                                             ~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'kode_klasifikasi'
+2025-07-15 09:57:54,972 ERROR:root:save_form_to_pdf: 'indeks'
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 119, in save_form_to_pdf
+    y_field_klasifikasi = draw_field_vertical_flex(x_klasifikasi, y_field_klasifikasi, "Indeks", data["indeks"], colon_x_klasifikasi, klasifikasi_width)
+                                                                                                 ~~~~^^^^^^^^^^
+KeyError: 'indeks'
+2025-07-15 09:58:59,343 ERROR:root:save_form_to_pdf: 'indeks'
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 119, in save_form_to_pdf
+    y_field_klasifikasi = draw_field_vertical_flex(x_klasifikasi, y_field_klasifikasi, "Indeks", data["indeks"], colon_x_klasifikasi, klasifikasi_width)
+                                                                                                 ~~~~^^^^^^^^^^
+KeyError: 'indeks'
+2025-07-15 11:25:24,600 ERROR:root:save_form_to_pdf: 'harap_selesaikan_tgl'
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 242, in save_form_to_pdf
+    if data['harap_selesaikan_tgl']:
+       ~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'harap_selesaikan_tgl'
+2025-07-15 14:06:28,703 ERROR:root:save_form_to_pdf: 'rahasia'
+Traceback (most recent call last):
+  File "C:\Users\imneo\Documents\Magang\dispo\pdf_output.py", line 109, in save_form_to_pdf
+    draw_checkbox(x_klasifikasi, y_klasifikasi_start, "RAHASIA", data["rahasia"], bold=True)
+                                                                 ~~~~^^^^^^^^^^^
+KeyError: 'rahasia'
