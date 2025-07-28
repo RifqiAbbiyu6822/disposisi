@@ -9,7 +9,7 @@ from google_sheets_connect import append_row_to_sheet, create_new_sheet, write_m
 import smtplib
 import tempfile
 from email.message import EmailMessage
-from sheet_logic import upload_to_sheet, get_untuk_di_labels, get_disposisi_labels, get_log_entry_by_no_surat
+from sheet_logic import upload_to_sheet, get_untuk_di_labels, get_disposisi_labels
 from logic.instruksi_table import InstruksiTable
 import time
 from tkcalendar import DateEntry
