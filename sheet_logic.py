@@ -248,6 +248,22 @@ def upload_to_sheet(self, call_from_pdf=False, data_override=None):
                     isi_instruksi = []
             data["isi_instruksi"] = isi_instruksi
         
+        # VALIDASI: Hanya No. Surat yang wajib diisi
+        no_surat = data.get("no_surat", "").strip()
+        if not no_surat:
+            messagebox.showerror("Validasi", "No. Surat wajib diisi!")
+            return False
+        
+        # Cek duplikasi No. Surat
+        try:
+            from disposisi_app.views.components.validation import is_no_surat_unique
+            if not is_no_surat_unique(no_surat, get_sheets_service, SHEET_ID):
+                messagebox.showerror("Validasi", f"No. Surat '{no_surat}' sudah ada di database!")
+                return False
+        except Exception as e:
+            print(f"[WARNING] Error checking uniqueness: {e}")
+            # Continue anyway if validation fails
+        
         # Ensure sheet has proper headers
         from googleapiclient.errors import HttpError
         import time
@@ -273,96 +289,13 @@ def upload_to_sheet(self, call_from_pdf=False, data_override=None):
         
         if not call_from_pdf:
             messagebox.showinfo("Sukses", "Data berhasil diupload ke Google Sheets.")
+        
+        return True
             
     except Exception as e:
         traceback.print_exc()
         messagebox.showerror("Google Sheets", f"Gagal upload ke Google Sheets: {e}")
-
-def get_log_entry_by_no_surat(no_surat):
-    """Get log entry by No. Surat with proper field mapping"""
-    try:
-        service = get_sheets_service()
-        range_name = 'Sheet1!A6:AB'
-        result = service.spreadsheets().values().get(
-            spreadsheetId=SHEET_ID,
-            range=range_name
-        ).execute()
-        values = result.get('values', [])
-        
-        for row in values:
-            # Ensure row has all columns
-            row = row + ["" for _ in range(len(ENHANCED_HEADER) - len(row))]
-            
-            if row[1] == no_surat:  # No. Surat is in column 1
-                # Create data dictionary with original headers
-                data = {ENHANCED_HEADER[i]: row[i] for i in range(len(ENHANCED_HEADER))}
-                
-                # Apply field mapping for consistent naming
-                for sheet_header, app_field in FIELD_MAPPING.items():
-                    if sheet_header in data:
-                        data[app_field] = data[sheet_header]
-                
-                # Normalize date formats
-                date_fields = ["tgl_surat", "tgl_terima", "harap_selesai_tgl", "selesai_tgl"]
-                for field in date_fields:
-                    if field in data and data[field]:
-                        data[field] = normalize_date_format(data[field])
-                
-                # Convert classification to boolean flags
-                klasifikasi_value = data.get("Klasifikasi", "").upper()
-                data["rahasia"] = 1 if "RAHASIA" in klasifikasi_value else 0
-                data["penting"] = 1 if "PENTING" in klasifikasi_value else 0
-                data["segera"] = 1 if "SEGERA" in klasifikasi_value else 0
-                
-                # Parse disposisi kepada
-                disposisi_str = data.get("Disposisi kepada", "")
-                data["dir_utama"] = 1 if "Direktur Utama" in disposisi_str else 0
-                data["dir_keu"] = 1 if "Direktur Keuangan" in disposisi_str else 0
-                data["dir_teknik"] = 1 if "Direktur Teknik" in disposisi_str else 0
-                data["gm_keu"] = 1 if "GM Keuangan & Administrasi" in disposisi_str else 0
-                data["gm_ops"] = 1 if "GM Operasional & Pemeliharaan" in disposisi_str else 0
-                data["manager"] = 1 if "Manager" in disposisi_str else 0
-                
-                # Parse untuk di
-                untuk_di_str = data.get("Untuk Di :", "")
-                data["ketahui_file"] = 1 if "Ketahui & File" in untuk_di_str else 0
-                data["proses_selesai"] = 1 if "Proses Selesai" in untuk_di_str else 0
-                data["teliti_pendapat"] = 1 if "Teliti & Pendapat" in untuk_di_str else 0
-                data["buatkan_resume"] = 1 if "Buatkan Resume" in untuk_di_str else 0
-                data["edarkan"] = 1 if "Edarkan" in untuk_di_str else 0
-                data["sesuai_disposisi"] = 1 if "Sesuai Disposisi" in untuk_di_str else 0
-                data["bicarakan_saya"] = 1 if "Bicarakan dengan Saya" in untuk_di_str else 0
-                
-                # Convert instructions to list of dict
-                instruksi_jabatan_map = [
-                    ("Direktur Utama Instruksi", "Direktur Utama", "Direktur Utama Tanggal"),
-                    ("Direktur Keuangan Instruksi", "Direktur Keuangan", "Direktur Keuangan Tanggal"),
-                    ("Direktur Teknik Instruksi", "Direktur Teknik", "Direktur Teknik Tanggal"),
-                    ("GM Keuangan & Administrasi Instruksi", "GM Keuangan & Administrasi", "GM Keuangan & Administrasi Tanggal"),
-                    ("GM Operasional & Pemeliharaan Instruksi", "GM Operasional & Pemeliharaan", "GM Operasional & Pemeliharaan Tanggal"),
-                    ("Manager Instruksi", "Manager", "Manager Tanggal")
-                ]
-                
-                instruksi_from_log = []
-                for instr_col, posisi_label, tgl_col in instruksi_jabatan_map:
-                    instruksi_val = data.get(instr_col, "").strip()
-                    tgl_val = data.get(tgl_col, "").strip()
-                    if instruksi_val:
-                        instruksi_from_log.append({
-                            "posisi": posisi_label,
-                            "instruksi": instruksi_val,
-                            "tanggal": normalize_date_format(tgl_val)
-                        })
-                
-                data["isi_instruksi"] = instruksi_from_log
-                return data
-        
-        return None
-        
-    except Exception as e:
-        print(f"[get_log_entry_by_no_surat] Error: {e}")
-        traceback.print_exc()
-        return None
+        return False
 
 def update_log_entry(data_lama, data_baru):
     """Update log entry in Google Sheets"""

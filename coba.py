@@ -6,11 +6,21 @@ import platform
 import sys
 import os
 from google_sheets_connect import append_row_to_sheet, create_new_sheet, write_multilayer_header, append_rows_to_sheet, get_sheets_service, SHEET_ID
+import smtplib
+import tempfile
+from email.message import EmailMessage
 from sheet_logic import upload_to_sheet, get_untuk_di_labels, get_disposisi_labels, get_log_entry_by_no_surat
 from logic.instruksi_table import InstruksiTable
 import time
 from tkcalendar import DateEntry
 from main_app.edit_tab import EditTab
+from pdf_output import save_form_to_pdf, merge_pdfs
+from disposisi_app.views.components.export_utils import collect_form_data_safely
+
+try:
+    from config import EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
+except ImportError:
+    EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD = (None, None, None, None)
 # Import komponen UI modular
 from disposisi_app.views.components.loading_screen import LoadingScreen
 from disposisi_app.views.components.header import create_header
@@ -21,7 +31,7 @@ from disposisi_app.views.components.form_sections import (
 )
 from disposisi_app.views.components.button_frame import create_button_frame
 from disposisi_app.views.components.window_utils import center_window, setup_windowed_fullscreen
-from disposisi_app.views.components.status_utils import update_status
+from disposisi_app.views.components.status_utils import update_status 
 from disposisi_app.views.components.validation import is_no_surat_unique
 from disposisi_app.views.components.shortcuts import setup_shortcuts
 from disposisi_app.views.components.gesture_handlers import setup_touchpad_gestures
@@ -46,6 +56,9 @@ class FormApp(tk.Tk):
         self.title("📋 Aplikasi Persuratan Disposisi")
         self.geometry("1400x1000")
         self.minsize(1200, 800)
+        
+        # Initialize form variables
+        self.form_vars = {}
         
         # Modern color scheme
         self.configure(bg="#f8fafc")
@@ -617,13 +630,36 @@ class FormApp(tk.Tk):
         input_widgets.update(self.create_top_frame(main_frame))
         input_widgets.update(self.create_middle_frame(main_frame))
         
-        # Pastikan attachment_listbox sudah dibuat sebelum create_button_frame
-        if not hasattr(self, "attachment_listbox"):
-            self.attachment_listbox = tk.Listbox(main_frame, height=2, selectmode=tk.SINGLE, 
-                                               font=("Segoe UI", 9),
-                                               bg="#ffffff", fg="#1f2937",
-                                               selectbackground="#3b82f6",
-                                               relief="solid", borderwidth=1)
+        # Create attachment section with modern styling
+        attachment_frame = ttk.LabelFrame(main_frame, text="📎 Lampiran PDF", padding=(20, 15, 20, 20), style="TLabelframe")
+        attachment_frame.grid(row=3, column=0, sticky="nsew", pady=(0, 20))
+        
+        # Create attachment listbox with scrollbar
+        listbox_frame = ttk.Frame(attachment_frame)
+        listbox_frame.pack(fill="both", expand=True)
+        
+        self.attachment_listbox = tk.Listbox(listbox_frame, height=4, selectmode=tk.SINGLE,
+                                           font=("Segoe UI", 9),
+                                           bg="#ffffff", fg="#1f2937",
+                                           selectbackground="#3b82f6",
+                                           relief="solid", borderwidth=1)
+        scrollbar = ttk.Scrollbar(listbox_frame, orient="vertical", command=self.attachment_listbox.yview)
+        self.attachment_listbox.configure(yscrollcommand=scrollbar.set)
+        
+        self.attachment_listbox.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Attachment buttons frame
+        attachment_buttons = ttk.Frame(attachment_frame)
+        attachment_buttons.pack(fill="x", pady=(10, 0))
+        
+        add_btn = ttk.Button(attachment_buttons, text="➕ Tambah PDF", 
+                            command=self.add_pdf_attachment, style="Secondary.TButton")
+        add_btn.pack(side="left", padx=(0, 5))
+        
+        remove_btn = ttk.Button(attachment_buttons, text="🗑️ Hapus PDF", 
+                               command=self.remove_pdf_attachment, style="Secondary.TButton")
+        remove_btn.pack(side="left")
         
         self.create_button_frame(main_frame)
         self.add_tooltips(input_widgets)
@@ -740,30 +776,148 @@ class FormApp(tk.Tk):
     def create_button_frame(self, parent):
         # Use the new unified button frame from button_frame.py
         from disposisi_app.views.components.button_frame import create_button_frame
-        def on_selesai():
-            # Show preview and export/email options
-            if hasattr(self, 'preview_frame'):
-                self.preview_frame.grid()
-        def export_pdf():
-            self.save_to_pdf()
-        def upload_sheet():
-            self.save_to_sheet()
-        def on_remove_pdf(idx):
-            if 0 <= idx < len(self.pdf_attachments):
-                del self.pdf_attachments[idx]
-                self.create_button_frame(parent)
+
         callbacks = {
-            "on_selesai": on_selesai,
-            "export_pdf": export_pdf,
-            "upload_sheet": upload_sheet,
+            "save_pdf": self.save_to_pdf,
+            "save_sheet": self.save_to_sheet,
+            "send_email": self.send_email_with_disposisi,
+            "get_disposisi_labels": self.get_disposisi_labels,
+            "clear_form": self.clear_form
         }
         self._button_frame = create_button_frame(
             parent,
-            callbacks,
-            self.pdf_attachments,
-            on_remove_pdf
+            callbacks
         )
         return self._button_frame
+
+    # Perbaikan fungsi send_email_with_disposisi di coba.py
+
+def send_email_with_disposisi(self, recipients):
+    """
+    Generates the disposition PDF, attaches it, and sends it to the specified recipients.
+    """
+    # Check if email configuration exists
+    try:
+        # Try to get configuration from config.py first
+        from config import EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
+        if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD]):
+            raise ImportError("Email configuration incomplete")
+    except ImportError:
+        # Fallback to environment variables
+        import os
+        EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+        EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+        EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+        EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+        
+        if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
+            # Try email_sender config
+            try:
+                from email_sender.config import SENDER_EMAIL, SENDER_PASSWORD
+                EMAIL_HOST_USER = SENDER_EMAIL
+                EMAIL_HOST_PASSWORD = SENDER_PASSWORD
+            except:
+                messagebox.showerror("Email Error", 
+                    "Email belum dikonfigurasi. Pastikan file config.py atau .env berisi konfigurasi email.")
+                return
+
+    self.update_status("Preparing email...")
+    
+    # 1. Collect form data
+    data = collect_form_data_safely(self)
+    if not data.get("no_surat", "").strip():
+        messagebox.showerror("Validation Error", "No. Surat tidak boleh kosong untuk mengirim email.")
+        return
+
+    # 2. Generate PDF to a temporary file
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
+            temp_pdf_path = temp_pdf.name
+        
+        # Generate the main disposition form
+        save_form_to_pdf(temp_pdf_path, data)
+        
+        # If there are other attachments, merge them
+        final_pdf_path = temp_pdf_path
+        if hasattr(self, 'pdf_attachments') and self.pdf_attachments:
+            merged_pdf_path = os.path.join(tempfile.gettempdir(), f"merged_{os.path.basename(temp_pdf_path)}")
+            pdf_list = [temp_pdf_path] + self.pdf_attachments
+            merge_pdfs(pdf_list, merged_pdf_path)
+            final_pdf_path = merged_pdf_path
+
+    except Exception as e:
+        messagebox.showerror("PDF Generation Error", f"Gagal membuat PDF untuk email: {e}")
+        traceback.print_exc()
+        return
+        
+    # 3. Create and send the email
+    try:
+        msg = EmailMessage()
+        msg['Subject'] = f'Disposisi Surat: {data.get("perihal", "N/A")}'
+        msg['From'] = EMAIL_HOST_USER
+        msg['To'] = ", ".join(recipients)
+        
+        body = f"""Yth. Bapak/Ibu,
+
+Berikut terlampir lembar disposisi untuk surat dengan detail:
+• Perihal: {data.get('perihal', 'N/A')}
+• Nomor Surat: {data.get('no_surat', 'N/A')}
+• Asal Surat: {data.get('asal_surat', 'N/A')}
+
+Mohon untuk dapat ditindaklanjuti sesuai dengan disposisi terlampir.
+
+Terima kasih.
+
+--
+Sistem Disposisi Otomatis
+PT Jasamarga Jalanlayang Cikampek"""
+        
+        msg.set_content(body)
+
+        # Attach the PDF
+        with open(final_pdf_path, 'rb') as f:
+            file_data = f.read()
+            file_name = f"Disposisi_{data.get('no_surat', 'surat').replace('/', '_')}.pdf"
+            msg.add_attachment(file_data, maintype='application', subtype='octet-stream', filename=file_name)
+
+        # Send the email
+        self.update_status(f"Mengirim email ke {', '.join(recipients)}...")
+        
+        # Use the correct SMTP configuration
+        if EMAIL_PORT == 465:
+            # SSL
+            import smtplib
+            with smtplib.SMTP_SSL(EMAIL_HOST, EMAIL_PORT) as server:
+                server.login(EMAIL_HOST_USER, EMAIL_HOST_PASSWORD)
+                server.send_message(msg)
+        else:
+            # TLS
+            import smtplib
+            with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
+                server.starttls()
+                server.login(EMAIL_HOST_USER, EMAIL_HOST_PASSWORD)
+                server.send_message(msg)
+        
+        self.update_status("Email berhasil dikirim!")
+        messagebox.showinfo("Email Sent", f"Email berhasil dikirim ke: {', '.join(recipients)}")
+
+    except Exception as e:
+        self.update_status("Gagal mengirim email.")
+        messagebox.showerror("Email Error", f"Gagal mengirim email: {e}")
+        traceback.print_exc()
+        
+    finally:
+        # 4. Clean up temporary files
+        if 'temp_pdf_path' in locals() and os.path.exists(temp_pdf_path):
+            try:
+                os.remove(temp_pdf_path)
+            except:
+                pass
+        if 'final_pdf_path' in locals() and final_pdf_path != temp_pdf_path and os.path.exists(final_pdf_path):
+            try:
+                os.remove(final_pdf_path)
+            except:
+                pass
 
     def refresh_pdf_attachments(self, parent):
         # Hapus frame lama dan render ulang

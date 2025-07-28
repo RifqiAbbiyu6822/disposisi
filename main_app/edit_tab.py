@@ -326,7 +326,7 @@ class EditTab(ttk.Frame):
                 return
             # Cek duplikasi No. Surat (kecuali data yang sedang diedit)
             try:
-                from sheet_logic import get_sheets_service, SHEET_ID
+                from google_sheets_connect import get_sheets_service, SHEET_ID
                 service = get_sheets_service()
                 range_name = 'Sheet1!A6:B'
                 result = service.spreadsheets().values().get(
