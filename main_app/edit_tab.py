@@ -2,11 +2,12 @@ import tkinter as tk
 from tkinter import ttk, Text, messagebox
 from tkcalendar import DateEntry
 from logic.instruksi_table import InstruksiTable
-from sheet_logic import update_log_entry
+from edit_logic import update_log_entry
 from disposisi_app.views.components.form_sections import (
     populate_frame_kiri, populate_frame_kanan, populate_frame_disposisi, populate_frame_instruksi
 )
 from disposisi_app.views.components.export_utils import collect_form_data_safely
+from datetime import datetime
 
 def bind_mousewheel_recursive(widget, func):
     widget.bind_all("<MouseWheel>", func)
@@ -133,8 +134,8 @@ class EditTab(ttk.Frame):
         instruksi_widgets = populate_frame_instruksi(self.frame_instruksi, self.vars)
         self.form_input_widgets.update(instruksi_widgets)
         # Store harap_selesai_tgl_entry if it exists
-        if "harap_selesai_tgl_entry" in instruksi_widgets:
-            self.harap_selesai_tgl_entry = instruksi_widgets["harap_selesai_tgl_entry"]
+        if "harap_selesai_tgl" in instruksi_widgets:
+            self.harap_selesai_tgl_entry = instruksi_widgets["harap_selesai_tgl"]
         
         # Right column - Isi Instruksi/Informasi
         self.frame_info = ttk.LabelFrame(self.middle_frame, text="Isi Instruksi / Informasi", padding="15", style="TLabelframe")
@@ -279,6 +280,38 @@ class EditTab(ttk.Frame):
         # Handle shift+mouse wheel for horizontal scrolling
         self.canvas.xview_scroll(int(-1*(event.delta/120)), "units")
 
+    def _parse_date_string(self, date_str):
+        """Parse date string in various formats and return in dd-mm-yyyy format"""
+        if not date_str or date_str.strip() == "":
+            return ""
+        
+        date_str = str(date_str).strip()
+        
+        # Common date formats to try
+        date_formats = [
+            "%d-%m-%Y",  # 31-12-2024
+            "%d/%m/%Y",  # 31/12/2024
+            "%Y-%m-%d",  # 2024-12-31
+            "%Y/%m/%d",  # 2024/12/31
+            "%d-%m-%y",  # 31-12-24
+            "%d/%m/%y",  # 31/12/24
+            "%d %B %Y",  # 31 December 2024
+            "%d %b %Y",  # 31 Dec 2024
+            "%B %d, %Y", # December 31, 2024
+            "%b %d, %Y", # Dec 31, 2024
+        ]
+        
+        for fmt in date_formats:
+            try:
+                dt = datetime.strptime(date_str, fmt)
+                return dt.strftime("%d-%m-%Y")
+            except ValueError:
+                continue
+        
+        # If no format matches, return the original string
+        print(f"[EditTab] Warning: Could not parse date '{date_str}'")
+        return date_str
+
     def _fill_form_from_log(self, data):
         print("[EditTab] Mengisi form dari data log:", data)
         # Mapping dari header Google Sheets ke key pythonic
@@ -367,32 +400,33 @@ class EditTab(ttk.Frame):
                 widget.delete("1.0", tk.END)
                 widget.insert("1.0", data.get(key, ""))
         
-        # FIX: Parse date string before setting it to DateEntry to avoid errors
-        import datetime
+        # FIX: Improved date handling for DateEntry widgets
         for key in ["tgl_surat", "tgl_terima", "harap_selesai_tgl"]:
             if key in self.form_input_widgets:
                 widget = self.form_input_widgets[key]
-                date_value = str(data.get(key, "")).strip()
+                date_value = data.get(key, "")
                 
-                if date_value:
-                    parsed_date = None
-                    # Coba beberapa format tanggal yang umum
-                    for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"):
-                        try:
-                            parsed_date = datetime.datetime.strptime(date_value, fmt).date()
-                            break # Berhasil parse, keluar dari loop
-                        except ValueError:
-                            continue # Coba format berikutnya
-                    
-                    if parsed_date:
-                        widget.set_date(parsed_date)
+                try:
+                    if date_value and str(date_value).strip():
+                        # Parse the date string to ensure it's in the correct format
+                        parsed_date = self._parse_date_string(date_value)
+                        if parsed_date:
+                            # Convert to datetime object for DateEntry
+                            dt = datetime.strptime(parsed_date, "%d-%m-%Y")
+                            widget.set_date(dt)
+                        else:
+                            # Clear the widget if parsing fails
+                            widget.delete(0, tk.END)
                     else:
-                        # Jika semua format gagal, tampilkan string aslinya agar tidak hilang
-                        print(f"[EditTab] Warning: Could not parse date '{date_value}' for {key}. Displaying as text.")
-                        widget.set(date_value)
-                else:
-                    # Jika tidak ada nilai, kosongkan field
-                    widget.set_date(None)
+                        # Clear the widget for empty dates
+                        widget.delete(0, tk.END)
+                except Exception as e:
+                    print(f"[EditTab] Error setting date for {key}: {e}")
+                    # Clear the widget on error
+                    try:
+                        widget.delete(0, tk.END)
+                    except:
+                        pass
         
         # Instruksi table
         if "isi_instruksi" in data:
@@ -406,14 +440,27 @@ class EditTab(ttk.Frame):
             print("[EditTab] Mulai proses simpan edit.")
             # Ambil data dari form menggunakan collect_form_data_safely
             data_baru = collect_form_data_safely(self)
+            
+            # Convert empty strings to None for nullable fields (all except no_surat)
+            nullable_fields = [
+                "no_agenda", "perihal", "asal_surat", "ditujukan",
+                "kode_klasifikasi", "indeks", "bicarakan_dengan", 
+                "teruskan_kepada", "tgl_surat", "tgl_terima", "harap_selesai_tgl"
+            ]
+            
+            for field in nullable_fields:
+                if field in data_baru and data_baru[field] == "":
+                    data_baru[field] = ""  # Keep empty string to allow clearing fields
+            
             print("[EditTab] Data baru yang akan diupdate:", data_baru)
 
-            # Validasi hanya No. Surat yang wajib diisi dan harus unik
+            # Validasi hanya No. Surat yang wajib diisi
             no_surat_baru = data_baru.get("no_surat", "").strip()
             if not no_surat_baru:
                 print(f"[EditTab][ERROR] Field 'No. Surat' kosong!")
                 messagebox.showerror("Error", "Field 'No. Surat' tidak boleh kosong!")
                 return
+            
             # Cek duplikasi No. Surat (kecuali data yang sedang diedit)
             try:
                 from google_sheets_connect import get_sheets_service, SHEET_ID
@@ -433,7 +480,7 @@ class EditTab(ttk.Frame):
                             return
             except Exception as e:
                 print(f"[EditTab][WARNING] Tidak bisa cek duplikasi No. Surat: {e}")
-                # Jika gagal cek, tetap lanjutkan (opsional, bisa diubah)
+                # Continue even if duplicate check fails
 
             try:
                 from disposisi_app.views.components.loading_screen import LoadingScreen
