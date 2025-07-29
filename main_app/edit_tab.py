@@ -6,6 +6,7 @@ from sheet_logic import update_log_entry
 from disposisi_app.views.components.form_sections import (
     populate_frame_kiri, populate_frame_kanan, populate_frame_disposisi, populate_frame_instruksi
 )
+from disposisi_app.views.components.export_utils import collect_form_data_safely
 
 def bind_mousewheel_recursive(widget, func):
     widget.bind_all("<MouseWheel>", func)
@@ -70,6 +71,7 @@ class EditTab(ttk.Frame):
         
         # Main frame inside canvas
         self.main_frame = ttk.Frame(self.canvas, padding="15", style="TFrame")
+        self._form_main_frame = self.main_frame  # Add reference for consistency with main app
         self.canvas.create_window((0, 0), window=self.main_frame, anchor="nw")
         
         # Configure resizing
@@ -100,8 +102,14 @@ class EditTab(ttk.Frame):
         # Right frame - Klasifikasi
         self.frame_kanan = ttk.LabelFrame(self.top_frame, text="Klasifikasi", padding="15", style="TLabelframe")
         self.frame_kanan.grid(row=0, column=1, sticky="nsew", padx=5)
-        # FIX: Update form_input_widgets with widgets returned from populate_frame_kanan
-        self.form_input_widgets.update(populate_frame_kanan(self.frame_kanan, self.vars))
+        # FIX: Store the returned widgets properly
+        kanan_widgets = populate_frame_kanan(self.frame_kanan, self.vars)
+        if isinstance(kanan_widgets, dict):
+            self.form_input_widgets.update(kanan_widgets)
+        # Store the tgl_terima_entry separately if it's returned directly
+        elif kanan_widgets:
+            self.tgl_terima_entry = kanan_widgets
+            self.form_input_widgets["tgl_terima"] = kanan_widgets
 
     def _create_middle_frame(self):
         # Middle frame with three columns
@@ -122,7 +130,11 @@ class EditTab(ttk.Frame):
         # Middle column - Untuk di
         self.frame_instruksi = ttk.LabelFrame(self.middle_frame, text="Untuk di", padding="15", style="TLabelframe")
         self.frame_instruksi.grid(row=0, column=1, sticky="nsew", padx=5)
-        self.form_input_widgets.update(populate_frame_instruksi(self.frame_instruksi, self.vars))
+        instruksi_widgets = populate_frame_instruksi(self.frame_instruksi, self.vars)
+        self.form_input_widgets.update(instruksi_widgets)
+        # Store harap_selesai_tgl_entry if it exists
+        if "harap_selesai_tgl_entry" in instruksi_widgets:
+            self.harap_selesai_tgl_entry = instruksi_widgets["harap_selesai_tgl_entry"]
         
         # Right column - Isi Instruksi/Informasi
         self.frame_info = ttk.LabelFrame(self.middle_frame, text="Isi Instruksi / Informasi", padding="15", style="TLabelframe")
@@ -136,6 +148,7 @@ class EditTab(ttk.Frame):
         self.frame_instruksi_table = ttk.Frame(self.frame_info)
         self.frame_instruksi_table.grid(row=0, column=0, sticky="nsew")
         self.instruksi_table = InstruksiTable(self.frame_instruksi_table, self.posisi_options, use_grid=True)
+        
         # Tombol tambah/hapus baris
         self.frame_instruksi_btn = ttk.Frame(self.frame_info)
         self.frame_instruksi_btn.grid(row=1, column=0, sticky="ew", pady=(5,0))
@@ -147,33 +160,111 @@ class EditTab(ttk.Frame):
         self.btn_kosongkan_baris.pack(side="left", padx=2)
 
     def _create_button_frame(self):
-        # Use the new unified button frame from button_frame.py
+        # Create button frame aligned with main app
         from disposisi_app.views.components.button_frame import create_button_frame
-        def on_selesai():
-            # Show preview and export/email options
-            if hasattr(self, 'preview_frame'):
-                self.preview_frame.grid()
-        def export_pdf():
-            self._on_export_pdf()
-        def upload_sheet():
-            self._on_save()
-        def on_remove_pdf(idx):
-            if 0 <= idx < len(self.pdf_attachments):
-                del self.pdf_attachments[idx]
-                # Re-render button frame to update attachments
-                self.button_frame.destroy()
-                self._create_button_frame()
+        
         callbacks = {
-            "on_selesai": on_selesai,
-            "export_pdf": export_pdf,
-            "upload_sheet": upload_sheet,
+            "save_pdf": self._on_export_pdf,
+            "save_sheet": self._on_save,
+            "send_email": self._on_send_email,
+            "get_disposisi_labels": self.get_disposisi_labels,
+            "clear_form": self._on_cancel  # Use cancel as clear in edit mode
         }
-        self.button_frame = create_button_frame(
+        
+        self._button_frame = create_button_frame(
             self.main_frame,
-            callbacks,
-            self.pdf_attachments,
-            on_remove_pdf
+            callbacks
         )
+        
+        # Override the button frame to show edit-specific buttons
+        self._customize_edit_buttons()
+
+    def _customize_edit_buttons(self):
+        """Customize buttons for edit mode"""
+        # Clear existing button frame content
+        for widget in self._button_frame.winfo_children():
+            widget.destroy()
+        
+        # Create edit-specific buttons
+        btn_frame = ttk.Frame(self._button_frame)
+        btn_frame.pack(fill="x", pady=10)
+        
+        # Save button
+        btn_save = ttk.Button(btn_frame, text="💾 Simpan Perubahan", 
+                             command=self._on_save, style="Success.TButton")
+        btn_save.pack(side="left", padx=5)
+        
+        # Export PDF button
+        btn_pdf = ttk.Button(btn_frame, text="📄 Export ke PDF", 
+                            command=self._on_export_pdf, style="Primary.TButton")
+        btn_pdf.pack(side="left", padx=5)
+        
+        # Send Email button
+        btn_email = ttk.Button(btn_frame, text="📧 Kirim Email", 
+                              command=self._show_email_dialog, style="Primary.TButton")
+        btn_email.pack(side="left", padx=5)
+        
+        # Cancel button
+        btn_cancel = ttk.Button(btn_frame, text="❌ Batal", 
+                               command=self._on_cancel, style="Secondary.TButton")
+        btn_cancel.pack(side="right", padx=5)
+
+    def get_disposisi_labels(self):
+        """Get selected disposisi labels - compatible with main app"""
+        mapping = [
+            ("dir_utama", "Direktur Utama"),
+            ("dir_keu", "Direktur Keuangan"),
+            ("dir_teknik", "Direktur Teknik"),
+            ("gm_keu", "GM Keuangan & Administrasi"),
+            ("gm_ops", "GM Operasional & Pemeliharaan"),
+            ("manager", "Manager"),
+        ]
+        labels = []
+        for var, label in mapping:
+            if var in self.vars and self.vars[var].get():
+                labels.append(label)
+        return labels
+
+    def _show_email_dialog(self):
+        """Show email dialog for sending disposition"""
+        disposisi_labels = self.get_disposisi_labels()
+        if not disposisi_labels:
+            messagebox.showwarning("Peringatan", "Pilih minimal satu disposisi kepada untuk mengirim email.")
+            return
+        
+        from disposisi_app.views.components.finish_dialog import FinishDialog
+        callbacks = {
+            "save_pdf": self._on_export_pdf,
+            "save_sheet": self._on_save,
+            "send_email": self._on_send_email
+        }
+        dialog = FinishDialog(self, disposisi_labels, callbacks)
+        self.wait_window(dialog)
+
+    def _on_send_email(self, recipients):
+        """Send email with updated disposition data"""
+        try:
+            # Collect current form data
+            data = collect_form_data_safely(self)
+            
+            # Import the send_email_with_disposisi function from main app
+            from disposisi_app.views.components.export_utils import send_email_with_disposisi
+            
+            # Update status if available
+            if hasattr(self, 'update_status'):
+                self.update_status("Mengirim email...")
+            
+            # Send email using the main app's function
+            send_email_with_disposisi(self, recipients)
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            messagebox.showerror("Error", f"Gagal mengirim email: {e}")
+
+    def update_status(self, message):
+        """Update status message - for compatibility"""
+        print(f"[EditTab] Status: {message}")
 
     def _on_mousewheel(self, event):
         # Handle mouse wheel scrolling
@@ -303,19 +394,8 @@ class EditTab(ttk.Frame):
         import threading
         def do_save():
             print("[EditTab] Mulai proses simpan edit.")
-            # Ambil data dari form
-            data_baru = {key: var.get() for key, var in self.vars.items()}
-            for key in ["perihal", "asal_surat", "ditujukan", "bicarakan_dengan", "teruskan_kepada"]:
-                if key in self.form_input_widgets:
-                    data_baru[key] = self.form_input_widgets[key].get("1.0", tk.END).strip()
-            
-            # FIX: Remove fallback logic that prevented date clearing
-            for key in ["tgl_surat", "tgl_terima", "harap_selesai_tgl"]:
-                if key in self.form_input_widgets:
-                    # Simply get the current value from the widget
-                    data_baru[key] = self.form_input_widgets[key].get()
-            
-            data_baru["isi_instruksi"] = self.instruksi_table.get_data()
+            # Ambil data dari form menggunakan collect_form_data_safely
+            data_baru = collect_form_data_safely(self)
             print("[EditTab] Data baru yang akan diupdate:", data_baru)
 
             # Validasi hanya No. Surat yang wajib diisi dan harus unik
@@ -346,7 +426,7 @@ class EditTab(ttk.Frame):
                 # Jika gagal cek, tetap lanjutkan (opsional, bisa diubah)
 
             try:
-                from coba import LoadingScreen
+                from disposisi_app.views.components.loading_screen import LoadingScreen
                 loading = LoadingScreen(self)
                 for i in range(1, 101):
                     import time; time.sleep(0.01)
@@ -389,15 +469,9 @@ class EditTab(ttk.Frame):
                 )
                 if not filepath:
                     return
-                # Ambil data dari form (seperti _on_save)
-                data_baru = {key: var.get() for key, var in self.vars.items()}
-                for key in ["perihal", "asal_surat", "ditujukan", "bicarakan_dengan", "teruskan_kepada"]:
-                    if key in self.form_input_widgets:
-                        data_baru[key] = self.form_input_widgets[key].get("1.0", tk.END).strip()
-                for key in ["tgl_surat", "tgl_terima", "harap_selesai_tgl"]:
-                    if key in self.form_input_widgets:
-                        data_baru[key] = self.form_input_widgets[key].get()
-                data_baru["isi_instruksi"] = self.instruksi_table.get_data()
+                # Ambil data dari form menggunakan collect_form_data_safely
+                data_baru = collect_form_data_safely(self)
+                
                 # Simpan PDF ke file sementara
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
                     temp_pdf_path = temp_pdf.name

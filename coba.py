@@ -15,10 +15,10 @@ import time
 from tkcalendar import DateEntry
 from main_app.edit_tab import EditTab
 from pdf_output import save_form_to_pdf, merge_pdfs
-from disposisi_app.views.components.export_utils import collect_form_data_safely
+from disposisi_app.views.components.export_utils import collect_form_data_safely, send_email_with_disposisi
 
 try:
-    from config import EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
+    from email_sender.config import EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
 except ImportError:
     EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD = (None, None, None, None)
 # Import komponen UI modular
@@ -718,7 +718,7 @@ class FormApp(tk.Tk):
         Generates the disposition PDF, attaches it, and sends it to the specified recipients.
         """
         try:
-            from config import EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
+            from email_sender.config import EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
             if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD]):
                 raise ImportError("Email configuration incomplete")
         except ImportError:
