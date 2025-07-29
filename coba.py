@@ -700,11 +700,10 @@ class FormApp(tk.Tk):
 
     def create_button_frame(self, parent):
         from disposisi_app.views.components.button_frame import create_button_frame
-
         callbacks = {
             "save_pdf": self.save_to_pdf,
             "save_sheet": self.save_to_sheet,
-            "send_email": self.send_email_with_disposisi,
+            "send_email": lambda recipients: send_email_with_disposisi(self, recipients),
             "get_disposisi_labels": self.get_disposisi_labels,
             "clear_form": self.clear_form
         }
