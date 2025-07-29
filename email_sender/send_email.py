@@ -17,9 +17,6 @@ class EmailSender:
         self.sender_email = config.EMAIL_HOST_USER
         self.sender_password = config.EMAIL_HOST_PASSWORD
         self.sheets_service = self._get_sheets_service()
-        
-        # Define the cell mappings for each position
-        # Based on the admin sheet structure shown in the screenshot
         self.position_cell_mapping = {
             "Direktur Utama": "B2",
             "Direktur Keuangan": "B3", 
