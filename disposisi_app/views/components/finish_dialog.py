@@ -1,15 +1,14 @@
-# main_app.py
+# Implementasi baru untuk disposisi_app/views/components/finish_dialog.py
 
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 import traceback
 
-# Import from the email_sender package
+# Import email sender dengan modifikasi untuk mengambil dari spreadsheet
 from email_sender.send_email import EmailSender
 from email_sender.template_handler import render_email_template
 
-# --- The Finish Dialog (from your code) ---
 class FinishDialog(tk.Toplevel):
     def __init__(self, parent, disposisi_labels, callbacks):
         super().__init__(parent)
@@ -64,6 +63,15 @@ class FinishDialog(tk.Toplevel):
 
     def _process(self):
         try:
+            # Proses simpan PDF jika dipilih
+            if self.save_pdf_var.get() and callable(self.callbacks.get("save_pdf")):
+                self.callbacks["save_pdf"]()
+            
+            # Proses simpan ke Sheet jika dipilih
+            if self.save_sheet_var.get() and callable(self.callbacks.get("save_sheet")):
+                self.callbacks["save_sheet"]()
+            
+            # Proses kirim email jika dipilih
             if self.send_email_var.get():
                 selected_positions = [label for label, var in self.email_vars.items() if var.get()]
                 if not selected_positions:
@@ -73,114 +81,8 @@ class FinishDialog(tk.Toplevel):
                 if callable(self.callbacks.get("send_email")):
                     self.callbacks["send_email"](selected_positions)
             
-            # Placeholder for other actions
-            if self.save_pdf_var.get():
-                print("Action: Save PDF")
-            if self.save_sheet_var.get():
-                print("Action: Save to Sheet")
-
             self.destroy()
 
         except Exception as e:
             messagebox.showerror("Error", f"Terjadi kesalahan: {e}", parent=self)
             traceback.print_exc()
-
-# --- Main Application ---
-class App(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title("Sistem Disposisi Surat")
-        self.geometry("600x500")
-
-        # --- Main Frame ---
-        main_frame = ttk.Frame(self, padding=20)
-        main_frame.pack(fill="both", expand=True)
-
-        # --- Example Form Fields ---
-        ttk.Label(main_frame, text="Formulir Disposisi", font=("Segoe UI", 18, "bold")).pack(pady=10)
-        
-        self.nomor_surat = self._create_entry(main_frame, "Nomor Surat:", "DIS/2025/07/28-001")
-        self.nama_pengirim = self._create_entry(main_frame, "Nama Pengirim:", "PT Mitra Sejati")
-        self.perihal = self._create_entry(main_frame, "Perihal:", "Penawaran Kerjasama Proyek")
-        
-        ttk.Label(main_frame, text="Instruksi:").pack(anchor="w", pady=(10,0))
-        self.instruksi = tk.Text(main_frame, height=5, width=50)
-        self.instruksi.pack(fill="x", expand=True)
-        self.instruksi.insert("1.0", "1. Mohon dipelajari dan berikan tanggapan.\n2. Jadwalkan pertemuan.")
-        
-        # --- The positions that can receive a disposition ---
-        self.disposisi_options = ["Direktur Utama", "Direktur Keuangan", "GM Operasional & Pemeliharaan"]
-
-        ttk.Button(main_frame, text="Selesai & Lanjutkan", command=self.open_finish_dialog).pack(pady=20, ipadx=10, ipady=5)
-
-    def _create_entry(self, parent, label, default_text=""):
-        frame = ttk.Frame(parent)
-        frame.pack(fill="x", pady=5)
-        ttk.Label(frame, text=label, width=15).pack(side="left")
-        entry = ttk.Entry(frame)
-        entry.pack(side="left", fill="x", expand=True)
-        entry.insert(0, default_text)
-        return entry
-
-    def open_finish_dialog(self):
-        callbacks = {
-            "send_email": self._process_and_send_email,
-            # Add other callbacks if needed
-        }
-        FinishDialog(self, self.disposisi_options, callbacks)
-
-    def _process_and_send_email(self, selected_positions):
-        """
-        The main callback function that prepares data and sends the email.
-        """
-        # 1. Fetch recipient emails from the spreadsheet
-        email_sender = EmailSender()
-        recipient_emails = []
-        failed_lookups = []
-        
-        for position in selected_positions:
-            email, msg = email_sender.get_recipient_email(position)
-            if email:
-                recipient_emails.append(email)
-            else:
-                failed_lookups.append(f"{position} ({msg})")
-
-        if failed_lookups:
-            messagebox.showwarning(
-                "Email Tidak Ditemukan",
-                "Tidak dapat menemukan alamat email untuk posisi berikut:\n- " + "\n- ".join(failed_lookups),
-                parent=self
-            )
-
-        if not recipient_emails:
-            messagebox.showerror("Gagal", "Tidak ada alamat email yang valid untuk dikirimi.", parent=self)
-            return
-
-        # 2. Prepare data for the email template
-        template_data = {
-            'nomor_surat': self.nomor_surat.get(),
-            'nama_pengirim': self.nama_pengirim.get(),
-            'perihal': self.perihal.get(),
-            'instruksi': self.instruksi.get("1.0", "end-1c"),
-            'klasifikasi': ["PENTING", "SEGERA"], # Example data
-            'tanggal': datetime.now().strftime('%d %B %Y'),
-        }
-
-        # 3. Render the HTML content
-        html_content = render_email_template(template_data)
-        subject = f"Disposisi Surat: {self.perihal.get()}"
-
-        # 4. Send the email
-        # Use set to avoid sending duplicate emails if positions share an email address
-        unique_recipients = list(set(recipient_emails))
-        success, message = email_sender.send_disposisi_email(unique_recipients, subject, html_content)
-        
-        # 5. Show final result
-        if success:
-            messagebox.showinfo("Sukses", message, parent=self)
-        else:
-            messagebox.showerror("Gagal Mengirim Email", message, parent=self)
-
-if __name__ == "__main__":
-    app = App()
-    app.mainloop()
