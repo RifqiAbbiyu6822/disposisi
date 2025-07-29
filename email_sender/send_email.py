@@ -1,148 +1,99 @@
-import os
+# email_sender/send_email.py
+
 import smtplib
-from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 from pathlib import Path
-from dotenv import load_dotenv
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
-from .template_handler import render_email_template
+
+# Import from other files in the same package
 from . import config
-
-# Load environment variables
-load_dotenv()
-
-# Constants for Google Sheets - gunakan admin sheet
-CREDENTIALS_FILE = 'admin/credentials.json'
-SHEET_ID = '1LoAzVPBMJo08uPHR7MdzGEXmaoFXMrTSKS0vl099qrU'  # Admin sheet ID
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+from .template_handler import LOGO_PATH
 
 class EmailSender:
     def __init__(self):
-        # Try multiple sources for email configuration
-        self.sender_email = os.getenv('SENDER_EMAIL') or os.getenv('EMAIL_HOST_USER')
-        self.sender_password = os.getenv('SENDER_PASSWORD') or os.getenv('EMAIL_HOST_PASSWORD')
-        
-        # Fallback to config file
-        if not self.sender_email or not self.sender_password:
-            try:
-                from config import EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
-                self.sender_email = EMAIL_HOST_USER
-                self.sender_password = EMAIL_HOST_PASSWORD
-            except:
-                pass
-        
+        self.sender_email = config.EMAIL_HOST_USER
+        self.sender_password = config.EMAIL_HOST_PASSWORD
         self.sheets_service = self._get_sheets_service()
-    
+
     def _get_sheets_service(self):
         """Initialize Google Sheets service with admin credentials"""
         try:
-            creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
+            creds = Credentials.from_service_account_file(
+                config.ADMIN_CREDENTIALS_FILE,
+                scopes=['https://www.googleapis.com/auth/spreadsheets.readonly']
+            )
             return build('sheets', 'v4', credentials=creds)
+        except FileNotFoundError:
+            print(f"Error: Credentials file not found at '{config.ADMIN_CREDENTIALS_FILE}'")
+            return None
         except Exception as e:
             print(f"Error initializing sheets service: {str(e)}")
             return None
-    
+
     def get_recipient_email(self, position):
         """Fetch email address from admin spreadsheet based on position"""
+        if not self.sheets_service:
+            return None, "Google Sheets service not available."
         try:
-            if not self.sheets_service:
-                return None, "Google Sheets service not available"
-
-            # Read from Sheet1 which contains position-email mapping
-            range_name = 'Sheet1!A2:B'  # Skip header row
+            range_name = 'Sheet1!A2:B'
             result = self.sheets_service.spreadsheets().values().get(
-                spreadsheetId=SHEET_ID,
+                spreadsheetId=config.ADMIN_SHEET_ID,
                 range=range_name
             ).execute()
-
             values = result.get('values', [])
             if not values:
-                return None, f"Email tidak ditemukan untuk posisi: {position}"
+                return None, f"No data found in spreadsheet for position: {position}"
 
-            # Search for matching position
             for row in values:
-                if len(row) >= 2:
-                    sheet_position = row[0].strip()
-                    sheet_email = row[1].strip()
-                    
-                    # Case-insensitive comparison
-                    if sheet_position.lower() == position.lower():
-                        # Basic email validation
-                        if '@' in sheet_email and '.' in sheet_email:
-                            return sheet_email, f"Email ditemukan: {sheet_email}"
-                        else:
-                            return None, f"Format email tidak valid untuk {position}: {sheet_email}"
-
-            return None, f"Email tidak ditemukan untuk posisi: {position}"
-            
+                if len(row) >= 2 and row[0].strip().lower() == position.lower():
+                    email = row[1].strip()
+                    if '@' in email and '.' in email:
+                        return email, f"Email found: {email}"
+                    else:
+                        return None, f"Invalid email format for {position}: {email}"
+            return None, f"Email not found for position: {position}"
         except Exception as e:
-            return None, f"Error membaca data email: {str(e)}"
-    
-    def send_disposisi_email(self, position, nama_pengirim, nomor_surat, perihal, instruksi):
-        """Send disposition email to a specific position"""
-        try:
-            # Validate email configuration
-            if not self.sender_email or not self.sender_password:
-                return False, "Konfigurasi email pengirim tidak ditemukan. Periksa file .env atau config.py"
+            return None, f"Error reading email data from sheet: {str(e)}"
 
-            # Get recipient email from spreadsheet
-            recipient_email, message = self.get_recipient_email(position)
-            if not recipient_email:
-                return False, message
+    def send_disposisi_email(self, recipients, subject, html_body):
+        """
+        Sends a disposition email with an embedded logo to a list of recipients.
+        """
+        if not self.sender_email or not self.sender_password:
+            return False, "Sender email configuration is missing."
 
-            print(f"Mengirim email ke {position} ({recipient_email})")
-            
-            # Create message
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = f'Disposisi Surat - {nomor_surat}'
-            msg['From'] = self.sender_email
-            msg['To'] = recipient_email
+        # Use 'related' to embed images in the email body
+        msg = MIMEMultipart('related')
+        msg['Subject'] = subject
+        msg['From'] = self.sender_email
+        msg['To'] = ", ".join(recipients)
 
-            # Prepare template data
-            template_data = {
-                'position': position,
-                'nama_pengirim': nama_pengirim,
-                'nomor_surat': nomor_surat, 
-                'perihal': perihal,
-                'instruksi': instruksi,
-                'tanggal': datetime.now().strftime('%d %B %Y'),
-                'tahun': datetime.now().year
-            }
+        # Attach the HTML part
+        msg.attach(MIMEText(html_body, 'html'))
 
-            # Get HTML content from template
-            html_content = render_email_template(template_data)
-
-            # Attach HTML content
-            part = MIMEText(html_content, 'html')
-            msg.attach(part)
-
-            # Send email with proper error handling
+        # Attach the logo image if it exists
+        if LOGO_PATH.exists():
             try:
-                # Try SSL first (port 465)
-                server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-                server.login(self.sender_email, self.sender_password)
-            except:
-                # Fallback to TLS (port 587)
-                server = smtplib.SMTP('smtp.gmail.com', 587)
+                with open(LOGO_PATH, 'rb') as f:
+                    logo_data = f.read()
+                logo = MIMEImage(logo_data)
+                # This Content-ID must match the 'cid:' in the HTML template's <img> tag
+                logo.add_header('Content-ID', '<logo>')
+                msg.attach(logo)
+            except Exception as e:
+                print(f"Warning: Could not read or attach logo file. Error: {e}")
+
+        # Send the email using a secure connection
+        try:
+            with smtplib.SMTP(config.EMAIL_HOST, config.EMAIL_PORT) as server:
                 server.starttls()
                 server.login(self.sender_email, self.sender_password)
-
-            # Send email
-            server.sendmail(
-                self.sender_email,
-                recipient_email,
-                msg.as_string()
-            )
-            server.quit()
-            
-            return True, f"Email berhasil dikirim ke {position} ({recipient_email})"
-            
+                server.sendmail(self.sender_email, recipients, msg.as_string())
+            return True, f"Email sent successfully to: {', '.join(recipients)}"
         except smtplib.SMTPAuthenticationError:
-            return False, "Gagal autentikasi email. Periksa email dan password di file .env"
-        except smtplib.SMTPException as e:
-            return False, f"Gagal mengirim email (SMTP Error): {str(e)}"
+            return False, "Authentication failed. Check your email and App Password in config.py."
         except Exception as e:
-            return False, f"Gagal mengirim email: {str(e)}"
+            return False, f"Failed to send email: {str(e)}"

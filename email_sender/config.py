@@ -1,22 +1,16 @@
-import os
+# email_sender/config.py
 
-# Email configuration - support multiple sources
+# --- Email Configuration ---
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_USE_SSL = False
 
+# IMPORTANT: Use the Google Account email and the 16-character App Password.
+# How to get an App Password: https://support.google.com/accounts/answer/185833
 EMAIL_HOST_USER = 'magangjcc@gmail.com'
-EMAIL_HOST_PASSWORD = 'cygh bhpt fqnb yexb'
-# If still empty, try to get from email_sender config
-if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
-    try:
-        from email_sender.config import SENDER_EMAIL, SENDER_PASSWORD
-        EMAIL_HOST_USER = EMAIL_HOST_USER or SENDER_EMAIL
-        EMAIL_HOST_PASSWORD = EMAIL_HOST_PASSWORD or SENDER_PASSWORD
-    except:
-        pass
+EMAIL_HOST_PASSWORD = 'hnfv azrs snou aays' 
 
-# Admin sheet configuration for email recipients
+# --- Google Sheets Configuration for Admin Panel ---
+# Used by EmailSender to find recipient emails.
 ADMIN_SHEET_ID = '1LoAzVPBMJo08uPHR7MdzGEXmaoFXMrTSKS0vl099qrU'
 ADMIN_CREDENTIALS_FILE = 'admin/credentials.json'

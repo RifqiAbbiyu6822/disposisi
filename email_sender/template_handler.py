@@ -1,3 +1,5 @@
+# email_sender/template_handler.py
+
 """
 Template HTML untuk email disposisi
 """
@@ -5,7 +7,8 @@ import os
 from pathlib import Path
 from jinja2 import Template
 
-# Get the path to the logo image if exists
+# Get the path to the logo image if it exists
+# This path assumes 'kop.jpeg' is in the root of the project, one level above the 'email_sender' directory.
 CURRENT_DIR = Path(__file__).parent.parent
 LOGO_PATH = CURRENT_DIR / "kop.jpeg"
 
@@ -73,15 +76,6 @@ def get_email_template():
                 font-weight: bold;
                 margin: 10px 0;
             }
-            .button {
-                display: inline-block;
-                padding: 10px 20px;
-                background-color: #003366;
-                color: white;
-                text-decoration: none;
-                border-radius: 5px;
-                margin-top: 20px;
-            }
         </style>
     </head>
     <body>
@@ -118,9 +112,6 @@ def get_email_template():
 
                 <p>Mohon untuk segera ditindaklanjuti sesuai dengan disposisi yang diberikan.</p>
                 
-                {% if link_dokumen %}
-                <a href="{{ link_dokumen }}" class="button">Lihat Dokumen</a>
-                {% endif %}
             </div>
 
             <div class="footer">
@@ -135,26 +126,12 @@ def get_email_template():
 def render_email_template(data):
     """
     Render email template with provided data
-    
-    Args:
-        data (dict): Dictionary containing:
-            - nomor_surat (str): Nomor surat
-            - nama_pengirim (str): Nama pengirim
-            - perihal (str): Perihal surat
-            - tanggal (str): Tanggal surat
-            - klasifikasi (list): List klasifikasi surat [RAHASIA, PENTING, SEGERA]
-            - instruksi_list (list): List instruksi disposisi
-            - link_dokumen (str, optional): Link ke dokumen
-            
-    Returns:
-        str: Rendered HTML email content
     """
     template = Template(get_email_template())
     
     # Add default values and format data
     data.setdefault('tahun', '2025')
     data.setdefault('logo_exists', LOGO_PATH.exists())
-    data.setdefault('link_dokumen', '')
     
     # Ensure lists are properly formatted
     data.setdefault('klasifikasi', [])
