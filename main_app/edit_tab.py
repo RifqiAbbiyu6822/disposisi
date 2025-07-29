@@ -161,34 +161,9 @@ class EditTab(ttk.Frame):
         self.btn_kosongkan_baris.pack(side="left", padx=2)
 
     def _create_button_frame(self):
-        # Create button frame aligned with main app
-        from disposisi_app.views.components.button_frame import create_button_frame
-        
-        callbacks = {
-            "save_pdf": self._on_export_pdf,
-            "save_sheet": self._on_save,
-            "send_email": self._on_send_email,
-            "get_disposisi_labels": self.get_disposisi_labels,
-            "clear_form": self._on_cancel  # Use cancel as clear in edit mode
-        }
-        
-        self._button_frame = create_button_frame(
-            self.main_frame,
-            callbacks
-        )
-        
-        # Override the button frame to show edit-specific buttons
-        self._customize_edit_buttons()
-
-    def _customize_edit_buttons(self):
-        """Customize buttons for edit mode"""
-        # Clear existing button frame content
-        for widget in self._button_frame.winfo_children():
-            widget.destroy()
-        
         # Create edit-specific buttons
-        btn_frame = ttk.Frame(self._button_frame)
-        btn_frame.pack(fill="x", pady=10)
+        btn_frame = ttk.Frame(self.main_frame)
+        btn_frame.grid(row=2, column=0, sticky="ew", pady=10)
         
         # Save button
         btn_save = ttk.Button(btn_frame, text="💾 Simpan Perubahan", 
@@ -200,9 +175,9 @@ class EditTab(ttk.Frame):
                             command=self._on_export_pdf, style="Primary.TButton")
         btn_pdf.pack(side="left", padx=5)
         
-        # Send Email button
+        # Send Email button - use simplified approach
         btn_email = ttk.Button(btn_frame, text="📧 Kirim Email", 
-                              command=self._show_email_dialog, style="Primary.TButton")
+                              command=self._on_send_email_simple, style="Primary.TButton")
         btn_email.pack(side="left", padx=5)
         
         # Cancel button
@@ -226,42 +201,139 @@ class EditTab(ttk.Frame):
                 labels.append(label)
         return labels
 
-    def _show_email_dialog(self):
-        """Show email dialog for sending disposition"""
-        disposisi_labels = self.get_disposisi_labels()
-        if not disposisi_labels:
-            messagebox.showwarning("Peringatan", "Pilih minimal satu disposisi kepada untuk mengirim email.")
-            return
-        
-        from disposisi_app.views.components.finish_dialog import FinishDialog
-        callbacks = {
-            "save_pdf": self._on_export_pdf,
-            "save_sheet": self._on_save,
-            "send_email": self._on_send_email
-        }
-        dialog = FinishDialog(self, disposisi_labels, callbacks)
-        self.wait_window(dialog)
-
-    def _on_send_email(self, recipients):
-        """Send email with updated disposition data"""
+    def _on_send_email_simple(self):
+        """Simplified email sending without complex dialogs"""
         try:
-            # Collect current form data
-            data = collect_form_data_safely(self)
+            disposisi_labels = self.get_disposisi_labels()
+            if not disposisi_labels:
+                messagebox.showwarning("Peringatan", "Pilih minimal satu disposisi kepada untuk mengirim email.")
+                return
             
-            # Import the send_email_with_disposisi function from main app
-            from disposisi_app.views.components.export_utils import send_email_with_disposisi
+            # Simple confirmation dialog
+            recipients_str = ", ".join(disposisi_labels)
+            confirm = messagebox.askyesno(
+                "Konfirmasi Kirim Email", 
+                f"Kirim email disposisi kepada:\n{recipients_str}\n\nLanjutkan?"
+            )
             
-            # Update status if available
-            if hasattr(self, 'update_status'):
-                self.update_status("Mengirim email...")
+            if not confirm:
+                return
             
-            # Send email using the main app's function
-            send_email_with_disposisi(self, recipients)
+            # Send email directly
+            self._send_email_to_positions(disposisi_labels)
             
         except Exception as e:
             import traceback
             traceback.print_exc()
             messagebox.showerror("Error", f"Gagal mengirim email: {e}")
+
+    def _send_email_to_positions(self, positions):
+        """Send email to specific positions"""
+        try:
+            # Import email sender
+            from email_sender.send_email import EmailSender
+            from email_sender.template_handler import render_email_template
+            from datetime import datetime
+            
+            # Collect current form data
+            data = collect_form_data_safely(self)
+            
+            # Prepare email data
+            klasifikasi = []
+            if data.get("rahasia", 0):
+                klasifikasi.append("RAHASIA")
+            if data.get("penting", 0):
+                klasifikasi.append("PENTING") 
+            if data.get("segera", 0):
+                klasifikasi.append("SEGERA")
+            
+            # Get instruksi text
+            instruksi_list = []
+            
+            # Add untuk di items
+            untuk_di_items = []
+            if data.get("ketahui_file", 0):
+                untuk_di_items.append("Ketahui & File")
+            if data.get("proses_selesai", 0):
+                untuk_di_items.append("Proses Selesai")
+            if data.get("teliti_pendapat", 0):
+                untuk_di_items.append("Teliti & Pendapat")
+            if data.get("buatkan_resume", 0):
+                untuk_di_items.append("Buatkan Resume")
+            if data.get("edarkan", 0):
+                untuk_di_items.append("Edarkan")
+            if data.get("sesuai_disposisi", 0):
+                untuk_di_items.append("Sesuai Disposisi")
+            if data.get("bicarakan_saya", 0):
+                untuk_di_items.append("Bicarakan dengan Saya")
+            
+            if untuk_di_items:
+                instruksi_list.append(f"Untuk di: {', '.join(untuk_di_items)}")
+            
+            # Add specific instructions from the table
+            if data.get("isi_instruksi"):
+                for instr in data["isi_instruksi"]:
+                    if instr.get("instruksi", "").strip():
+                        posisi = instr.get("posisi", "")
+                        instruksi_text = instr.get("instruksi", "")
+                        tanggal = instr.get("tanggal", "")
+                        
+                        instr_line = f"{posisi}: {instruksi_text}"
+                        if tanggal:
+                            instr_line += f" (Tanggal: {tanggal})"
+                        instruksi_list.append(instr_line)
+            
+            # Add bicarakan dengan if exists
+            if data.get("bicarakan_dengan", "").strip():
+                instruksi_list.append(f"Bicarakan dengan: {data['bicarakan_dengan']}")
+            
+            # Add teruskan kepada if exists
+            if data.get("teruskan_kepada", "").strip():
+                instruksi_list.append(f"Teruskan kepada: {data['teruskan_kepada']}")
+            
+            # Add deadline if exists
+            if data.get("harap_selesai_tgl", "").strip():
+                instruksi_list.append(f"Harap diselesaikan tanggal: {data['harap_selesai_tgl']}")
+            
+            template_data = {
+                'nomor_surat': data.get("no_surat", ""),
+                'nama_pengirim': data.get("asal_surat", ""),
+                'perihal': data.get("perihal", ""),
+                'tanggal': datetime.now().strftime('%d %B %Y'),
+                'klasifikasi': klasifikasi,
+                'instruksi_list': instruksi_list,
+                'tahun': datetime.now().year
+            }
+            
+            # Render HTML content
+            html_content = render_email_template(template_data)
+            subject = f"Disposisi Surat: {data.get('perihal', 'N/A')}"
+            
+            # Initialize email sender and send
+            email_sender = EmailSender()
+            success, message, details = email_sender.send_disposisi_to_positions(
+                positions, 
+                subject, 
+                html_content
+            )
+            
+            # Show results
+            if success:
+                success_msg = f"Email berhasil dikirim!\n\n{message}"
+                if details.get('failed_lookups'):
+                    success_msg += "\n\nCatatan: Beberapa posisi tidak memiliki email yang valid di database."
+                # Use root window as parent to avoid the messagebox error
+                messagebox.showinfo("Email Sent", success_msg, parent=self.winfo_toplevel())
+            else:
+                error_msg = f"Gagal mengirim email:\n{message}"
+                if details.get('failed_lookups'):
+                    error_msg += "\n\nPosisi tanpa email:\n" + "\n".join(details['failed_lookups'])
+                messagebox.showerror("Email Error", error_msg, parent=self.winfo_toplevel())
+                
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            messagebox.showerror("Email Error", f"Terjadi kesalahan: {e}", parent=self.winfo_toplevel())
 
     def update_status(self, message):
         """Update status message - for compatibility"""
@@ -383,6 +455,7 @@ class EditTab(ttk.Frame):
                         "tanggal": tgl_val
                     })
             data["isi_instruksi"] = instruksi_from_log
+        
         # Isi variabel dan widget dari data log
         for key, var in self.vars.items():
             val = data.get(key, "")
@@ -393,35 +466,51 @@ class EditTab(ttk.Frame):
                     var.set(0)
             else:
                 var.set(val if val is not None else "")
-        # Widget khusus
+        
+        # Widget khusus - Text widgets
         for key in ["perihal", "asal_surat", "ditujukan", "bicarakan_dengan", "teruskan_kepada"]:
             if key in self.form_input_widgets:
                 widget = self.form_input_widgets[key]
                 widget.delete("1.0", tk.END)
                 widget.insert("1.0", data.get(key, ""))
         
-        # FIX: Improved date handling for DateEntry widgets
-        for key in ["tgl_surat", "tgl_terima", "harap_selesai_tgl"]:
-            if key in self.form_input_widgets:
-                widget = self.form_input_widgets[key]
-                date_value = data.get(key, "")
+        # FIX: Improved date handling for DateEntry widgets - ALLOW NULL VALUES
+        date_fields = [
+            ("tgl_surat", "tgl_surat"),
+            ("tgl_terima", "tgl_terima"), 
+            ("harap_selesai_tgl", "harap_selesai_tgl")
+        ]
+        
+        for widget_key, data_key in date_fields:
+            # Look for widget in multiple locations
+            widget = None
+            if widget_key in self.form_input_widgets:
+                widget = self.form_input_widgets[widget_key]
+            elif hasattr(self, f'{widget_key}_entry'):
+                widget = getattr(self, f'{widget_key}_entry')
+            
+            if widget:
+                date_value = data.get(data_key, "") or data.get(widget_key.replace("_", " ").title(), "")
                 
                 try:
+                    # Clear widget first
+                    widget.delete(0, tk.END)
+                    
+                    # Only set date if value exists and is not empty
                     if date_value and str(date_value).strip():
                         # Parse the date string to ensure it's in the correct format
                         parsed_date = self._parse_date_string(date_value)
-                        if parsed_date:
+                        if parsed_date and parsed_date != date_value:
                             # Convert to datetime object for DateEntry
                             dt = datetime.strptime(parsed_date, "%d-%m-%Y")
                             widget.set_date(dt)
                         else:
-                            # Clear the widget if parsing fails
-                            widget.delete(0, tk.END)
-                    else:
-                        # Clear the widget for empty dates
-                        widget.delete(0, tk.END)
+                            # Insert as text if parsing fails but value exists
+                            widget.insert(0, str(date_value))
+                    # If empty, leave widget empty (null values allowed)
+                    
                 except Exception as e:
-                    print(f"[EditTab] Error setting date for {key}: {e}")
+                    print(f"[EditTab] Error setting date for {widget_key}: {e}")
                     # Clear the widget on error
                     try:
                         widget.delete(0, tk.END)
@@ -441,20 +530,22 @@ class EditTab(ttk.Frame):
             # Ambil data dari form menggunakan collect_form_data_safely
             data_baru = collect_form_data_safely(self)
             
-            # Convert empty strings to None for nullable fields (all except no_surat)
+            # FIX: Allow null values for all fields except no_surat
+            # Convert empty strings to appropriate values
             nullable_fields = [
                 "no_agenda", "perihal", "asal_surat", "ditujukan",
                 "kode_klasifikasi", "indeks", "bicarakan_dengan", 
                 "teruskan_kepada", "tgl_surat", "tgl_terima", "harap_selesai_tgl"
             ]
             
+            # Keep empty strings for nullable fields - this allows clearing fields
             for field in nullable_fields:
-                if field in data_baru and data_baru[field] == "":
-                    data_baru[field] = ""  # Keep empty string to allow clearing fields
+                if field in data_baru and data_baru[field] is None:
+                    data_baru[field] = ""  # Convert None to empty string
             
             print("[EditTab] Data baru yang akan diupdate:", data_baru)
 
-            # Validasi hanya No. Surat yang wajib diisi
+            # VALIDASI: Hanya No. Surat yang wajib diisi
             no_surat_baru = data_baru.get("no_surat", "").strip()
             if not no_surat_baru:
                 print(f"[EditTab][ERROR] Field 'No. Surat' kosong!")
