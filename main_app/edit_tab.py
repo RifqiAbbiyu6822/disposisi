@@ -367,22 +367,32 @@ class EditTab(ttk.Frame):
                 widget.delete("1.0", tk.END)
                 widget.insert("1.0", data.get(key, ""))
         
-        # FIX: Use proper set_date() method for DateEntry widgets
+        # FIX: Parse date string before setting it to DateEntry to avoid errors
+        import datetime
         for key in ["tgl_surat", "tgl_terima", "harap_selesai_tgl"]:
             if key in self.form_input_widgets:
                 widget = self.form_input_widgets[key]
-                date_value = data.get(key, "")
+                date_value = str(data.get(key, "")).strip()
+                
                 if date_value:
-                    try:
-                        # Try to set the date using set_date method
-                        widget.set_date(date_value)
-                    except Exception as e:
-                        print(f"[EditTab] Warning: Could not set date for {key}: {e}")
-                        # Fallback: clear the date if setting fails
-                        widget.set_date("")
+                    parsed_date = None
+                    # Coba beberapa format tanggal yang umum
+                    for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"):
+                        try:
+                            parsed_date = datetime.datetime.strptime(date_value, fmt).date()
+                            break # Berhasil parse, keluar dari loop
+                        except ValueError:
+                            continue # Coba format berikutnya
+                    
+                    if parsed_date:
+                        widget.set_date(parsed_date)
+                    else:
+                        # Jika semua format gagal, tampilkan string aslinya agar tidak hilang
+                        print(f"[EditTab] Warning: Could not parse date '{date_value}' for {key}. Displaying as text.")
+                        widget.set(date_value)
                 else:
-                    # Clear the date if no value
-                    widget.set_date("")
+                    # Jika tidak ada nilai, kosongkan field
+                    widget.set_date(None)
         
         # Instruksi table
         if "isi_instruksi" in data:
