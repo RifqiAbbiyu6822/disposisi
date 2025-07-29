@@ -15,12 +15,12 @@ import time
 from tkcalendar import DateEntry
 from main_app.edit_tab import EditTab
 from pdf_output import save_form_to_pdf, merge_pdfs
-from disposisi_app.views.components.export_utils import collect_form_data_safely, send_email_with_disposisi
 
 try:
     from email_sender.config import EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
 except ImportError:
     EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD = (None, None, None, None)
+
 # Import komponen UI modular
 from disposisi_app.views.components.loading_screen import LoadingScreen
 from disposisi_app.views.components.header import create_header
@@ -604,26 +604,57 @@ class FormApp(tk.Tk):
         self.add_tooltips(input_widgets)
         
         return input_widgets
-  def add_pdf_attachment(self):
+
+    def add_pdf_attachment(self):
         """Add PDF attachment to the form"""
-    from tkinter import filedialog
-    import os
-    
-    files = filedialog.askopenfilenames(
-        title="Pilih PDF lampiran",
-        filetypes=[("PDF Documents", "*.pdf"), ("All Files", "*.*")]
-    )
-    
-    for file_path in files:
-        if file_path not in self.pdf_attachments:
-            self.pdf_attachments.append(file_path)
-            filename = os.path.basename(file_path)
-            display_name = f"📄 {filename}"
-            self.attachment_listbox.insert(tk.END, display_name)
-            print(f"[DEBUG] Added PDF attachment: {filename}")
-    
-    if files:
-        self.update_status(f"✓ {len(files)} PDF ditambahkan")
+        from tkinter import filedialog
+        import os
+        
+        files = filedialog.askopenfilenames(
+            title="Pilih PDF lampiran",
+            filetypes=[("PDF Documents", "*.pdf"), ("All Files", "*.*")]
+        )
+        
+        for file_path in files:
+            if file_path not in self.pdf_attachments:
+                self.pdf_attachments.append(file_path)
+                filename = os.path.basename(file_path)
+                display_name = f"📄 {filename}"
+                self.attachment_listbox.insert(tk.END, display_name)
+                print(f"[DEBUG] Added PDF attachment: {filename}")
+        
+        if files:
+            self.update_status(f"✓ {len(files)} PDF ditambahkan")
+
+    def remove_pdf_attachment(self):
+        """Remove selected PDF attachment from the form"""
+        import os
+        
+        selected = self.attachment_listbox.curselection()
+        if selected:
+            idx = selected[0]
+            if idx < len(self.pdf_attachments):
+                filename = os.path.basename(self.pdf_attachments[idx])
+                self.attachment_listbox.delete(idx)
+                del self.pdf_attachments[idx]
+                self.update_status(f"🗑️ {filename} dihapus")
+                print(f"[DEBUG] Removed PDF attachment: {filename}")
+            else:
+                print(f"[WARNING] Index {idx} out of range for pdf_attachments")
+        else:
+            messagebox.showwarning("Hapus Lampiran", "Pilih file yang akan dihapus terlebih dahulu.")
+
+    def refresh_pdf_attachments(self, parent):
+        """Refresh PDF attachments display"""
+        # Clear current listbox
+        if hasattr(self, 'attachment_listbox'):
+            self.attachment_listbox.delete(0, tk.END)
+            
+            # Repopulate with current attachments
+            for pdf_path in self.pdf_attachments:
+                filename = os.path.basename(pdf_path)
+                display_name = f"📄 {filename}"
+                self.attachment_listbox.insert(tk.END, display_name)
 
     def add_tooltips(self, input_widgets):
         add_tooltips(input_widgets, TOOLTIP_LABELS)
@@ -734,239 +765,270 @@ class FormApp(tk.Tk):
         )
         return self._button_frame
 
-def send_email_with_disposisi(self, selected_positions):
-    """
-    FIXED VERSION: Mengirimkan email disposisi ke posisi yang dipilih 
-    dengan mengambil alamat email yang BENAR dari spreadsheet admin.
-    """
-    import os  # PENTING: Import os di awal
-    import tempfile
-    import traceback
-    from tkinter import messagebox
-    from datetime import datetime
-    
-    # Import modul email yang sudah diperbaiki
-    try:
-        from email_sender.send_email import EmailSender
-        from email_sender.template_handler import render_email_template
-        from pdf_output import save_form_to_pdf, merge_pdfs
-    except ImportError as e:
-        messagebox.showerror("Import Error", f"Gagal import modul email: {e}")
-        return
+    def get_disposisi_labels(self):
+        """Get selected disposisi labels"""
+        mapping = [
+            ("dir_utama", "Direktur Utama"),
+            ("dir_keu", "Direktur Keuangan"),
+            ("dir_teknik", "Direktur Teknik"),
+            ("gm_keu", "GM Keuangan & Administrasi"),
+            ("gm_ops", "GM Operasional & Pemeliharaan"),
+            ("manager", "Manager"),
+        ]
+        labels = []
+        for var, label in mapping:
+            if var in self.vars and self.vars[var].get():
+                labels.append(label)
+        return labels
 
-    print(f"[DEBUG] Selected positions: {selected_positions}")
-    self.update_status("Menyiapkan pengiriman email...")
-    
-    # Collect form data
-    data = collect_form_data_safely(self)
-    if not data.get("no_surat", "").strip():
-        messagebox.showerror("Validation Error", "No. Surat tidak boleh kosong untuk mengirim email.")
-        return
-
-    # Generate PDF attachment
-    temp_pdf_path = None
-    final_pdf_path = None
-    
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
-            temp_pdf_path = temp_pdf.name
+    def send_email_with_disposisi(self, selected_positions):
+        """
+        FIXED VERSION: Mengirimkan email disposisi ke posisi yang dipilih 
+        dengan mengambil alamat email yang BENAR dari spreadsheet admin.
+        """
+        import os
+        import tempfile
+        import traceback
+        from tkinter import messagebox
+        from datetime import datetime
         
-        save_form_to_pdf(temp_pdf_path, data)
-        
-        final_pdf_path = temp_pdf_path
-        if hasattr(self, 'pdf_attachments') and self.pdf_attachments:
-            merged_pdf_path = os.path.join(tempfile.gettempdir(), f"merged_{os.path.basename(temp_pdf_path)}")
-            pdf_list = [temp_pdf_path] + self.pdf_attachments
-            merge_pdfs(pdf_list, merged_pdf_path)
-            final_pdf_path = merged_pdf_path
-
-    except Exception as e:
-        messagebox.showerror("PDF Generation Error", f"Gagal membuat PDF untuk email: {e}")
-        traceback.print_exc()
-        return
-    
-    # Initialize EmailSender
-    try:
-        email_sender = EmailSender()
-        
-        if not email_sender.sheets_service:
-            error_msg = ("Google Sheets tidak dapat diakses.\n\n"
-                        "Pastikan:\n"
-                        "1. File admin/credentials.json tersedia\n"
-                        "2. Sheet admin dengan email sudah dibuat\n"
-                        "3. ID sheet admin benar di config.py")
-            messagebox.showerror("Email Configuration Error", error_msg)
-            return
-            
-    except Exception as e:
-        error_msg = f"Gagal menginisialisasi email sender: {str(e)}"
-        messagebox.showerror("Email Sender Error", error_msg)
-        traceback.print_exc()
-        return
-    
-    # PERBAIKAN UTAMA: Ambil email yang benar dari spreadsheet
-    self.update_status("Mencari alamat email dari database admin...")
-    
-    recipient_emails = []
-    failed_lookups = []
-    successful_lookups = []
-    
-    print(f"[DEBUG] Looking up emails for positions: {selected_positions}")
-    
-    for position in selected_positions:
-        print(f"[DEBUG] Looking up email for: {position}")
-        email, msg = email_sender.get_recipient_email(position)
-        print(f"[DEBUG] Result for {position}: email={email}, msg={msg}")
-        
-        if email and email != position:  # PASTIKAN email bukan nama posisi
-            # Validasi format email
-            if '@' in email and '.' in email.split('@')[-1]:
-                recipient_emails.append(email)
-                successful_lookups.append(f"{position}: {email}")
-                print(f"[DEBUG] ✓ Valid email found: {position} -> {email}")
-            else:
-                failed_lookups.append(f"{position} (invalid email format: {email})")
-                print(f"[DEBUG] ✗ Invalid email format: {position} -> {email}")
-        else:
-            failed_lookups.append(f"{position} ({msg})")
-            print(f"[DEBUG] ✗ No email found: {position} -> {msg}")
-    
-    print(f"[DEBUG] Final recipient emails: {recipient_emails}")
-    print(f"[DEBUG] Failed lookups: {failed_lookups}")
-    
-    # Show warnings for failed lookups
-    if failed_lookups:
-        warning_msg = ("Tidak dapat menemukan alamat email yang valid untuk posisi berikut:\n" + 
-                      "\n".join([f"• {lookup}" for lookup in failed_lookups]))
-        
-        if len(failed_lookups) == len(selected_positions):
-            # All positions failed
-            full_error = (warning_msg + 
-                         "\n\nPastikan admin sudah mengisi email yang valid untuk posisi-posisi tersebut "
-                         "di spreadsheet admin.\n\n"
-                         "Format email harus: user@domain.com")
-            messagebox.showerror("No Valid Emails Found", full_error)
-            return
-        else:
-            # Some positions failed - show warning but continue
-            result = messagebox.askyesno(
-                "Some Emails Missing", 
-                warning_msg + "\n\nLanjutkan mengirim ke email yang valid?", 
-                parent=self
-            )
-            if not result:
-                return
-    
-    if not recipient_emails:
-        messagebox.showerror("No Recipients", "Tidak ada alamat email yang valid untuk dikirimi.")
-        return
-    
-    # Prepare email template data
-    template_data = {
-        'nomor_surat': data.get('no_surat', 'N/A'),
-        'nama_pengirim': data.get('asal_surat', 'N/A'),
-        'perihal': data.get('perihal', 'N/A'),
-        'tanggal': datetime.now().strftime('%d %B %Y'),
-        'klasifikasi': [],
-        'instruksi_list': [],
-        'tahun': datetime.now().year
-    }
-    
-    # Add classification
-    if data.get('rahasia', 0):
-        template_data['klasifikasi'].append("RAHASIA")
-    if data.get('penting', 0):
-        template_data['klasifikasi'].append("PENTING")
-    if data.get('segera', 0):
-        template_data['klasifikasi'].append("SEGERA")
-    
-    # Add instructions from checkboxes
-    instruksi_mapping = [
-        ("ketahui_file", "Ketahui & File"),
-        ("proses_selesai", "Proses Selesai"),
-        ("teliti_pendapat", "Teliti & Pendapat"),
-        ("buatkan_resume", "Buatkan Resume"),
-        ("edarkan", "Edarkan"),
-        ("sesuai_disposisi", "Sesuai Disposisi"),
-        ("bicarakan_saya", "Bicarakan dengan Saya")
-    ]
-    
-    for key, label in instruksi_mapping:
-        if data.get(key, 0):
-            template_data['instruksi_list'].append(label)
-    
-    # Add detailed instructions from table
-    if 'isi_instruksi' in data and data['isi_instruksi']:
-        for instr in data['isi_instruksi']:
-            if instr.get('instruksi', '').strip():
-                posisi = instr.get('posisi', '')
-                instruksi_text = instr.get('instruksi', '')
-                tanggal = instr.get('tanggal', '')
-                
-                instr_line = f"{posisi}: {instruksi_text}"
-                if tanggal:
-                    instr_line += f" (Tanggal: {tanggal})"
-                template_data['instruksi_list'].append(instr_line)
-    
-    # Add additional instructions
-    if data.get("bicarakan_dengan", "").strip():
-        template_data['instruksi_list'].append(f"Bicarakan dengan: {data['bicarakan_dengan']}")
-    
-    if data.get("teruskan_kepada", "").strip():
-        template_data['instruksi_list'].append(f"Teruskan kepada: {data['teruskan_kepada']}")
-    
-    if data.get("harap_selesai_tgl", "").strip():
-        template_data['instruksi_list'].append(f"Harap diselesaikan tanggal: {data['harap_selesai_tgl']}")
-    
-    # Render email template and send
-    try:
-        html_content = render_email_template(template_data)
-        subject = f"Disposisi Surat: {data.get('perihal', 'N/A')}"
-        
-        self.update_status(f"Mengirim email ke {len(recipient_emails)} penerima...")
-        print(f"[DEBUG] Sending email to: {recipient_emails}")
-        print(f"[DEBUG] Subject: {subject}")
-        print(f"[DEBUG] PDF attachment: {final_pdf_path}")
-        
-        # PERBAIKAN: Gunakan method yang benar dengan PDF attachment
-        success, message = email_sender.send_disposisi_email(
-            recipient_emails, 
-            subject, 
-            html_content,
-            pdf_attachment=final_pdf_path
-        )
-        
-        print(f"[DEBUG] Email send result: success={success}, message={message}")
-        
-        # Show results
-        if success:
-            self.update_status("Email berhasil dikirim!")
-            success_msg = f"Email berhasil dikirim ke:\n{chr(10).join([f'• {email}' for email in recipient_emails])}"
-            
-            if successful_lookups:
-                success_msg += f"\n\nDetail penerima:\n{chr(10).join([f'• {lookup}' for lookup in successful_lookups])}"
-            
-            messagebox.showinfo("Email Sent Successfully", success_msg, parent=self)
-        else:
-            self.update_status("Gagal mengirim email.")
-            messagebox.showerror("Email Send Failed", f"Gagal mengirim email:\n{message}", parent=self)
-            
-    except Exception as e:
-        self.update_status("Error saat mengirim email.")
-        messagebox.showerror("Email Error", f"Terjadi kesalahan saat mengirim email: {e}")
-        traceback.print_exc()
-    
-    finally:
-        # Clean up temporary files
+        # Import modul email yang sudah diperbaiki
         try:
-            if temp_pdf_path and os.path.exists(temp_pdf_path):
-                os.remove(temp_pdf_path)
-                print(f"[DEBUG] Cleaned up temp PDF: {temp_pdf_path}")
-            if final_pdf_path and final_pdf_path != temp_pdf_path and os.path.exists(final_pdf_path):
-                os.remove(final_pdf_path)
-                print(f"[DEBUG] Cleaned up final PDF: {final_pdf_path}")
+            from email_sender.send_email import EmailSender
+            from email_sender.template_handler import render_email_template
+            from pdf_output import save_form_to_pdf, merge_pdfs
+        except ImportError as e:
+            messagebox.showerror("Import Error", f"Gagal import modul email: {e}")
+            return
+
+        print(f"[DEBUG] Selected positions: {selected_positions}")
+        self.update_status("Menyiapkan pengiriman email...")
+        
+        # Collect form data
+        data = collect_form_data_safely(self)
+        if not data.get("no_surat", "").strip():
+            messagebox.showerror("Validation Error", "No. Surat tidak boleh kosong untuk mengirim email.")
+            return
+
+        # Generate PDF attachment
+        temp_pdf_path = None
+        final_pdf_path = None
+        
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
+                temp_pdf_path = temp_pdf.name
+            
+            save_form_to_pdf(temp_pdf_path, data)
+            
+            final_pdf_path = temp_pdf_path
+            if hasattr(self, 'pdf_attachments') and self.pdf_attachments:
+                merged_pdf_path = os.path.join(tempfile.gettempdir(), f"merged_{os.path.basename(temp_pdf_path)}")
+                pdf_list = [temp_pdf_path] + self.pdf_attachments
+                merge_pdfs(pdf_list, merged_pdf_path)
+                final_pdf_path = merged_pdf_path
+
         except Exception as e:
-            print(f"[WARNING] Could not remove temporary files: {e}")
+            messagebox.showerror("PDF Generation Error", f"Gagal membuat PDF untuk email: {e}")
+            traceback.print_exc()
+            return
+        
+        # Initialize EmailSender
+        try:
+            email_sender = EmailSender()
+            
+            if not email_sender.sheets_service:
+                error_msg = ("Google Sheets tidak dapat diakses.\n\n"
+                            "Pastikan:\n"
+                            "1. File admin/credentials.json tersedia\n"
+                            "2. Sheet admin dengan email sudah dibuat\n"
+                            "3. ID sheet admin benar di config.py")
+                messagebox.showerror("Email Configuration Error", error_msg)
+                return
+                
+        except Exception as e:
+            error_msg = f"Gagal menginisialisasi email sender: {str(e)}"
+            messagebox.showerror("Email Sender Error", error_msg)
+            traceback.print_exc()
+            return
+        
+        # PERBAIKAN UTAMA: Ambil email yang benar dari spreadsheet
+        self.update_status("Mencari alamat email dari database admin...")
+        
+        recipient_emails = []
+        failed_lookups = []
+        successful_lookups = []
+        
+        print(f"[DEBUG] Looking up emails for positions: {selected_positions}")
+        
+        for position in selected_positions:
+            print(f"[DEBUG] Looking up email for: {position}")
+            email, msg = email_sender.get_recipient_email(position)
+            print(f"[DEBUG] Result for {position}: email={email}, msg={msg}")
+            
+            if email and email != position:
+                # Validasi format email
+                if '@' in email and '.' in email.split('@')[-1]:
+                    recipient_emails.append(email)
+                    successful_lookups.append(f"{position}: {email}")
+                    print(f"[DEBUG] ✓ Valid email found: {position} -> {email}")
+                else:
+                    failed_lookups.append(f"{position} (invalid email format: {email})")
+                    print(f"[DEBUG] ✗ Invalid email format: {position} -> {email}")
+            else:
+                failed_lookups.append(f"{position} ({msg})")
+                print(f"[DEBUG] ✗ No email found: {position} -> {msg}")
+        
+        print(f"[DEBUG] Final recipient emails: {recipient_emails}")
+        print(f"[DEBUG] Failed lookups: {failed_lookups}")
+        
+        # Show warnings for failed lookups
+        if failed_lookups:
+            warning_msg = ("Tidak dapat menemukan alamat email yang valid untuk posisi berikut:\n" + 
+                          "\n".join([f"• {lookup}" for lookup in failed_lookups]))
+            
+            if len(failed_lookups) == len(selected_positions):
+                # All positions failed
+                full_error = (warning_msg + 
+                             "\n\nPastikan admin sudah mengisi email yang valid untuk posisi-posisi tersebut "
+                             "di spreadsheet admin.\n\n"
+                             "Format email harus: user@domain.com")
+                messagebox.showerror("No Valid Emails Found", full_error)
+                return
+            else:
+                # Some positions failed - show warning but continue
+                result = messagebox.askyesno(
+                    "Some Emails Missing", 
+                    warning_msg + "\n\nLanjutkan mengirim ke email yang valid?", 
+                    parent=self
+                )
+                if not result:
+                    return
+        
+        if not recipient_emails:
+            messagebox.showerror("No Recipients", "Tidak ada alamat email yang valid untuk dikirimi.")
+            return
+        
+        # Prepare email template data
+        template_data = {
+            'nomor_surat': data.get('no_surat', 'N/A'),
+            'nama_pengirim': data.get('asal_surat', 'N/A'),
+            'perihal': data.get('perihal', 'N/A'),
+            'tanggal': datetime.now().strftime('%d %B %Y'),
+            'klasifikasi': [],
+            'instruksi_list': [],
+            'tahun': datetime.now().year
+        }
+        
+        # Add classification
+        if data.get('rahasia', 0):
+            template_data['klasifikasi'].append("RAHASIA")
+        if data.get('penting', 0):
+            template_data['klasifikasi'].append("PENTING")
+        if data.get('segera', 0):
+            template_data['klasifikasi'].append("SEGERA")
+        
+        # Add instructions from checkboxes
+        instruksi_mapping = [
+            ("ketahui_file", "Ketahui & File"),
+            ("proses_selesai", "Proses Selesai"),
+            ("teliti_pendapat", "Teliti & Pendapat"),
+            ("buatkan_resume", "Buatkan Resume"),
+            ("edarkan", "Edarkan"),
+            ("sesuai_disposisi", "Sesuai Disposisi"),
+            ("bicarakan_saya", "Bicarakan dengan Saya")
+        ]
+        
+        for key, label in instruksi_mapping:
+            if data.get(key, 0):
+                template_data['instruksi_list'].append(label)
+        
+        # Add detailed instructions from table
+        if 'isi_instruksi' in data and data['isi_instruksi']:
+            for instr in data['isi_instruksi']:
+                if instr.get('instruksi', '').strip():
+                    posisi = instr.get('posisi', '')
+                    instruksi_text = instr.get('instruksi', '')
+                    tanggal = instr.get('tanggal', '')
+                    
+                    instr_line = f"{posisi}: {instruksi_text}"
+                    if tanggal:
+                        instr_line += f" (Tanggal: {tanggal})"
+                    template_data['instruksi_list'].append(instr_line)
+        
+        # Add additional instructions
+        if data.get("bicarakan_dengan", "").strip():
+            template_data['instruksi_list'].append(f"Bicarakan dengan: {data['bicarakan_dengan']}")
+        
+        if data.get("teruskan_kepada", "").strip():
+            template_data['instruksi_list'].append(f"Teruskan kepada: {data['teruskan_kepada']}")
+        
+        if data.get("harap_selesai_tgl", "").strip():
+            template_data['instruksi_list'].append(f"Harap diselesaikan tanggal: {data['harap_selesai_tgl']}")
+        
+        # Render email template and send
+        try:
+            html_content = render_email_template(template_data)
+            subject = f"Disposisi Surat: {data.get('perihal', 'N/A')}"
+            
+            self.update_status(f"Mengirim email ke {len(recipient_emails)} penerima...")
+            print(f"[DEBUG] Sending email to: {recipient_emails}")
+            print(f"[DEBUG] Subject: {subject}")
+            print(f"[DEBUG] PDF attachment: {final_pdf_path}")
+            
+            # PERBAIKAN: Gunakan method yang benar dengan PDF attachment
+            success, message = email_sender.send_disposisi_email(
+                recipient_emails, 
+                subject, 
+                html_content,
+                pdf_attachment=final_pdf_path
+            )
+            
+            print(f"[DEBUG] Email send result: success={success}, message={message}")
+            
+            # Show results
+            if success:
+                self.update_status("Email berhasil dikirim!")
+                success_msg = f"Email berhasil dikirim ke:\n{chr(10).join([f'• {email}' for email in recipient_emails])}"
+                
+                if successful_lookups:
+                    success_msg += f"\n\nDetail penerima:\n{chr(10).join([f'• {lookup}' for lookup in successful_lookups])}"
+                
+                messagebox.showinfo("Email Sent Successfully", success_msg, parent=self)
+            else:
+                self.update_status("Gagal mengirim email.")
+                messagebox.showerror("Email Send Failed", f"Gagal mengirim email:\n{message}", parent=self)
+                
+        except Exception as e:
+            self.update_status("Error saat mengirim email.")
+            messagebox.showerror("Email Error", f"Terjadi kesalahan saat mengirim email: {e}")
+            traceback.print_exc()
+        
+        finally:
+            # Clean up temporary files
+            try:
+                if temp_pdf_path and os.path.exists(temp_pdf_path):
+                    os.remove(temp_pdf_path)
+                    print(f"[DEBUG] Cleaned up temp PDF: {temp_pdf_path}")
+                if final_pdf_path and final_pdf_path != temp_pdf_path and os.path.exists(final_pdf_path):
+                    os.remove(final_pdf_path)
+                    print(f"[DEBUG] Cleaned up final PDF: {final_pdf_path}")
+            except Exception as e:
+                print(f"[WARNING] Could not remove temporary files: {e}")
+
+    def save_to_pdf(self):
+        save_to_pdf(self)
+
+    def save_to_sheet(self):
+        save_to_sheet(self)
+
+    def clear_form(self):
+        clear_form(self)
+
+    def _global_on_mousewheel(self, event):
+        pass
+
+    def _global_on_shift_mousewheel(self, event):
+        pass
 
 
 # TAMBAHAN: Fungsi untuk debug dan test sistem email
@@ -1028,52 +1090,7 @@ def test_admin_sheet_connection():
         import traceback
         traceback.print_exc()
         return False
-    
-def remove_pdf_attachment(self):
-    """Remove selected PDF attachment from the form"""
-    import os
-    
-    selected = self.attachment_listbox.curselection()
-    if selected:
-        idx = selected[0]
-        if idx < len(self.pdf_attachments):
-            filename = os.path.basename(self.pdf_attachments[idx])
-            self.attachment_listbox.delete(idx)
-            del self.pdf_attachments[idx]
-            self.update_status(f"🗑️ {filename} dihapus")
-            print(f"[DEBUG] Removed PDF attachment: {filename}")
-        else:
-            print(f"[WARNING] Index {idx} out of range for pdf_attachments")
-    else:
-        messagebox.showwarning("Hapus Lampiran", "Pilih file yang akan dihapus terlebih dahulu.")
 
-def refresh_pdf_attachments(self, parent):
-    """Refresh PDF attachments display"""
-    # Clear current listbox
-    if hasattr(self, 'attachment_listbox'):
-        self.attachment_listbox.delete(0, tk.END)
-        
-        # Repopulate with current attachments
-        for pdf_path in self.pdf_attachments:
-            filename = os.path.basename(pdf_path)
-            display_name = f"📄 {filename}"
-            self.attachment_listbox.insert(tk.END, display_name)
-
-def get_disposisi_labels(self):
-    """Get selected disposisi labels"""
-    mapping = [
-        ("dir_utama", "Direktur Utama"),
-        ("dir_keu", "Direktur Keuangan"),
-        ("dir_teknik", "Direktur Teknik"),
-        ("gm_keu", "GM Keuangan & Administrasi"),
-        ("gm_ops", "GM Operasional & Pemeliharaan"),
-        ("manager", "Manager"),
-    ]
-    labels = []
-    for var, label in mapping:
-        if var in self.vars and self.vars[var].get():
-            labels.append(label)
-    return labels
 
 def collect_form_data_safely(self):
     """Safely collect all form data with proper error handling"""
@@ -1189,18 +1206,17 @@ def collect_form_data_safely(self):
         traceback.print_exc()
         return {}
 
-def update_status(self, message):
-    """Update status message"""
-    if hasattr(self, 'status_message'):
-        try:
-            self.status_message.config(text=message)
-            self.update_idletasks()  # Force UI update
-            print(f"[STATUS] {message}")
-        except Exception as e:
-            print(f"[WARNING] Could not update status: {e}")
-    else:
-        print(f"[STATUS] {message}")
+
+# Main application entry point
+def main():
+    """Main function to run the Email Manager Application"""
+    try:
+        app = FormApp()
+        app.mainloop()
+    except Exception as e:
+        print(f"Error starting application: {str(e)}")
+        messagebox.showerror("Error", f"Terjadi kesalahan saat memulai aplikasi:\n{str(e)}")
+
 
 if __name__ == "__main__":
-    app = FormApp()
-    app.mainloop()
+    main()
