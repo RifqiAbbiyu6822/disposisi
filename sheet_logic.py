@@ -35,26 +35,51 @@ FIELD_MAPPING = {
 # Reverse mapping for converting back to sheet format
 REVERSE_FIELD_MAPPING = {v: k for k, v in FIELD_MAPPING.items()}
 
+def safe_get_value(data, key, default=""):
+    """Safely get value from data dict with comprehensive null handling"""
+    try:
+        value = data.get(key, default)
+        
+        # Handle None, empty string, and null-like values
+        if value is None:
+            return default
+        
+        # Convert to string and handle various null representations
+        str_value = str(value).strip()
+        if str_value.lower() in ['none', 'null', 'nan', '']:
+            return default
+            
+        return str_value
+    except Exception as e:
+        print(f"[safe_get_value] Error getting {key}: {e}")
+        return default
+
 def normalize_date_format(date_str, target_format="%d-%m-%Y"):
-    """Convert date string to consistent format"""
-    if not date_str or date_str.strip() == "":
+    """Convert date string to consistent format with robust null handling"""
+    if not date_str:
+        return ""
+    
+    # Handle None and null-like values
+    date_str = safe_get_value({"date": date_str}, "date", "")
+    if not date_str:
         return ""
     
     # Common date formats to try
-    formats = ["%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y", "%d/%m/%Y"]
+    formats = ["%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y", "%d/%m/%Y", "%Y/%m/%d", "%d.%m.%Y"]
     
     for fmt in formats:
         try:
-            date_obj = datetime.strptime(date_str.strip(), fmt)
+            date_obj = datetime.strptime(date_str, fmt)
             return date_obj.strftime(target_format)
         except ValueError:
             continue
     
-    # If no format matches, return as is
-    return date_str.strip()
+    # If no format matches, return the original string (cleaned)
+    print(f"[normalize_date_format] Warning: Could not parse date '{date_str}', returning as-is")
+    return date_str
 
 def safe_get_widget_value(widget, widget_name="unknown"):
-    """Safely get value from any widget type"""
+    """Safely get value from any widget type with enhanced null handling"""
     try:
         if widget is None:
             print(f"[WARNING] Widget {widget_name} is None")
@@ -64,11 +89,14 @@ def safe_get_widget_value(widget, widget_name="unknown"):
         if hasattr(widget, 'get_date'):
             try:
                 date_obj = widget.get_date()
-                return date_obj.strftime("%d-%m-%Y")
+                if date_obj:
+                    return date_obj.strftime("%d-%m-%Y")
+                else:
+                    return ""
             except Exception as e:
                 print(f"[WARNING] Error getting date from {widget_name}: {e}")
-                # Fallback to regular get()
-                return str(widget.get()) if hasattr(widget, 'get') else ""
+                # Fallback to regular get() if available
+                return safe_get_value({"val": widget.get() if hasattr(widget, 'get') else ""}, "val", "")
         
         # For regular Entry widgets
         elif hasattr(widget, 'get'):
@@ -76,13 +104,13 @@ def safe_get_widget_value(widget, widget_name="unknown"):
             import inspect
             sig = inspect.signature(widget.get)
             if len(sig.parameters) == 0:
-                return str(widget.get())
+                return safe_get_value({"val": widget.get()}, "val", "")
             else:
                 # For widgets like Listbox that need selection
                 try:
                     selection = widget.curselection()
                     if selection:
-                        return str(widget.get(selection[0]))
+                        return safe_get_value({"val": widget.get(selection[0])}, "val", "")
                     else:
                         return ""
                 except:
@@ -90,7 +118,8 @@ def safe_get_widget_value(widget, widget_name="unknown"):
         
         # For Text widgets
         elif hasattr(widget, 'get') and hasattr(widget, 'insert'):
-            return str(widget.get("1.0", "end")).strip()
+            text_content = widget.get("1.0", "end").strip()
+            return safe_get_value({"val": text_content}, "val", "")
         
         else:
             print(f"[WARNING] Unknown widget type for {widget_name}: {type(widget)}")
@@ -102,7 +131,7 @@ def safe_get_widget_value(widget, widget_name="unknown"):
         return ""
 
 def get_disposisi_labels(self):
-    """Get selected disposisi labels"""
+    """Get selected disposisi labels with null handling"""
     mapping = [
         ("dir_utama", "Direktur Utama"),
         ("dir_keu", "Direktur Keuangan"),
@@ -113,12 +142,15 @@ def get_disposisi_labels(self):
     ]
     labels = []
     for var, label in mapping:
-        if hasattr(self, 'vars') and var in self.vars and self.vars[var].get():
-            labels.append(label)
+        try:
+            if hasattr(self, 'vars') and var in self.vars and self.vars[var].get():
+                labels.append(label)
+        except Exception as e:
+            print(f"[WARNING] Error getting disposisi value for {var}: {e}")
     return labels
 
 def get_untuk_di_labels(self, data):
-    """Get selected untuk di labels"""
+    """Get selected untuk di labels with null handling"""
     mapping = [
         ("ketahui_file", "Ketahui & File"),
         ("proses_selesai", "Proses Selesai"),
@@ -130,64 +162,94 @@ def get_untuk_di_labels(self, data):
     ]
     labels = []
     for var, label in mapping:
-        if data.get(var, 0):
-            labels.append(label)
+        try:
+            if data.get(var, 0):
+                labels.append(label)
+        except Exception as e:
+            print(f"[WARNING] Error getting untuk_di value for {var}: {e}")
     return ", ".join(labels)
 
 def prepare_row_data(self, data):
-    """Prepare row data for Google Sheets"""
-    # Normalize dates
-    date_fields = ["tgl_surat", "tgl_terima", "harap_selesai_tgl", "selesai_tgl"]
-    for field in date_fields:
-        if field in data:
-            data[field] = normalize_date_format(data[field])
-    
-    row_data = [
-        data.get("no_agenda", ""),
-        data.get("no_surat", ""),
-        data.get("tgl_surat", ""),
-        data.get("perihal", ""),
-        data.get("asal_surat", ""),
-        data.get("ditujukan", ""),
-        # Klasifikasi (RAHASIA/PENTING/SEGERA)
-        "RAHASIA" if data.get("rahasia", 0) else ("PENTING" if data.get("penting", 0) else ("SEGERA" if data.get("segera", 0) else "")),
-        ", ".join(get_disposisi_labels(self)),
-        get_untuk_di_labels(self, data),
-        data.get("selesai_tgl", data.get("harap_selesai_tgl", "")),  # Use selesai_tgl if available, else harap_selesai_tgl
-        data.get("kode_klasifikasi", ""),
-        data.get("tgl_terima", ""),
-        data.get("indeks", ""),
-        data.get("bicarakan_dengan", ""),
-        data.get("teruskan_kepada", ""),
-        data.get("harap_selesai_tgl", ""),
-    ]
-    
-    # Add instruction columns
-    pejabat_keys = [
-        ("dir_utama", "Direktur Utama"),
-        ("dir_keu", "Direktur Keuangan"),
-        ("dir_teknik", "Direktur Teknik"),
-        ("gm_keu", "GM Keuangan & Administrasi"),
-        ("gm_ops", "GM Operasional & Pemeliharaan"),
-        ("manager", "Manager")
-    ]
-    
-    instruksi_map = {p[1]: {"instruksi": "", "tanggal": ""} for p in pejabat_keys}
-    for instruksi_item in data.get("isi_instruksi", []):
-        posisi = instruksi_item.get("posisi", "").strip()
+    """Prepare row data for Google Sheets with robust null handling"""
+    try:
+        # Normalize dates with null handling
+        date_fields = ["tgl_surat", "tgl_terima", "harap_selesai_tgl", "selesai_tgl"]
+        for field in date_fields:
+            if field in data:
+                data[field] = normalize_date_format(data[field])
+        
+        # Get classification - only one can be active
+        klasifikasi = ""
+        if data.get("rahasia", 0):
+            klasifikasi = "RAHASIA"
+        elif data.get("penting", 0):
+            klasifikasi = "PENTING"
+        elif data.get("segera", 0):
+            klasifikasi = "SEGERA"
+        
+        # Build basic row data
+        row_data = [
+            safe_get_value(data, "no_agenda"),
+            safe_get_value(data, "no_surat"),
+            safe_get_value(data, "tgl_surat"),
+            safe_get_value(data, "perihal"),
+            safe_get_value(data, "asal_surat"),
+            safe_get_value(data, "ditujukan"),
+            klasifikasi,
+            ", ".join(get_disposisi_labels(self)),
+            get_untuk_di_labels(self, data),
+            safe_get_value(data, "selesai_tgl", safe_get_value(data, "harap_selesai_tgl")),  # Use selesai_tgl if available, else harap_selesai_tgl
+            safe_get_value(data, "kode_klasifikasi"),
+            safe_get_value(data, "tgl_terima"),
+            safe_get_value(data, "indeks"),
+            safe_get_value(data, "bicarakan_dengan"),
+            safe_get_value(data, "teruskan_kepada"),
+            safe_get_value(data, "harap_selesai_tgl"),
+        ]
+        
+        # Add instruction columns with null handling
+        pejabat_keys = [
+            ("dir_utama", "Direktur Utama"),
+            ("dir_keu", "Direktur Keuangan"),
+            ("dir_teknik", "Direktur Teknik"),
+            ("gm_keu", "GM Keuangan & Administrasi"),
+            ("gm_ops", "GM Operasional & Pemeliharaan"),
+            ("manager", "Manager")
+        ]
+        
+        # Initialize instruction map
+        instruksi_map = {p[1]: {"instruksi": "", "tanggal": ""} for p in pejabat_keys}
+        
+        # Process instruction data
+        isi_instruksi = data.get("isi_instruksi", [])
+        if isi_instruksi and isinstance(isi_instruksi, list):
+            for instruksi_item in isi_instruksi:
+                if isinstance(instruksi_item, dict):
+                    posisi = safe_get_value(instruksi_item, "posisi")
+                    if posisi in instruksi_map:
+                        instruksi_map[posisi]["instruksi"] = safe_get_value(instruksi_item, "instruksi")
+                        instruksi_map[posisi]["tanggal"] = normalize_date_format(instruksi_item.get("tanggal", ""))
+        
+        # Add instruction and date columns
         for _, label in pejabat_keys:
-            if posisi == label:
-                instruksi_map[label]["instruksi"] = instruksi_item.get("instruksi", "")
-                instruksi_map[label]["tanggal"] = normalize_date_format(instruksi_item.get("tanggal", ""))
-    
-    for _, label in pejabat_keys:
-        row_data.append(instruksi_map[label]["instruksi"])
-        row_data.append(instruksi_map[label]["tanggal"])
-    
-    return row_data
+            row_data.append(instruksi_map[label]["instruksi"])
+            row_data.append(instruksi_map[label]["tanggal"])
+        
+        # Ensure we have exactly 28 columns
+        while len(row_data) < 28:
+            row_data.append("")
+        row_data = row_data[:28]  # Trim if too many
+        
+        return row_data
+        
+    except Exception as e:
+        print(f"[prepare_row_data] Error: {e}")
+        traceback.print_exc()
+        # Return minimal valid row data to prevent complete failure
+        return [""] * 28
 
 def upload_to_sheet(self, call_from_pdf=False, data_override=None):
-    """Upload data to Google Sheets with improved error handling"""
+    """Upload data to Google Sheets with improved error handling and null safety"""
     try:
         if data_override:
             data = data_override
@@ -199,7 +261,8 @@ def upload_to_sheet(self, call_from_pdf=False, data_override=None):
             if hasattr(self, 'vars'):
                 for key, var in self.vars.items():
                     try:
-                        data[key] = var.get()
+                        value = var.get()
+                        data[key] = value if value is not None else (0 if 'IntVar' in str(type(var)) else "")
                     except Exception as e:
                         print(f"[WARNING] Error getting value from var {key}: {e}")
                         data[key] = 0 if 'IntVar' in str(type(var)) else ""
@@ -227,34 +290,64 @@ def upload_to_sheet(self, call_from_pdf=False, data_override=None):
                 if "tgl_surat" in self.form_input_widgets:
                     data["tgl_surat"] = safe_get_widget_value(self.form_input_widgets["tgl_surat"], "tgl_surat")
             
-            # Handle special date entries
+            # Handle special date entries with null safety
             if hasattr(self, 'tgl_terima_entry'):
                 data["tgl_terima"] = safe_get_widget_value(self.tgl_terima_entry, "tgl_terima_entry")
+            else:
+                data["tgl_terima"] = ""
             
             if hasattr(self, 'harap_selesai_tgl_entry'):
                 data["harap_selesai_tgl"] = safe_get_widget_value(self.harap_selesai_tgl_entry, "harap_selesai_tgl_entry")
+            else:
+                data["harap_selesai_tgl"] = ""
             
-            # Ensure consistent field names
-            data["kode_klasifikasi"] = data.get("kode_klasifikasi", "")
-            data["indeks"] = data.get("indeks", "")
+            # Ensure consistent field names with defaults
+            required_fields = {
+                "kode_klasifikasi": "",
+                "indeks": "",
+                "no_agenda": "",
+                "no_surat": "",
+                "perihal": "",
+                "asal_surat": "",
+                "ditujukan": "",
+                "bicarakan_dengan": "",
+                "teruskan_kepada": "",
+                "tgl_surat": "",
+                "rahasia": 0,
+                "penting": 0,
+                "segera": 0
+            }
             
-            # Collect instructions
+            for field, default_value in required_fields.items():
+                if field not in data or data[field] is None:
+                    data[field] = default_value
+            
+            # Collect instructions with null safety
             isi_instruksi = []
             if hasattr(self, "instruksi_table") and hasattr(self.instruksi_table, "get_data"):
                 try:
                     isi_instruksi = self.instruksi_table.get_data()
+                    # Filter out completely empty instruction rows
+                    isi_instruksi = [
+                        instr for instr in isi_instruksi 
+                        if isinstance(instr, dict) and (
+                            safe_get_value(instr, "posisi") or 
+                            safe_get_value(instr, "instruksi") or 
+                            safe_get_value(instr, "tanggal")
+                        )
+                    ]
                 except Exception as e:
                     print(f"[WARNING] Error getting instruction data: {e}")
                     isi_instruksi = []
             data["isi_instruksi"] = isi_instruksi
         
         # VALIDASI: Hanya No. Surat yang wajib diisi
-        no_surat = data.get("no_surat", "").strip()
+        no_surat = safe_get_value(data, "no_surat")
         if not no_surat:
             messagebox.showerror("Validasi", "No. Surat wajib diisi!")
             return False
         
-        # Cek duplikasi No. Surat
+        # Cek duplikasi No. Surat dengan error handling
         try:
             from disposisi_app.views.components.validation import is_no_surat_unique
             if not is_no_surat_unique(no_surat, get_sheets_service, SHEET_ID):
@@ -262,7 +355,7 @@ def upload_to_sheet(self, call_from_pdf=False, data_override=None):
                 return False
         except Exception as e:
             print(f"[WARNING] Error checking uniqueness: {e}")
-            # Continue anyway if validation fails
+            # Continue anyway if validation fails - better to save than lose data
         
         # Ensure sheet has proper headers
         from googleapiclient.errors import HttpError
@@ -279,9 +372,13 @@ def upload_to_sheet(self, call_from_pdf=False, data_override=None):
             if len(values) < 4:
                 write_multilayer_header(sheet_id=SHEET_ID, sheet_name=sheet_name)
                 time.sleep(1)
-        except HttpError:
-            write_multilayer_header(sheet_id=SHEET_ID, sheet_name=sheet_name)
-            time.sleep(1)
+        except HttpError as e:
+            print(f"[WARNING] Error checking headers: {e}")
+            try:
+                write_multilayer_header(sheet_id=SHEET_ID, sheet_name=sheet_name)
+                time.sleep(1)
+            except Exception as header_error:
+                print(f"[WARNING] Could not write headers: {header_error}")
         
         # Prepare and upload data
         row_data = prepare_row_data(self, data)
@@ -294,11 +391,13 @@ def upload_to_sheet(self, call_from_pdf=False, data_override=None):
             
     except Exception as e:
         traceback.print_exc()
-        messagebox.showerror("Google Sheets", f"Gagal upload ke Google Sheets: {e}")
+        error_msg = f"Gagal upload ke Google Sheets: {e}"
+        print(f"[ERROR] {error_msg}")
+        messagebox.showerror("Google Sheets", error_msg)
         return False
 
 def update_log_entry(data_lama, data_baru):
-    """Update log entry in Google Sheets"""
+    """Update log entry in Google Sheets with robust error handling"""
     try:
         service = get_sheets_service()
         range_name = 'Sheet1!A6:AB'
@@ -310,7 +409,7 @@ def update_log_entry(data_lama, data_baru):
         
         # Find the row to update
         idx = -1
-        no_surat_lama = str(data_lama.get("No. Surat", "")).strip()
+        no_surat_lama = safe_get_value(data_lama, "No. Surat")
         
         for i, row in enumerate(values):
             row_full = row + ["" for _ in range(len(ENHANCED_HEADER) - len(row))]
@@ -321,7 +420,7 @@ def update_log_entry(data_lama, data_baru):
         if idx == -1:
             raise Exception(f"Data dengan No. Surat '{no_surat_lama}' tidak ditemukan di sheet, tidak bisa update.")
         
-        # Convert snake_case fields back to sheet headers
+        # Convert snake_case fields back to sheet headers with null handling
         converted_data_baru = {}
         for k, v in data_baru.items():
             if k in REVERSE_FIELD_MAPPING:
@@ -329,94 +428,112 @@ def update_log_entry(data_lama, data_baru):
             else:
                 converted_data_baru[k] = v
         
-        # Merge old and new data
-        merged_data = dict(data_lama)
-        merged_data.update(converted_data_baru)
+        # Merge old and new data with null safety
+        merged_data = dict(data_lama) if data_lama else {}
+        for k, v in converted_data_baru.items():
+            if v is not None:  # Allow empty strings but not None
+                merged_data[k] = v
         
         # Synchronize completion dates
         if "Harap Selesai Tanggal" in merged_data:
             merged_data["Selesai Tgl."] = merged_data["Harap Selesai Tanggal"]
         
-        # Process instructions
+        # Process instructions with null handling
         pejabat_labels = [
             "Direktur Utama", "Direktur Keuangan", "Direktur Teknik",
             "GM Keuangan & Administrasi", "GM Operasional & Pemeliharaan", "Manager"
         ]
         
         instruksi_map = {label: {"instruksi": "", "tanggal": ""} for label in pejabat_labels}
-        for instruksi_item in merged_data.get("isi_instruksi", []):
-            posisi = instruksi_item.get("posisi", "").strip()
-            if posisi in instruksi_map:
-                instruksi_map[posisi]["instruksi"] = instruksi_item.get("instruksi", "")
-                instruksi_map[posisi]["tanggal"] = normalize_date_format(instruksi_item.get("tanggal", ""))
+        isi_instruksi = merged_data.get("isi_instruksi", [])
         
-        # Build row data
+        if isi_instruksi and isinstance(isi_instruksi, list):
+            for instruksi_item in isi_instruksi:
+                if isinstance(instruksi_item, dict):
+                    posisi = safe_get_value(instruksi_item, "posisi")
+                    if posisi in instruksi_map:
+                        instruksi_map[posisi]["instruksi"] = safe_get_value(instruksi_item, "instruksi")
+                        instruksi_map[posisi]["tanggal"] = normalize_date_format(instruksi_item.get("tanggal", ""))
+        
+        # Build row data with comprehensive error handling
         row_data = []
         missing_keys = []
         
         for col in ENHANCED_HEADER:
-            if col in ["No. Agenda", "No. Surat", "Tgl. Surat", "Perihal", "Asal Surat", "Ditujukan", 
-                       "Kode Klasifikasi", "Tgl. Penerimaan", "Indeks", "Bicarakan dengan", 
-                       "Teruskan kepada", "Harap Selesai Tanggal", "Selesai Tgl."]:
-                value = merged_data.get(col, "")
-                if col in ["Tgl. Surat", "Tgl. Penerimaan", "Harap Selesai Tanggal", "Selesai Tgl."]:
-                    value = normalize_date_format(value)
-                row_data.append(value)
-                
-            elif col.endswith("Instruksi"):
-                label = col.replace(" Instruksi", "")
-                if label in instruksi_map:
-                    row_data.append(instruksi_map[label]["instruksi"])
-                else:
-                    row_data.append("")
+            try:
+                if col in ["No. Agenda", "No. Surat", "Tgl. Surat", "Perihal", "Asal Surat", "Ditujukan", 
+                           "Kode Klasifikasi", "Tgl. Penerimaan", "Indeks", "Bicarakan dengan", 
+                           "Teruskan kepada", "Harap Selesai Tanggal", "Selesai Tgl."]:
+                    value = safe_get_value(merged_data, col)
+                    if col in ["Tgl. Surat", "Tgl. Penerimaan", "Harap Selesai Tanggal", "Selesai Tgl."]:
+                        value = normalize_date_format(value)
+                    row_data.append(value)
                     
-            elif col.endswith("Tanggal"):
-                label = col.replace(" Tanggal", "")
-                if label in instruksi_map:
-                    row_data.append(instruksi_map[label]["tanggal"])
-                else:
-                    row_data.append("")
+                elif col.endswith("Instruksi"):
+                    label = col.replace(" Instruksi", "")
+                    if label in instruksi_map:
+                        row_data.append(instruksi_map[label]["instruksi"])
+                    else:
+                        print(f"[WARNING] Unknown position for instruction: {label}")
+                        row_data.append("")
+                        
+                elif col.endswith("Tanggal"):
+                    label = col.replace(" Tanggal", "")
+                    if label in instruksi_map:
+                        row_data.append(instruksi_map[label]["tanggal"])
+                    else:
+                        print(f"[WARNING] Unknown position for date: {label}")
+                        row_data.append("")
+                        
+                elif col == "Klasifikasi":
+                    if merged_data.get("rahasia", 0):
+                        row_data.append("RAHASIA")
+                    elif merged_data.get("penting", 0):
+                        row_data.append("PENTING")
+                    elif merged_data.get("segera", 0):
+                        row_data.append("SEGERA")
+                    else:
+                        row_data.append("")
+                        
+                elif col == "Disposisi kepada":
+                    disposisi_labels = []
+                    if merged_data.get("dir_utama", 0): disposisi_labels.append("Direktur Utama")
+                    if merged_data.get("dir_keu", 0): disposisi_labels.append("Direktur Keuangan")
+                    if merged_data.get("dir_teknik", 0): disposisi_labels.append("Direktur Teknik")
+                    if merged_data.get("gm_keu", 0): disposisi_labels.append("GM Keuangan & Administrasi")
+                    if merged_data.get("gm_ops", 0): disposisi_labels.append("GM Operasional & Pemeliharaan")
+                    if merged_data.get("manager", 0): disposisi_labels.append("Manager")
+                    row_data.append(", ".join(disposisi_labels))
                     
-            elif col == "Klasifikasi":
-                if merged_data.get("rahasia", 0):
-                    row_data.append("RAHASIA")
-                elif merged_data.get("penting", 0):
-                    row_data.append("PENTING")
-                elif merged_data.get("segera", 0):
-                    row_data.append("SEGERA")
-                else:
-                    row_data.append("")
+                elif col == "Untuk Di :":
+                    untuk_di_labels = []
+                    if merged_data.get("ketahui_file", 0): untuk_di_labels.append("Ketahui & File")
+                    if merged_data.get("proses_selesai", 0): untuk_di_labels.append("Proses Selesai")
+                    if merged_data.get("teliti_pendapat", 0): untuk_di_labels.append("Teliti & Pendapat")
+                    if merged_data.get("buatkan_resume", 0): untuk_di_labels.append("Buatkan Resume")
+                    if merged_data.get("edarkan", 0): untuk_di_labels.append("Edarkan")
+                    if merged_data.get("sesuai_disposisi", 0): untuk_di_labels.append("Sesuai Disposisi")
+                    if merged_data.get("bicarakan_saya", 0): untuk_di_labels.append("Bicarakan dengan Saya")
+                    row_data.append(", ".join(untuk_di_labels))
                     
-            elif col == "Disposisi kepada":
-                disposisi_labels = []
-                if merged_data.get("dir_utama", 0): disposisi_labels.append("Direktur Utama")
-                if merged_data.get("dir_keu", 0): disposisi_labels.append("Direktur Keuangan")
-                if merged_data.get("dir_teknik", 0): disposisi_labels.append("Direktur Teknik")
-                if merged_data.get("gm_keu", 0): disposisi_labels.append("GM Keuangan & Administrasi")
-                if merged_data.get("gm_ops", 0): disposisi_labels.append("GM Operasional & Pemeliharaan")
-                if merged_data.get("manager", 0): disposisi_labels.append("Manager")
-                row_data.append(", ".join(disposisi_labels))
-                
-            elif col == "Untuk Di :":
-                untuk_di_labels = []
-                if merged_data.get("ketahui_file", 0): untuk_di_labels.append("Ketahui & File")
-                if merged_data.get("proses_selesai", 0): untuk_di_labels.append("Proses Selesai")
-                if merged_data.get("teliti_pendapat", 0): untuk_di_labels.append("Teliti & Pendapat")
-                if merged_data.get("buatkan_resume", 0): untuk_di_labels.append("Buatkan Resume")
-                if merged_data.get("edarkan", 0): untuk_di_labels.append("Edarkan")
-                if merged_data.get("sesuai_disposisi", 0): untuk_di_labels.append("Sesuai Disposisi")
-                if merged_data.get("bicarakan_saya", 0): untuk_di_labels.append("Bicarakan dengan Saya")
-                row_data.append(", ".join(untuk_di_labels))
-                
-            else:
-                val = merged_data.get(col, "")
-                if val == "" and col not in merged_data:
-                    missing_keys.append(col)
-                row_data.append(val)
+                else:
+                    val = safe_get_value(merged_data, col)
+                    if val == "" and col not in merged_data:
+                        missing_keys.append(col)
+                    row_data.append(val)
+                    
+            except Exception as e:
+                print(f"[WARNING] Error processing column {col}: {e}")
+                row_data.append("")  # Add empty value to maintain column structure
         
-        print(f"[update_log_entry] Akan update baris ke-{idx+6} dengan data: {row_data}")
+        # Ensure we have exactly 28 columns
+        while len(row_data) < 28:
+            row_data.append("")
+        row_data = row_data[:28]  # Trim if too many
+        
+        print(f"[update_log_entry] Akan update baris ke-{idx+6} dengan {len(row_data)} kolom")
         if missing_keys:
-            print(f"[update_log_entry][WARNING] Kolom berikut tidak ditemukan di data_baru: {missing_keys}")
+            print(f"[update_log_entry][INFO] Kolom kosong: {missing_keys}")
         
         # Update the row (idx+1 because row_number starts from 1, which corresponds to row 6 in the sheet)
         update_row_in_sheet(row_data, idx+1)
@@ -429,12 +546,13 @@ def update_log_entry(data_lama, data_baru):
         return False
 
 def build_complete_data(data_lama, data_baru, header):
-    """Build complete data by merging old and new data"""
+    """Build complete data by merging old and new data with null safety"""
     result = {}
     for col in header:
-        if col in data_baru and data_baru[col] not in [None, ""]:
+        # Prioritize new data, fallback to old data, then empty string
+        if col in data_baru and data_baru[col] is not None:
             result[col] = data_baru[col]
-        elif col in data_lama:
+        elif col in data_lama and data_lama[col] is not None:
             result[col] = data_lama[col]
         else:
             result[col] = ""

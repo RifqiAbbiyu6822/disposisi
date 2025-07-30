@@ -527,26 +527,49 @@ class EditTab(ttk.Frame):
         import threading
         def do_save():
             print("[EditTab] Mulai proses simpan edit.")
-            # Ambil data dari form menggunakan collect_form_data_safely
-            data_baru = collect_form_data_safely(self)
+            
+            # Collect form data safely using the improved function
+            from disposisi_app.views.components.export_utils import collect_form_data_safely
+            try:
+                data_baru = collect_form_data_safely(self)
+            except Exception as e:
+                print(f"[EditTab][ERROR] Error collecting form data: {e}")
+                messagebox.showerror("Error", f"Gagal mengumpulkan data form: {e}")
+                return
+            
+            # Enhanced validation with null handling
+            def safe_get_value(data, key, default=""):
+                """Safely get value from data dict"""
+                try:
+                    value = data.get(key, default)
+                    if value is None:
+                        return default
+                    return str(value).strip() if value != default else default
+                except:
+                    return default
             
             # FIX: Allow null values for all fields except no_surat
-            # Convert empty strings to appropriate values
+            # Convert None values to appropriate defaults
             nullable_fields = [
                 "no_agenda", "perihal", "asal_surat", "ditujukan",
                 "kode_klasifikasi", "indeks", "bicarakan_dengan", 
                 "teruskan_kepada", "tgl_surat", "tgl_terima", "harap_selesai_tgl"
             ]
             
-            # Keep empty strings for nullable fields - this allows clearing fields
+            # Ensure null safety for all fields
             for field in nullable_fields:
-                if field in data_baru and data_baru[field] is None:
-                    data_baru[field] = ""  # Convert None to empty string
+                if field in data_baru:
+                    if data_baru[field] is None:
+                        data_baru[field] = ""  # Convert None to empty string
+                    else:
+                        data_baru[field] = str(data_baru[field]).strip()
             
-            print("[EditTab] Data baru yang akan diupdate:", data_baru)
+            print("[EditTab] Data baru yang akan diupdate:", {k: v for k, v in data_baru.items() if k != "isi_instruksi"})
+            if "isi_instruksi" in data_baru:
+                print("[EditTab] Instruksi data:", data_baru["isi_instruksi"])
 
             # VALIDASI: Hanya No. Surat yang wajib diisi
-            no_surat_baru = data_baru.get("no_surat", "").strip()
+            no_surat_baru = safe_get_value(data_baru, "no_surat")
             if not no_surat_baru:
                 print(f"[EditTab][ERROR] Field 'No. Surat' kosong!")
                 messagebox.showerror("Error", "Field 'No. Surat' tidak boleh kosong!")
@@ -562,7 +585,8 @@ class EditTab(ttk.Frame):
                     range=range_name
                 ).execute()
                 values = result.get('values', [])
-                no_surat_lama = str(self.data_log.get("No. Surat", "")).strip()
+                no_surat_lama = safe_get_value(self.data_log, "No. Surat")
+                
                 for row in values:
                     if len(row) > 1:
                         no_surat = str(row[1]).strip()
@@ -571,30 +595,47 @@ class EditTab(ttk.Frame):
                             return
             except Exception as e:
                 print(f"[EditTab][WARNING] Tidak bisa cek duplikasi No. Surat: {e}")
-                # Continue even if duplicate check fails
+                # Continue even if duplicate check fails to avoid data loss
 
             try:
                 from disposisi_app.views.components.loading_screen import LoadingScreen
                 loading = LoadingScreen(self)
+                
+                # Progress simulation
                 for i in range(1, 101):
                     import time; time.sleep(0.01)
                     loading.update_progress(i)
+                
                 print("[EditTab] Memanggil update_log_entry...")
-                update_log_entry(self.data_log, data_baru)
-                print("[EditTab] Update berhasil.")
-                messagebox.showinfo("Sukses", "Data berhasil diupdate.")
-                if self.on_save_callback:
-                    print("[EditTab] Memanggil on_save_callback...")
-                    self.on_save_callback()
+                
+                # Use the fixed update_log_entry function
+                from edit_logic import update_log_entry
+                success = update_log_entry(self.data_log, data_baru)
+                
+                if success:
+                    print("[EditTab] Update berhasil.")
+                    messagebox.showinfo("Sukses", "Data berhasil diupdate.")
+                    
+                    # Call callback if available
+                    if self.on_save_callback:
+                        print("[EditTab] Memanggil on_save_callback...")
+                        self.on_save_callback()
+                else:
+                    print("[EditTab] Update gagal.")
+                    messagebox.showerror("Error", "Gagal update data ke Google Sheets.")
+                
                 loading.destroy()
+                
             except Exception as e:
                 import traceback; traceback.print_exc()
                 print(f"[EditTab][ERROR] Gagal update data: {e}")
                 messagebox.showerror("Error", f"Gagal update data: {e}")
                 if 'loading' in locals():
                     loading.destroy()
-        threading.Thread(target=do_save).start()
-
+                    
+        # Run in separate thread to avoid blocking UI
+        threading.Thread(target=do_save, daemon=True).start()
+        
     def _on_cancel(self):
         # Tutup tab edit (akan di-handle oleh FormApp)
         parent = self.master
