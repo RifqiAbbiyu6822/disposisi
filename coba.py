@@ -61,179 +61,28 @@ class FormApp(tk.Tk):
         self.configure(bg="#f8fafc")
         
         # Enhanced styling setup
-        self.setup_enhanced_styles()
+    def setup_enhanced_styles(self):
         
+     self.style = ttk.Style()
+    
+    # Set window background
+     self.configure(bg="#F8FAFC")
+    
+    # Configure modern window appearance
+     self.update_idletasks()
+    
+    # Add window shadow effect (Windows only)
+    if platform.system() == "Windows":
         try:
-            self.iconbitmap('JapekELEVATED.ico')
+            from ctypes import windll, c_int, byref, sizeof
+            # Enable drop shadow
+            set_window_attribute = windll.dwmapi.DwmSetWindowAttribute
+            hwnd = windll.user32.GetParent(self.winfo_id())
+            attribute = 2  # DWMWA_NCRENDERING_POLICY
+            value = c_int(2)  # DWMNCRP_ENABLED
+            set_window_attribute(hwnd, attribute, byref(value), sizeof(value))
         except:
             pass
-        
-        self.setup_windowed_fullscreen()
-        self.is_windows = platform.system() == "Windows"
-        setup_styles(self)  # Terapkan style global
-        
-        self.edit_mode = False
-        self.current_focus = None
-        self.last_mouse_position = (0, 0)
-        self.touchpad_gesture_active = False
-        self.gesture_start_y = 0
-        self.tooltip = None  # Untuk tooltip
-        
-        self.init_variables()
-        self.posisi_options = [
-            "Direktur Utama",
-            "Direktur Keuangan",
-            "Direktur Teknik",
-            "GM Keuangan & Administrasi",
-            "GM Operasional & Pemeliharaan",
-            "Manager"
-        ]
-        
-        # Enhanced header with modern styling
-        self.header = create_header(self)
-        self.log_data_dirty = False
-        
-        # Inisialisasi pdf_attachments sebelum create_widgets
-        self.pdf_attachments = []
-        
-        self.create_tabs()
-        self.setup_shortcuts()
-        self.setup_touchpad_gestures()
-        
-        # Enhanced menu bar
-        create_menu_bar(
-            self,
-            save_to_pdf_callback=self.save_to_pdf,
-            clear_form_callback=self.clear_form,
-            quit_callback=self.quit,
-            show_shortcuts_callback=self.show_shortcuts,
-            show_about_callback=self.show_about
-        )
-        
-        # Enhanced status bar
-        self.status_frame, self.status_message = create_status_bar(self)
-        
-        self.center_window()
-        self.bind_all("<MouseWheel>", self._global_on_mousewheel)
-        self.bind_all("<Shift-MouseWheel>", self._global_on_shift_mousewheel)
-        self.bind_all("<Button-4>", self._global_on_mousewheel)
-        self.bind_all("<Button-5>", self._global_on_mousewheel)
-
-    def setup_enhanced_styles(self):
-        """Setup enhanced modern styling for the application"""
-        self.style = ttk.Style()
-        
-        # Modern color palette
-        colors = {
-            'primary': '#3b82f6',      # Blue
-            'primary_dark': '#1d4ed8', # Darker blue
-            'secondary': '#6b7280',    # Gray
-            'success': '#10b981',      # Green
-            'warning': '#f59e0b',      # Amber
-            'danger': '#ef4444',       # Red
-            'background': '#f8fafc',   # Light gray background
-            'surface': '#ffffff',      # White surface
-            'text': '#1f2937',         # Dark gray text
-            'text_secondary': '#6b7280', # Secondary text
-            'border': '#e5e7eb',       # Light border
-            'hover': '#f3f4f6'         # Hover background
-        }
-        
-        self.style.configure('TFrame', background=colors['background'], relief='flat')
-        self.style.configure('Surface.TFrame', background=colors['surface'], relief='solid', borderwidth=1)
-        self.style.configure('Card.TFrame', background=colors['surface'], relief='solid', borderwidth=1)
-        
-        self.style.configure('TLabelframe', 
-                             background=colors['surface'],
-                             borderwidth=2,
-                             relief='solid',
-                             focuscolor='none')
-        self.style.configure('TLabelframe.Label', 
-                             background=colors['surface'],
-                             foreground=colors['primary'],
-                             font=('Segoe UI', 11, 'bold'),
-                             padding=(10, 5))
-        
-        self.style.configure('TButton',
-                             background=colors['primary'],
-                             foreground='white',
-                             font=('Segoe UI', 10, 'bold'),
-                             borderwidth=0,
-                             focuscolor='none',
-                             padding=(15, 8))
-        
-        self.style.configure('Secondary.TButton',
-                             background=colors['secondary'],
-                             foreground='white',
-                             font=('Segoe UI', 9),
-                             borderwidth=0,
-                             focuscolor='none',
-                             padding=(12, 6))
-        
-        self.style.configure('Success.TButton',
-                             background=colors['success'],
-                             foreground='white',
-                             font=('Segoe UI', 10, 'bold'),
-                             borderwidth=0,
-                             focuscolor='none',
-                             padding=(15, 8))
-        
-        self.style.configure('Danger.TButton',
-                             background=colors['danger'],
-                             foreground='white',
-                             font=('Segoe UI', 10),
-                             borderwidth=0,
-                             focuscolor='none',
-                             padding=(12, 6))
-        
-        self.style.configure('TEntry',
-                             fieldbackground=colors['surface'],
-                             borderwidth=2,
-                             insertcolor=colors['primary'],
-                             relief='solid',
-                             padding=(8, 6),
-                             font=('Segoe UI', 10))
-        
-        self.style.configure('TCombobox',
-                             fieldbackground=colors['surface'],
-                             borderwidth=2,
-                             relief='solid',
-                             padding=(8, 6),
-                             font=('Segoe UI', 10))
-        
-        self.style.configure('TNotebook', 
-                             background=colors['background'],
-                             borderwidth=0)
-        self.style.configure('TNotebook.Tab',
-                             background=colors['surface'],
-                             foreground=colors['text'],
-                             font=('Segoe UI', 11, 'bold'),
-                             padding=(20, 12),
-                             borderwidth=1,
-                             relief='solid')
-        
-        self.style.configure('TLabel',
-                             background=colors['background'],
-                             foreground=colors['text'],
-                             font=('Segoe UI', 10))
-        
-        self.style.configure('Heading.TLabel',
-                             background=colors['background'],
-                             foreground=colors['primary'],
-                             font=('Segoe UI', 14, 'bold'))
-        
-        self.style.configure('TCheckbutton',
-                             background=colors['surface'],
-                             foreground=colors['text'],
-                             font=('Segoe UI', 10),
-                             focuscolor='none')
-        
-        self.style.configure('TText',
-                             background=colors['surface'],
-                             borderwidth=2,
-                             relief='solid',
-                             padding=8,
-                             font=('Segoe UI', 10))
 
     def center_window(self):
         center_window(self)

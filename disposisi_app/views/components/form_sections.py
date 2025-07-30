@@ -1,80 +1,209 @@
 from tkinter import ttk, Text
 from tkcalendar import DateEntry
+import tkinter as tk
+
+def create_modern_input_frame(parent, label_text):
+    """Create a modern input frame with label"""
+    frame = tk.Frame(parent, bg="#FFFFFF")
+    frame.pack(fill="x", pady=(0, 12))
+    
+    # Label with modern styling
+    label = tk.Label(frame, text=label_text, 
+                    font=("Inter", 10) if "Inter" in tk.font.families() else ("Segoe UI", 10),
+                    bg="#FFFFFF", fg="#475569")
+    label.pack(anchor="w", pady=(0, 6))
+    
+    return frame
 
 def populate_frame_kiri(frame, vars):
     input_widgets = {}
-    labels = ["No. Agenda:", "No. Surat:", "Tgl. Surat:", "Perihal:", "Asal Surat:", "Ditujukan:"]
-    vars_keys = ["no_agenda", "no_surat", "tgl_surat", "perihal", "asal_surat", "ditujukan"]
-    for i, (label, key) in enumerate(zip(labels, vars_keys)):
-        ttk.Label(frame, text=label, style="TLabel").grid(row=i, column=0, sticky="w", pady=1, padx=(0,5))
-        if key == "tgl_surat":
-            input_widgets[key] = DateEntry(frame, width=25, date_pattern="dd-mm-yyyy", font=("Segoe UI", 10))
-            input_widgets[key].grid(row=i, column=1, sticky="ew", pady=1)
+    
+    # Modern card-like inner frame
+    inner_frame = tk.Frame(frame, bg="#FFFFFF")
+    inner_frame.pack(fill="both", expand=True)
+    
+    fields = [
+        ("No. Agenda", "no_agenda", "text"),
+        ("No. Surat", "no_surat", "text"),
+        ("Tgl. Surat", "tgl_surat", "date"),
+        ("Perihal", "perihal", "textarea"),
+        ("Asal Surat", "asal_surat", "textarea"),
+        ("Ditujukan", "ditujukan", "textarea")
+    ]
+    
+    for label, key, field_type in fields:
+        container = create_modern_input_frame(inner_frame, label)
+        
+        if field_type == "date":
+            # Modern date picker
+            date_frame = tk.Frame(container, bg="#FFFFFF")
+            date_frame.pack(fill="x")
+            
+            input_widgets[key] = DateEntry(date_frame, width=30, 
+                                         date_pattern="dd-mm-yyyy", 
+                                         font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11),
+                                         background='#3B82F6',
+                                         foreground='white',
+                                         borderwidth=2,
+                                         headersbackground='#1E293B',
+                                         headersforeground='white',
+                                         selectbackground='#2563EB',
+                                         selectforeground='white',
+                                         normalbackground='white',
+                                         normalforeground='#0F172A',
+                                         weekendbackground='#F1F5F9',
+                                         weekendforeground='#64748B')
+            input_widgets[key].pack(side="left", fill="x", expand=True)
             input_widgets[key].delete(0, 'end')
-            # Tombol emoji clear di kanan field
-            def clear_date(entry=input_widgets[key]):
-                entry.delete(0, 'end')
-            btn_clear = ttk.Button(frame, text="🗑️", width=2, command=lambda entry=input_widgets[key]: clear_date(entry))
-            btn_clear.grid(row=i, column=2, padx=(5,0), sticky="e")
-        elif key in ["perihal", "asal_surat", "ditujukan"]:
-            input_widgets[key] = Text(frame, height=2, width=30, wrap="word", font=("Segoe UI", 10), borderwidth=1, relief="solid", highlightthickness=0)
-            input_widgets[key].grid(row=i, column=1, sticky="ew", pady=1)
-        else:
-            width = 35 if key in ["no_agenda", "no_surat"] else 30
-            input_widgets[key] = ttk.Entry(frame, textvariable=vars[key], width=width, style="TEntry")
-            input_widgets[key].grid(row=i, column=1, sticky="ew", pady=1)
+            
+            # Modern clear button
+            clear_btn = tk.Button(date_frame, text="✕", 
+                                font=("Arial", 10, "bold"),
+                                bg="#F1F5F9", fg="#64748B",
+                                bd=0, padx=12, pady=6,
+                                cursor="hand2",
+                                command=lambda w=input_widgets[key]: w.delete(0, 'end'))
+            clear_btn.pack(side="right", padx=(8, 0))
+            
+            # Hover effect
+            def on_enter(e, btn=clear_btn):
+                btn.config(bg="#E2E8F0", fg="#475569")
+            def on_leave(e, btn=clear_btn):
+                btn.config(bg="#F1F5F9", fg="#64748B")
+            
+            clear_btn.bind("<Enter>", on_enter)
+            clear_btn.bind("<Leave>", on_leave)
+            
+        elif field_type == "textarea":
+            # Modern text area with border
+            text_frame = tk.Frame(container, bg="#E2E8F0", bd=1)
+            text_frame.pack(fill="x")
+            
+            input_widgets[key] = Text(text_frame, height=2, wrap="word", 
+                                    font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11),
+                                    bg="#FFFFFF", fg="#0F172A",
+                                    bd=0, padx=12, pady=10,
+                                    insertbackground="#3B82F6")
+            input_widgets[key].pack(fill="x", padx=1, pady=1)
+            
+            # Focus effect
+            def on_focus_in(e, frame=text_frame):
+                frame.config(bg="#3B82F6")
+            def on_focus_out(e, frame=text_frame):
+                frame.config(bg="#E2E8F0")
+            
+            input_widgets[key].bind("<FocusIn>", on_focus_in)
+            input_widgets[key].bind("<FocusOut>", on_focus_out)
+            
+        else:  # text input
+            input_widgets[key] = ttk.Entry(container, textvariable=vars[key], 
+                                         font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11),
+                                         style="TEntry")
+            input_widgets[key].pack(fill="x")
+    
     return input_widgets
 
 def populate_frame_kanan(frame, vars):
     input_widgets = {}
-    def handle_klasifikasi_change(selected):
-        for key in ["rahasia", "penting", "segera"]:
-            if key == selected:
-                vars[key].set(1)
-            else:
-                vars[key].set(0)
-    frame.columnconfigure(0, weight=1)
-    frame.columnconfigure(1, weight=1)
-    checkbox_frame = ttk.Frame(frame)
-    checkbox_frame.grid(row=0, column=0, columnspan=3, sticky="ew", pady=(0, 10))
-    checkbox_frame.columnconfigure(0, weight=1)
-    checkbox_frame.columnconfigure(1, weight=1)
+    
+    # Modern classification section
+    klasifikasi_frame = tk.Frame(frame, bg="#FFFFFF")
+    klasifikasi_frame.pack(fill="x", pady=(0, 20))
+    
+    klasifikasi_label = tk.Label(klasifikasi_frame, text="Klasifikasi Dokumen",
+                               font=("Inter", 11, "600") if "Inter" in tk.font.families() else ("Segoe UI", 11, "bold"),
+                               bg="#FFFFFF", fg="#0F172A")
+    klasifikasi_label.pack(anchor="w", pady=(0, 10))
+    
+    # Modern radio-style checkboxes
     klasifikasi_items = [
-        ("RAHASIA", "rahasia"),
-        ("PENTING", "penting"),
-        ("SEGERA", "segera")
+        ("RAHASIA", "rahasia", "#EF4444"),
+        ("PENTING", "penting", "#F59E0B"),
+        ("SEGERA", "segera", "#3B82F6")
     ]
-    for i, (text, key) in enumerate(klasifikasi_items):
-        row = i // 2
-        col = i % 2
-        ttk.Checkbutton(checkbox_frame, text=text, variable=vars[key], style="TCheckbutton", command=lambda k=key: handle_klasifikasi_change(k)).grid(
-            row=row, column=col, sticky="w", pady=1, padx=(0, 10)
-        )
-    # Tanggal Penerimaan
-    ttk.Label(frame, text="Tanggal Penerimaan:", style="TLabel").grid(row=1, column=0, sticky="w", pady=(5, 0))
-    tgl_terima_entry = DateEntry(frame, width=20, date_pattern="dd-mm-yyyy", font=("Segoe UI", 10))
-    tgl_terima_entry.grid(row=1, column=1, sticky="ew", pady=1)
-    tgl_terima_entry.delete(0, 'end')
-    input_widgets["tgl_terima"] = tgl_terima_entry
-    def clear_tgl_terima():
-        tgl_terima_entry.delete(0, 'end')
-    btn_clear_tgl_terima = ttk.Button(frame, text="🗑️", width=2, command=clear_tgl_terima)
-    btn_clear_tgl_terima.grid(row=1, column=2, padx=(5,0), sticky="e")
-    # Kode / Klasifikasi
-    ttk.Label(frame, text="Kode / Klasifikasi:", style="TLabel").grid(row=2, column=0, sticky="w", pady=(5, 0))
-    ttk.Entry(frame, textvariable=vars["kode_klasifikasi"], style="TEntry", width=35).grid(row=2, column=1, columnspan=2, sticky="ew", pady=1)
-    # Indeks
-    ttk.Label(frame, text="Indeks:", style="TLabel").grid(row=3, column=0, sticky="w", pady=(5, 0))
-    ttk.Entry(frame, textvariable=vars["indeks"], style="TEntry", width=35).grid(row=3, column=1, columnspan=2, sticky="ew", pady=1)
+    
+    for text, key, color in klasifikasi_items:
+        checkbox_frame = tk.Frame(klasifikasi_frame, bg="#FFFFFF")
+        checkbox_frame.pack(anchor="w", pady=4)
+        
+        # Custom checkbox with colored indicator
+        indicator = tk.Label(checkbox_frame, text="○", font=("Arial", 14),
+                           bg="#FFFFFF", fg="#E2E8F0")
+        indicator.pack(side="left", padx=(0, 8))
+        
+        label = tk.Label(checkbox_frame, text=text,
+                        font=("Inter", 10) if "Inter" in tk.font.families() else ("Segoe UI", 10),
+                        bg="#FFFFFF", fg="#475569")
+        label.pack(side="left")
+        
+        def toggle_check(e, var=vars[key], ind=indicator, clr=color):
+            current = var.get()
+            var.set(1 - current)
+            if var.get():
+                ind.config(text="●", fg=clr)
+                # Uncheck others
+                for t, k, _ in klasifikasi_items:
+                    if k != key:
+                        vars[k].set(0)
+            else:
+                ind.config(text="○", fg="#E2E8F0")
+        
+        checkbox_frame.bind("<Button-1>", toggle_check)
+        label.bind("<Button-1>", toggle_check)
+        indicator.bind("<Button-1>", toggle_check)
+        
+        # Update indicator based on var
+        def update_indicator(*args, var=vars[key], ind=indicator, clr=color):
+            if var.get():
+                ind.config(text="●", fg=clr)
+            else:
+                ind.config(text="○", fg="#E2E8F0")
+        
+        vars[key].trace("w", update_indicator)
+        update_indicator()
+    
+    # Date and classification fields
+    fields = [
+        ("Tanggal Penerimaan", "tgl_terima", "date"),
+        ("Kode / Klasifikasi", "kode_klasifikasi", "text"),
+        ("Indeks", "indeks", "text")
+    ]
+    
+    for label, key, field_type in fields:
+        container = create_modern_input_frame(frame, label)
+        
+        if field_type == "date":
+            date_frame = tk.Frame(container, bg="#FFFFFF")
+            date_frame.pack(fill="x")
+            
+            tgl_terima_entry = DateEntry(date_frame, width=25,
+                                       date_pattern="dd-mm-yyyy",
+                                       font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11),
+                                       background='#3B82F6',
+                                       foreground='white',
+                                       borderwidth=2)
+            tgl_terima_entry.pack(side="left", fill="x", expand=True)
+            tgl_terima_entry.delete(0, 'end')
+            input_widgets[key] = tgl_terima_entry
+            
+            # Clear button
+            clear_btn = tk.Button(date_frame, text="✕",
+                                font=("Arial", 10, "bold"),
+                                bg="#F1F5F9", fg="#64748B",
+                                bd=0, padx=12, pady=6,
+                                cursor="hand2",
+                                command=lambda: tgl_terima_entry.delete(0, 'end'))
+            clear_btn.pack(side="right", padx=(8, 0))
+        else:
+            entry = ttk.Entry(container, textvariable=vars[key],
+                            font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11),
+                            style="TEntry")
+            entry.pack(fill="x")
+    
     return input_widgets
 
 def populate_frame_disposisi(frame, vars):
-    for key in ["dir_utama", "dir_keu", "dir_teknik", "gm_keu", "gm_ops", "manager"]:
-        if key not in vars:
-            from tkinter import IntVar
-            vars[key] = IntVar()
-    frame.columnconfigure(0, weight=1)
-    frame.columnconfigure(1, weight=1)
+    # Modern checkbox list with hover effects
     disposisi_items = [
         ("Direktur Utama", "dir_utama"),
         ("Direktur Keuangan", "dir_keu"),
@@ -83,42 +212,98 @@ def populate_frame_disposisi(frame, vars):
         ("GM Operasional & Pemeliharaan", "gm_ops"),
         ("Manager", "manager")
     ]
-    for i, (text, key) in enumerate(disposisi_items):
-        row = i // 2
-        col = i % 2
-        ttk.Checkbutton(frame, text=text, variable=vars[key], style="TCheckbutton").grid(
-            row=row, column=col, sticky="w", pady=1, padx=(0, 10)
-        )
+    
+    for text, key in disposisi_items:
+        # Modern checkbox container
+        check_container = tk.Frame(frame, bg="#FFFFFF", relief="flat")
+        check_container.pack(fill="x", pady=3)
+        
+        cb = ttk.Checkbutton(check_container, text=text, variable=vars[key],
+                           style="TCheckbutton")
+        cb.pack(anchor="w", padx=8, pady=8)
+        
+        # Hover effect
+        def on_enter(e, container=check_container):
+            container.config(bg="#F8FAFC")
+        def on_leave(e, container=check_container):
+            container.config(bg="#FFFFFF")
+        
+        check_container.bind("<Enter>", on_enter)
+        check_container.bind("<Leave>", on_leave)
 
 def populate_frame_instruksi(frame, vars):
     input_widgets = {}
-    frame.columnconfigure(0, weight=1)
-    frame.columnconfigure(1, weight=1)
-    checks = ["Ketahui & File", "Proses Selesai", "Teliti & Pendapat", "Buatkan Resume", "Edarkan", "Sesuai Disposisi", "Bicarakan dengan Saya"]
-    vars_keys = ["ketahui_file", "proses_selesai", "teliti_pendapat", "buatkan_resume", "edarkan", "sesuai_disposisi", "bicarakan_saya"]
+    
+    # Modern checkbox grid
+    checks = [
+        "Ketahui & File", "Proses Selesai", "Teliti & Pendapat",
+        "Buatkan Resume", "Edarkan", "Sesuai Disposisi", "Bicarakan dengan Saya"
+    ]
+    vars_keys = [
+        "ketahui_file", "proses_selesai", "teliti_pendapat",
+        "buatkan_resume", "edarkan", "sesuai_disposisi", "bicarakan_saya"
+    ]
+    
+    # Create a grid layout
     for i, (label, key) in enumerate(zip(checks, vars_keys)):
         row = i // 2
         col = i % 2
-        ttk.Checkbutton(frame, text=label, variable=vars[key], style="TCheckbutton").grid(
-            row=row, column=col, sticky="w", pady=1, padx=(0, 10)
-        )
-    row_offset = (len(checks) + 1) // 2
-    # Harap Selesai Tanggal
-    ttk.Label(frame, text="Harap Selesai Tgl:", style="TLabel").grid(row=row_offset, column=0, sticky="w", pady=(8,0))
-    harap_selesai_entry = DateEntry(frame, width=20, date_pattern="dd-mm-yyyy", font=("Segoe UI", 10))
-    harap_selesai_entry.grid(row=row_offset, column=1, sticky="ew", pady=1)
+        
+        check_frame = tk.Frame(frame, bg="#FFFFFF")
+        check_frame.grid(row=row, column=col, sticky="ew", padx=4, pady=3)
+        
+        cb = ttk.Checkbutton(check_frame, text=label, variable=vars[key],
+                           style="TCheckbutton")
+        cb.pack(anchor="w", padx=8, pady=8)
+    
+    # Additional fields section
+    row_offset = (len(checks) + 1) // 2 + 1
+    
+    # Deadline date
+    deadline_container = create_modern_input_frame(frame, "Harap Selesai Tanggal")
+    deadline_container.grid(row=row_offset, column=0, columnspan=2, sticky="ew", pady=(15, 0))
+    
+    date_frame = tk.Frame(deadline_container, bg="#FFFFFF")
+    date_frame.pack(fill="x")
+    
+    harap_selesai_entry = DateEntry(date_frame, width=25,
+                                  date_pattern="dd-mm-yyyy",
+                                  font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11),
+                                  background='#3B82F6',
+                                  foreground='white')
+    harap_selesai_entry.pack(side="left", fill="x", expand=True)
     harap_selesai_entry.delete(0, 'end')
     input_widgets["harap_selesai_tgl"] = harap_selesai_entry
-    def clear_harap_selesai():
-        harap_selesai_entry.delete(0, 'end')
-    btn_clear_harap_selesai = ttk.Button(frame, text="🗑️", width=2, command=clear_harap_selesai)
-    btn_clear_harap_selesai.grid(row=row_offset, column=2, padx=(5,0), sticky="e")
-    ttk.Label(frame, text="Bicarakan dengan:", style="TLabel").grid(row=row_offset+1, column=0, columnspan=2, sticky="w", pady=(8,0))
-    bicarakan_dengan = Text(frame, height=2, width=25, wrap="word", font=("Segoe UI", 10), borderwidth=1, relief="solid", highlightthickness=0)
-    bicarakan_dengan.grid(row=row_offset+2, column=0, columnspan=2, sticky="ew", pady=1)
-    input_widgets["bicarakan_dengan"] = bicarakan_dengan
-    ttk.Label(frame, text="Teruskan Kepada:", style="TLabel").grid(row=row_offset+3, column=0, columnspan=2, sticky="w", pady=(5,0))
-    teruskan_kepada = Text(frame, height=2, width=25, wrap="word", font=("Segoe UI", 10), borderwidth=1, relief="solid", highlightthickness=0)
-    teruskan_kepada.grid(row=row_offset+4, column=0, columnspan=2, sticky="ew", pady=1)
-    input_widgets["teruskan_kepada"] = teruskan_kepada
+    
+    # Modern text areas
+    text_fields = [
+        ("Bicarakan dengan", "bicarakan_dengan"),
+        ("Teruskan Kepada", "teruskan_kepada")
+    ]
+    
+    for idx, (label, key) in enumerate(text_fields):
+        container = create_modern_input_frame(frame, label)
+        container.grid(row=row_offset + idx + 1, column=0, columnspan=2, 
+                      sticky="ew", pady=(10, 0))
+        
+        text_frame = tk.Frame(container, bg="#E2E8F0", bd=1)
+        text_frame.pack(fill="x")
+        
+        text_widget = Text(text_frame, height=2, wrap="word",
+                          font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11),
+                          bg="#FFFFFF", fg="#0F172A",
+                          bd=0, padx=12, pady=10,
+                          insertbackground="#3B82F6")
+        text_widget.pack(fill="x", padx=1, pady=1)
+        input_widgets[key] = text_widget
+        
+        # Focus effect
+        def on_focus_in(e, frame=text_frame):
+            frame.config(bg="#3B82F6")
+        def on_focus_out(e, frame=text_frame):
+            frame.config(bg="#E2E8F0")
+        
+        text_widget.bind("<FocusIn>", on_focus_in)
+        text_widget.bind("<FocusOut>", on_focus_out)
+    
     return input_widgets

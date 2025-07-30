@@ -1,21 +1,19 @@
 import tkinter as tk
 from tkinter import ttk
-from .styles import setup_styles  # Tambahkan impor style global
 
 class LoadingScreen(tk.Toplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self._destroyed = False
-        self.title("Loading...")
-        self.geometry("400x250")
+        self.title("Processing...")
+        self.geometry("450x300")
         self.resizable(False, False)
         self.transient(parent)
-
-        # Terapkan style global
-        setup_styles(self)
-        # Gunakan warna dari root
-        self.configure(bg=self.white_color)
-
+        
+        # Modern window styling
+        self.configure(bg="#FFFFFF")
+        self.overrideredirect(True)  # Remove window decorations
+        
         try:
             self.iconbitmap('JapekELEVATED.ico')
         except:
@@ -24,148 +22,184 @@ class LoadingScreen(tk.Toplevel):
         self.grab_set()
         self.update_idletasks()
 
-        # Center the window
-        x = parent.winfo_x() + (parent.winfo_width() // 2) - (self.winfo_width() // 2)
-        y = parent.winfo_y() + (parent.winfo_height() // 2) - (self.winfo_height() // 2)
+        # Center the window with smooth animation
+        self.center_window()
+        
+        # Create modern UI
+        self.create_modern_ui()
+        
+        # Start animations
+        self.animate_progress()
+
+    def center_window(self):
+        self.update_idletasks()
+        x = (self.winfo_screenwidth() // 2) - (self.winfo_width() // 2)
+        y = (self.winfo_screenheight() // 2) - (self.winfo_height() // 2)
         self.geometry(f"+{x}+{y}")
 
-        # Add subtle shadow effect with frame
-        self.create_shadow_frame()
-        self.create_widgets()
+    def create_modern_ui(self):
+        # Outer frame with border
+        outer_frame = tk.Frame(self, bg="#E2E8F0", relief="flat", bd=1)
+        outer_frame.pack(fill="both", expand=True, padx=1, pady=1)
+        
+        # Main container with white background
+        main_container = tk.Frame(outer_frame, bg="#FFFFFF")
+        main_container.pack(fill="both", expand=True)
+        
+        # Content area
+        content_frame = tk.Frame(main_container, bg="#FFFFFF")
+        content_frame.pack(fill="both", expand=True, padx=40, pady=40)
+        
+        # Modern spinner using Canvas
+        self.spinner_canvas = tk.Canvas(content_frame, width=80, height=80, 
+                                       bg="#FFFFFF", highlightthickness=0)
+        self.spinner_canvas.pack(pady=(0, 30))
+        
+        # Draw modern circular spinner
+        self.spinner_angle = 0
+        self.draw_modern_spinner()
+        
+        # Main status text
+        self.status_label = tk.Label(content_frame, 
+                                    text="Processing your request...", 
+                                    font=("Inter", 14) if "Inter" in tk.font.families() else ("Segoe UI", 14), 
+                                    bg="#FFFFFF",
+                                    fg="#0F172A")
+        self.status_label.pack(pady=(0, 10))
+        
+        # Progress percentage
+        self.percentage_label = tk.Label(content_frame, 
+                                       text="0%", 
+                                       font=("Inter", 24, "bold") if "Inter" in tk.font.families() else ("Segoe UI", 24, "bold"), 
+                                       bg="#FFFFFF",
+                                       fg="#3B82F6")
+        self.percentage_label.pack(pady=(0, 20))
+        
+        # Modern progress bar
+        progress_container = tk.Frame(content_frame, bg="#F1F5F9", height=6)
+        progress_container.pack(fill="x", pady=(0, 15))
+        
+        self.progress_bar = tk.Frame(progress_container, bg="#3B82F6", height=6)
+        self.progress_bar.place(x=0, y=0, relheight=1, width=0)
+        
+        # Sub-status text
+        self.sub_status_label = tk.Label(content_frame, 
+                                       text="Please wait...", 
+                                       font=("Inter", 10) if "Inter" in tk.font.families() else ("Segoe UI", 10), 
+                                       bg="#FFFFFF",
+                                       fg="#94A3B8")
+        self.sub_status_label.pack()
 
-        # Animation variables
-        self.dot_count = 0
-        self.base_text = "Processing"
-        self.animate_text()
-
-    def destroy(self):
-        self._destroyed = True
-        super().destroy()
-
-    def create_shadow_frame(self):
-        """Create a subtle shadow effect"""
-        shadow_frame = tk.Frame(self, bg="#e9ecef", relief="flat")
-        shadow_frame.place(x=3, y=3, relwidth=1, relheight=1)
-
-        # Main content frame dengan warna putih global
-        self.main_container = tk.Frame(self, bg=self.white_color, relief="solid", bd=1)
-        self.main_container.place(x=0, y=0, relwidth=1, relheight=1)
-
-    def create_widgets(self):
-        # Main content area with padding
-        main_frame = ttk.Frame(self.main_container, padding=40)
-        main_frame.pack(fill="both", expand=True)
-
-        # Animated loading circle using Canvas
-        self.canvas = tk.Canvas(main_frame, width=80, height=80, bg=self.white_color, highlightthickness=0)
-        self.canvas.pack(pady=(0, 25))
-
-        # Draw loading circle
-        self.circle_angle = 0
-        self.draw_loading_circle()
-        self.animate_circle()
-
-        # Main loading text with animation
-        self.loading_label = ttk.Label(main_frame, text="Processing...", 
-                                     font=("Segoe UI", 14, "normal"), 
-                                     foreground=self.blue_color)
-        self.loading_label.pack(pady=(0, 15))
-
-        # Percentage display with modern typography
-        self.percentage = ttk.Label(main_frame, text="0%", 
-                                  font=("Segoe UI", 16, "bold"), 
-                                  foreground=self.blue_color)
-        self.percentage.pack(pady=(0, 15))
-
-        # Subtle status message
-        self.status_label = ttk.Label(main_frame, text="Please wait...", 
-                                    font=("Segoe UI", 10, "italic"), 
-                                    foreground="#adb5bd")
-        self.status_label.pack()
-
-    def draw_loading_circle(self):
-        """Draw animated loading circle"""
-        if not self.canvas.winfo_exists():
+    def draw_modern_spinner(self):
+        """Draw a modern circular spinner"""
+        if not self.spinner_canvas.winfo_exists():
             return
-        self.canvas.delete("all")
-
-        # Circle parameters
+            
+        self.spinner_canvas.delete("all")
+        
         center_x, center_y = 40, 40
-        radius = 25
+        radius = 30
+        
+        # Background circle
+        for i in range(8):
+            start_angle = i * 45
+            self.spinner_canvas.create_arc(
+                center_x - radius, center_y - radius,
+                center_x + radius, center_y + radius,
+                start=start_angle, extent=30,
+                outline="#E2E8F0", width=4, style="arc"
+            )
+        
+        # Animated arc
+        start = self.spinner_angle
+        self.spinner_canvas.create_arc(
+            center_x - radius, center_y - radius,
+            center_x + radius, center_y + radius,
+            start=start, extent=60,
+            outline="#3B82F6", width=4, style="arc"
+        )
+        
+        # Secondary arc for effect
+        self.spinner_canvas.create_arc(
+            center_x - radius, center_y - radius,
+            center_x + radius, center_y + radius,
+            start=start + 180, extent=60,
+            outline="#60A5FA", width=4, style="arc"
+        )
 
-        # Background circle (light gray)
-        self.canvas.create_oval(center_x - radius, center_y - radius,
-                              center_x + radius, center_y + radius,
-                              outline="#e9ecef", width=4)
-
-        # Animated arc (pakai biru global)
-        start_angle = self.circle_angle
-        extent_angle = 90  # Length of the arc
-
-        self.canvas.create_arc(center_x - radius, center_y - radius,
-                             center_x + radius, center_y + radius,
-                             start=start_angle, extent=extent_angle,
-                             outline=self.blue_color, width=4, style="arc")
-
-    def animate_circle(self):
-        """Animate the loading circle"""
+    def animate_progress(self):
+        """Animate the spinner"""
         if getattr(self, '_destroyed', False):
             return
-        self.circle_angle = (self.circle_angle + 8) % 360
-        self.draw_loading_circle()
-
-        # Continue animation
-        self.after(50, self.animate_circle)
-
-    def animate_text(self):
-        """Animate the loading text with dots"""
-        if getattr(self, '_destroyed', False):
-            return
-        dots = "." * (self.dot_count % 4)
-        spaces = " " * (3 - len(dots))
-        # Use fixed width to prevent text jumping
-        animated_text = f"{self.base_text}{dots:<3}"
-        self.loading_label.config(text=animated_text)
-
-        self.dot_count += 1
-
-        # Continue animation
-        self.after(600, self.animate_text)
+            
+        self.spinner_angle = (self.spinner_angle + 10) % 360
+        self.draw_modern_spinner()
+        self.after(50, self.animate_progress)
 
     def update_progress(self, value, status_text=None):
-        """Update progress with optional status message"""
-        self.percentage.config(text=f"{value}%")
-
-        # Update status message if provided
+        """Update progress with smooth animation"""
+        if getattr(self, '_destroyed', False):
+            return
+            
+        # Update percentage
+        self.percentage_label.config(text=f"{value}%")
+        
+        # Animate progress bar
+        target_width = int((value / 100) * self.progress_bar.master.winfo_width())
+        self.progress_bar.place(width=target_width)
+        
+        # Update status text
         if status_text:
-            self.status_label.config(text=status_text)
-
-        # Change circle color based on progress
+            self.sub_status_label.config(text=status_text)
+        
+        # Change status based on progress
+        # Change status based on progress
+        if value < 30:
+            self.status_label.config(text="Initializing...")
+        elif value < 60:
+            self.status_label.config(text="Processing data...")
+        elif value < 90:
+            self.status_label.config(text="Finalizing...")
+        else:
+            self.status_label.config(text="Almost done...")
+        
+        # Complete state
         if value >= 100:
-            self.canvas.delete("all")
+            self.spinner_canvas.delete("all")
+            # Draw checkmark
             center_x, center_y = 40, 40
-            radius = 25
-            # Draw complete circle (green)
-            self.canvas.create_oval(center_x - radius, center_y - radius,
-                                  center_x + radius, center_y + radius,
-                                  outline="#28a745", width=4)
-            # Add checkmark
-            self.canvas.create_text(center_x, center_y, text="\u2713", 
-                                  font=("Segoe UI", 20, "bold"), fill="#28a745")
-            self.loading_label.config(text="Complete!", foreground="#28a745")
-            self.status_label.config(text="Operation completed successfully")
-            self.percentage.config(foreground="#28a745")
-
+            self.spinner_canvas.create_oval(
+                center_x - 30, center_y - 30,
+                center_x + 30, center_y + 30,
+                outline="#10B981", width=3
+            )
+            self.spinner_canvas.create_line(
+                center_x - 15, center_y,
+                center_x - 5, center_y + 10,
+                fill="#10B981", width=3
+            )
+            self.spinner_canvas.create_line(
+                center_x - 5, center_y + 10,
+                center_x + 15, center_y - 10,
+                fill="#10B981", width=3
+            )
+            
+            self.status_label.config(text="Complete!", fg="#10B981")
+            self.percentage_label.config(fg="#10B981")
+            self.progress_bar.config(bg="#10B981")
+            self.sub_status_label.config(text="Operation completed successfully")
+            
+            # Auto close after delay
+            self.after(1000, self.destroy)
+        
         self.update()
 
     def set_status(self, message):
         """Set custom status message"""
-        self.status_label.config(text=message)
-        self.update()
+        if not getattr(self, '_destroyed', False):
+            self.sub_status_label.config(text=message)
+            self.update()
 
-    def set_loading_text(self, text):
-        """Change the main loading text"""
-        self.base_text = text
-        # Reset animation with proper formatting
-        self.loading_label.config(text=f"{text}...")
-        self.update()
+    def destroy(self):
+        self._destroyed = True
+        super().destroy()
