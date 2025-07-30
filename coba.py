@@ -1,3 +1,4 @@
+# coba.py - FIXED VERSION with better layout and compact design
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, Text
 import logging
@@ -21,7 +22,7 @@ try:
 except ImportError:
     EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD = (None, None, None, None)
 
-# Import komponen UI modular
+# Import komponen UI modular yang sudah diperbaiki
 from disposisi_app.views.components.loading_screen import LoadingScreen
 from disposisi_app.views.components.header import create_header
 from disposisi_app.views.components.status_bar import create_status_bar
@@ -40,49 +41,48 @@ from disposisi_app.views.components.tooltip_utils import attach_tooltip, add_too
 from disposisi_app.views.components.export_utils import save_to_pdf, save_to_sheet
 from disposisi_app.views.components.form_utils import clear_form
 from disposisi_app.views.components.constants import POSISI_OPTIONS, TOOLTIP_LABELS
-from disposisi_app.views.components.styles import setup_styles  # Impor style global
+from disposisi_app.views.components.styles import setup_styles
 
 class FormApp(tk.Tk):
     """
-    Main class aplikasi formulir disposisi dengan dukungan shortcut Windows dan gesture touchpad.
+    Main class aplikasi formulir disposisi dengan layout yang lebih baik dan compact.
     """
     def __init__(self):
         super().__init__()
         
-        # Enhanced window configuration
+        # Enhanced window configuration with better sizing
         self.title("📋 Aplikasi Persuratan Disposisi")
-        self.geometry("1400x1000")
-        self.minsize(1200, 800)
+        self.geometry("1200x900")  # Reduced from 1400x1000 to 1200x900
+        self.minsize(1000, 700)    # Reduced minimum size
         
         # Initialize form variables
         self.form_vars = {}
+        self.log_data_dirty = False
+        self.pdf_attachments = []
+        self.edit_mode = False
         
         # Modern color scheme
         self.configure(bg="#f8fafc")
         
         # Enhanced styling setup
-    def setup_enhanced_styles(self):
+        setup_styles(self)
         
-     self.style = ttk.Style()
-    
-    # Set window background
-     self.configure(bg="#F8FAFC")
-    
-    # Configure modern window appearance
-     self.update_idletasks()
-    
-    # Add window shadow effect (Windows only)
-    if platform.system() == "Windows":
-        try:
-            from ctypes import windll, c_int, byref, sizeof
-            # Enable drop shadow
-            set_window_attribute = windll.dwmapi.DwmSetWindowAttribute
-            hwnd = windll.user32.GetParent(self.winfo_id())
-            attribute = 2  # DWMWA_NCRENDERING_POLICY
-            value = c_int(2)  # DWMNCRP_ENABLED
-            set_window_attribute(hwnd, attribute, byref(value), sizeof(value))
-        except:
-            pass
+        # Setup window properties
+        self.center_window()
+        
+        # Create UI components
+        self.create_header()
+        self.create_menu_bar()
+        self.create_tabs()
+        self.create_status_bar()
+        
+        # Initialize variables and setup
+        self.init_variables()
+        self.setup_shortcuts()
+        
+        # Add mouse wheel support
+        self.bind_all("<MouseWheel>", self._global_on_mousewheel)
+        self.bind_all("<Shift-MouseWheel>", self._global_on_shift_mousewheel)
 
     def center_window(self):
         center_window(self)
@@ -91,58 +91,12 @@ class FormApp(tk.Tk):
         setup_windowed_fullscreen(self)
 
     def create_header(self):
-        header_frame = ttk.Frame(self, style="Surface.TFrame", padding=(0, 0, 0, 0))
-        header_frame.pack(fill="x", padx=0, pady=0)
-        
-        gradient_frame = tk.Frame(header_frame, height=80, bg="#3b82f6")
-        gradient_frame.pack(fill="x")
-        gradient_frame.pack_propagate(False)
-        
-        header_content = tk.Frame(gradient_frame, bg="#3b82f6")
-        header_content.pack(fill="both", expand=True, padx=20, pady=15)
-        
-        left_frame = tk.Frame(header_content, bg="#3b82f6")
-        left_frame.pack(side="left", fill="both", expand=True)
-        
-        self.logo_label = tk.Label(left_frame, 
-                                   text="📋 DISPOSISI", 
-                                   font=("Segoe UI", 16, "bold"), 
-                                   bg="#3b82f6", 
-                                   fg="white")
-        self.logo_label.pack(anchor="w")
-        
-        self.title_label = tk.Label(left_frame, 
-                                      text="Sistem Pembuatan dan Pelaporan Disposisi", 
-                                      font=("Segoe UI", 22, "bold"), 
-                                      bg="#3b82f6", 
-                                      fg="white")
-        self.title_label.pack(anchor="w", pady=(2, 0))
-        
-        self.subtitle_label = tk.Label(left_frame, 
-                                       text="Pelaporan dan Pembuatan Disposisi Modern", 
-                                       font=("Segoe UI", 12), 
-                                       bg="#3b82f6", 
-                                       fg="#bfdbfe")
-        self.subtitle_label.pack(anchor="w", pady=(5, 0))
-        
-        right_frame = tk.Frame(header_content, bg="#3b82f6")
-        right_frame.pack(side="right")
-        
-        version_label = tk.Label(right_frame, 
-                                 text="Version 2.0", 
-                                 font=("Segoe UI", 11, "bold"), 
-                                 bg="#3b82f6", 
-                                 fg="#bfdbfe")
-        version_label.pack(anchor="e")
-        
-        status_label = tk.Label(right_frame, 
-                                text="✓ Online", 
-                                font=("Segoe UI", 10), 
-                                bg="#3b82f6", 
-                                fg="#10b981")
-        status_label.pack(anchor="e", pady=(5, 0))
+        """FIXED: Use the improved compact header"""
+        header_frame = create_header(self)
+        return header_frame
 
     def create_menu_bar(self):
+        """Create menu bar with consistent styling"""
         menubar = tk.Menu(self, font=("Segoe UI", 10), bg="#ffffff", fg="#1f2937", 
                           activebackground="#3b82f6", activeforeground="white")
         self.config(menu=menubar)
@@ -169,7 +123,8 @@ class FormApp(tk.Tk):
         help_menu.add_command(label="ℹ️ About", command=self.show_about)
 
     def create_status_bar(self):
-        status_frame = tk.Frame(self, bg="#f8fafc", height=35, relief="solid", borderwidth=1)
+        """FIXED: More compact status bar"""
+        status_frame = tk.Frame(self, bg="#f8fafc", height=30, relief="solid", borderwidth=1)  # Reduced height
         status_frame.pack(side="bottom", fill="x")
         status_frame.pack_propagate(False)
         
@@ -178,30 +133,30 @@ class FormApp(tk.Tk):
         
         self.status_message = tk.Label(left_status, 
                                        text="✓ Ready", 
-                                       font=("Segoe UI", 10), 
+                                       font=("Segoe UI", 9),  # Reduced font size
                                        bg="#f8fafc", 
                                        fg="#10b981")
-        self.status_message.pack(side="left", padx=20, pady=8)
+        self.status_message.pack(side="left", padx=15, pady=6)  # Reduced padding
         
         right_status = tk.Frame(status_frame, bg="#f8fafc")
         right_status.pack(side="right")
         
         system_label = tk.Label(right_status, 
                                 text=f"🖥️ {platform.system()}", 
-                                font=("Segoe UI", 9), 
+                                font=("Segoe UI", 8),  # Reduced font size
                                 bg="#f8fafc", 
                                 fg="#6b7280")
-        system_label.pack(side="right", padx=10, pady=8)
+        system_label.pack(side="right", padx=8, pady=6)  # Reduced padding
         
         separator_frame = tk.Frame(status_frame, bg="#e5e7eb", width=1)
-        separator_frame.pack(side="right", fill="y", padx=10)
+        separator_frame.pack(side="right", fill="y", padx=8)
         
         version_label = tk.Label(right_status, 
                                  text="v2.0", 
-                                 font=("Segoe UI", 10, "bold"), 
+                                 font=("Segoe UI", 9, "bold"),  # Reduced font size
                                  bg="#f8fafc", 
                                  fg="#3b82f6")
-        version_label.pack(side="right", padx=15, pady=8)
+        version_label.pack(side="right", padx=12, pady=6)  # Reduced padding
 
     def setup_shortcuts(self):
         setup_shortcuts(
@@ -224,72 +179,6 @@ class FormApp(tk.Tk):
             total = self.notebook.index('end')
             self.notebook.select((current - 1) % total)
 
-    def setup_touchpad_gestures(self):
-        if self.is_windows:
-            setup_touchpad_gestures(
-                self,
-                self.on_mouse_down,
-                self.on_mouse_up,
-                self.on_mouse_drag,
-                self.on_double_click,
-                self.on_mousewheel,
-                self.on_horizontal_scroll,
-                self.on_pinch_gesture_start,
-                self.on_pinch_gesture
-            )
-
-    def on_mouse_down(self, event):
-        self.last_mouse_position = (event.x, event.y)
-        self.gesture_start_y = event.y
-        self.touchpad_gesture_active = True
-
-    def on_mouse_up(self, event):
-        self.touchpad_gesture_active = False
-
-    def on_mouse_drag(self, event):
-        if not self.touchpad_gesture_active:
-            return
-            
-        delta_y = event.y - self.gesture_start_y
-        
-        if abs(delta_y) > 50:
-            if delta_y > 0:
-                self.scroll_down()
-            else:
-                self.scroll_up()
-            self.gesture_start_y = event.y
-
-    def on_double_click(self, event):
-        pass
-
-    def on_mousewheel(self, event):
-        pass
-
-    def on_horizontal_scroll(self, event):
-        pass
-
-    def on_pinch_gesture_start(self, event):
-        self.pinch_start_distance = 0
-
-    def on_pinch_gesture(self, event):
-        pass
-
-    def scroll_up(self):
-        pass
-
-    def scroll_down(self):
-        pass
-
-    def refresh_data(self):
-        pass
-
-    def toggle_fullscreen(self):
-        self.attributes('-fullscreen', not self.attributes('-fullscreen'))
-        self.update_status("Fullscreen toggled")
-
-    def export_excel(self):
-        messagebox.showwarning("Export", "No data available to export")
-
     def show_shortcuts(self):
         show_shortcuts(self)
 
@@ -301,7 +190,8 @@ class FormApp(tk.Tk):
             update_status(self.status_message, message, self)
 
     def create_tabs(self):
-        notebook_frame = ttk.Frame(self, style="TFrame", padding=(10, 5, 10, 5))
+        """FIXED: More compact tabs with better spacing"""
+        notebook_frame = ttk.Frame(self, style="TFrame", padding=(8, 3, 8, 3))  # Reduced padding
         notebook_frame.pack(fill="both", expand=True, padx=0, pady=0)
         
         self.rowconfigure(0, weight=1)
@@ -375,6 +265,7 @@ class FormApp(tk.Tk):
             self.instruction_vars[f"tanggal_{row}"] = tk.StringVar()
 
     def create_widgets(self, parent):
+        """FIXED: Create widgets with better spacing and layout"""
         input_widgets = {}
         parent.rowconfigure(0, weight=1)
         parent.columnconfigure(0, weight=1)
@@ -392,7 +283,8 @@ class FormApp(tk.Tk):
         parent.rowconfigure(0, weight=1)
         parent.columnconfigure(0, weight=1)
         
-        main_frame = ttk.Frame(canvas, padding=(20, 20, 20, 20), style="Surface.TFrame")
+        # FIXED: Reduced padding for main frame
+        main_frame = ttk.Frame(canvas, padding=(15, 15, 15, 15), style="Surface.TFrame")  # Reduced from 20 to 15
         self._form_main_frame = main_frame
         
         canvas.create_window((0, 0), window=main_frame, anchor="nw")
@@ -418,16 +310,20 @@ class FormApp(tk.Tk):
         canvas.bind_all("<Button-4>", _on_mousewheel)
         canvas.bind_all("<Button-5>", _on_mousewheel)
         
+        # Create form sections with compact mode
         input_widgets.update(self.create_top_frame(main_frame))
         input_widgets.update(self.create_middle_frame(main_frame))
         
-        attachment_frame = ttk.LabelFrame(main_frame, text="📎 Lampiran PDF", padding=(20, 15, 20, 20), style="TLabelframe")
-        attachment_frame.grid(row=3, column=0, sticky="nsew", pady=(0, 20))
+        # FIXED: More compact attachment frame
+        attachment_frame = ttk.LabelFrame(main_frame, text="📎 Lampiran PDF", 
+                                        padding=(15, 10, 15, 15), style="TLabelframe")  # Reduced padding
+        attachment_frame.grid(row=3, column=0, sticky="nsew", pady=(0, 15))  # Reduced pady
         
         listbox_frame = ttk.Frame(attachment_frame)
         listbox_frame.pack(fill="both", expand=True)
         
-        self.attachment_listbox = tk.Listbox(listbox_frame, height=4, selectmode=tk.SINGLE,
+        # Smaller listbox
+        self.attachment_listbox = tk.Listbox(listbox_frame, height=3, selectmode=tk.SINGLE,  # Reduced height
                                               font=("Segoe UI", 9),
                                               bg="#ffffff", fg="#1f2937",
                                               selectbackground="#3b82f6",
@@ -438,8 +334,9 @@ class FormApp(tk.Tk):
         self.attachment_listbox.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
+        # Compact attachment buttons
         attachment_buttons = ttk.Frame(attachment_frame)
-        attachment_buttons.pack(fill="x", pady=(10, 0))
+        attachment_buttons.pack(fill="x", pady=(8, 0))  # Reduced pady
         
         add_btn = ttk.Button(attachment_buttons, text="➕ Tambah PDF", 
                              command=self.add_pdf_attachment, style="Secondary.TButton")
@@ -454,93 +351,47 @@ class FormApp(tk.Tk):
         
         return input_widgets
 
-    def add_pdf_attachment(self):
-        """Add PDF attachment to the form"""
-        from tkinter import filedialog
-        import os
-        
-        files = filedialog.askopenfilenames(
-            title="Pilih PDF lampiran",
-            filetypes=[("PDF Documents", "*.pdf"), ("All Files", "*.*")]
-        )
-        
-        for file_path in files:
-            if file_path not in self.pdf_attachments:
-                self.pdf_attachments.append(file_path)
-                filename = os.path.basename(file_path)
-                display_name = f"📄 {filename}"
-                self.attachment_listbox.insert(tk.END, display_name)
-                print(f"[DEBUG] Added PDF attachment: {filename}")
-        
-        if files:
-            self.update_status(f"✓ {len(files)} PDF ditambahkan")
-
-    def remove_pdf_attachment(self):
-        """Remove selected PDF attachment from the form"""
-        import os
-        
-        selected = self.attachment_listbox.curselection()
-        if selected:
-            idx = selected[0]
-            if idx < len(self.pdf_attachments):
-                filename = os.path.basename(self.pdf_attachments[idx])
-                self.attachment_listbox.delete(idx)
-                del self.pdf_attachments[idx]
-                self.update_status(f"🗑️ {filename} dihapus")
-                print(f"[DEBUG] Removed PDF attachment: {filename}")
-            else:
-                print(f"[WARNING] Index {idx} out of range for pdf_attachments")
-        else:
-            messagebox.showwarning("Hapus Lampiran", "Pilih file yang akan dihapus terlebih dahulu.")
-
-    def refresh_pdf_attachments(self, parent):
-        """Refresh PDF attachments display"""
-        # Clear current listbox
-        if hasattr(self, 'attachment_listbox'):
-            self.attachment_listbox.delete(0, tk.END)
-            
-            # Repopulate with current attachments
-            for pdf_path in self.pdf_attachments:
-                filename = os.path.basename(pdf_path)
-                display_name = f"📄 {filename}"
-                self.attachment_listbox.insert(tk.END, display_name)
-
-    def add_tooltips(self, input_widgets):
-        add_tooltips(input_widgets, TOOLTIP_LABELS)
-
-    def attach_tooltip(self, widget, text):
-        attach_tooltip(widget, text)
-
     def create_top_frame(self, parent):
+        """FIXED: Create top frame with compact mode"""
         input_widgets = {}
         
         top_frame = ttk.Frame(parent, style="TFrame")
-        top_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 20))
+        top_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 15))  # Reduced pady
         top_frame.columnconfigure(0, weight=1)
         top_frame.columnconfigure(1, weight=1)
         top_frame.rowconfigure(0, weight=1)
         
         frame_kiri = ttk.LabelFrame(top_frame, text="📄 Detail Surat", 
-                                    padding=(20, 15, 20, 20), style="TLabelframe")
-        frame_kiri.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+                                    padding=(15, 10, 15, 15), style="TLabelframe")  # Reduced padding
+        frame_kiri.grid(row=0, column=0, sticky="nsew", padx=(0, 8))  # Reduced padx
         frame_kiri.columnconfigure(1, weight=1)
         
-        input_widgets.update(populate_frame_kiri(frame_kiri, self.vars))
+        # Use compact mode for form sections
+        input_widgets.update(populate_frame_kiri(frame_kiri, self.vars, compact=True))
         
         frame_kanan = ttk.LabelFrame(top_frame, text="🏷️ Klasifikasi & Status", 
-                                     padding=(20, 15, 20, 20), style="TLabelframe")
-        frame_kanan.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
+                                     padding=(15, 10, 15, 15), style="TLabelframe")  # Reduced padding
+        frame_kanan.grid(row=0, column=1, sticky="nsew", padx=(8, 0))  # Reduced padx
         frame_kanan.columnconfigure(0, weight=1)
         
-        self.tgl_terima_entry = populate_frame_kanan(frame_kanan, self.vars)
+        # Use compact mode and store the date entry widget
+        kanan_result = populate_frame_kanan(frame_kanan, self.vars, compact=True)
+        if isinstance(kanan_result, dict):
+            input_widgets.update(kanan_result)
+            # Extract tgl_terima_entry from the returned dict
+            self.tgl_terima_entry = kanan_result.get("tgl_terima")
+        else:
+            # If it returns the widget directly
+            self.tgl_terima_entry = kanan_result
         
         return input_widgets
 
     def create_middle_frame(self, parent):
+        """FIXED: Create middle frame with compact mode"""
         input_widgets = {}
         
         middle_frame = ttk.Frame(parent, style="TFrame")
-        middle_frame.grid(row=1, column=0, sticky="nsew", pady=(0, 20))
+        middle_frame.grid(row=1, column=0, sticky="nsew", pady=(0, 15))  # Reduced pady
         parent.rowconfigure(1, weight=1)
         parent.columnconfigure(0, weight=1)
         
@@ -550,24 +401,25 @@ class FormApp(tk.Tk):
         middle_frame.rowconfigure(0, weight=1)
         
         frame_disposisi = ttk.LabelFrame(middle_frame, text="👥 Disposisi Kepada", 
-                                         padding=(20, 15, 20, 20), style="TLabelframe")
-        frame_disposisi.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+                                         padding=(15, 10, 15, 15), style="TLabelframe")  # Reduced padding
+        frame_disposisi.grid(row=0, column=0, sticky="nsew", padx=(0, 6))  # Reduced padx
         frame_disposisi.columnconfigure(0, weight=1)
         
-        populate_frame_disposisi(frame_disposisi, self.vars)
+        populate_frame_disposisi(frame_disposisi, self.vars, compact=True)
         
         frame_instruksi = ttk.LabelFrame(middle_frame, text="📋 Untuk di", 
-                                         padding=(20, 15, 20, 20), style="TLabelframe")
-        frame_instruksi.grid(row=0, column=1, sticky="nsew", padx=(8, 8))
+                                         padding=(15, 10, 15, 15), style="TLabelframe")  # Reduced padding
+        frame_instruksi.grid(row=0, column=1, sticky="nsew", padx=(6, 6))  # Reduced padx
         frame_instruksi.columnconfigure(0, weight=1)
         
-        input_widgets.update(populate_frame_instruksi(frame_instruksi, self.vars))
+        instruksi_widgets = populate_frame_instruksi(frame_instruksi, self.vars, compact=True)
+        input_widgets.update(instruksi_widgets)
         
-        self.harap_selesai_tgl_entry = input_widgets.get("harap_selesai_tgl_entry")
+        self.harap_selesai_tgl_entry = instruksi_widgets.get("harap_selesai_tgl")
         
         frame_info = ttk.LabelFrame(middle_frame, text="📝 Isi Instruksi / Informasi", 
-                                    padding=(20, 15, 20, 20), style="TLabelframe")
-        frame_info.grid(row=0, column=2, sticky="nsew", padx=(8, 0))
+                                    padding=(15, 10, 15, 15), style="TLabelframe")  # Reduced padding
+        frame_info.grid(row=0, column=2, sticky="nsew", padx=(6, 0))  # Reduced padx
         frame_info.columnconfigure(0, weight=1)
         frame_info.rowconfigure(0, weight=1)
         
@@ -576,22 +428,23 @@ class FormApp(tk.Tk):
         frame_instruksi_table.columnconfigure(0, weight=1)
         frame_instruksi_table.rowconfigure(0, weight=1)
         
-        self.instruksi_table = InstruksiTable(frame_instruksi_table, self.posisi_options, use_grid=True)
+        self.instruksi_table = InstruksiTable(frame_instruksi_table, POSISI_OPTIONS, use_grid=True)
         
+        # FIXED: More compact button frame
         btn_frame = ttk.Frame(frame_info, style="TFrame")
-        btn_frame.grid(row=1, column=0, pady=(15, 0), sticky="ew")
+        btn_frame.grid(row=1, column=0, pady=(10, 0), sticky="ew")  # Reduced pady
         
-        self.tambah_baris_btn = ttk.Button(btn_frame, text="➕ Tambah Baris", 
+        self.tambah_baris_btn = ttk.Button(btn_frame, text="➕ Tambah", 
                                            command=self.instruksi_table.add_row, 
                                            style="Secondary.TButton")
-        self.tambah_baris_btn.pack(side="left", padx=(0, 8))
+        self.tambah_baris_btn.pack(side="left", padx=(0, 6))  # Reduced padx
         
-        self.hapus_baris_btn = ttk.Button(btn_frame, text="➖ Hapus Baris", 
+        self.hapus_baris_btn = ttk.Button(btn_frame, text="➖ Hapus", 
                                          command=self.instruksi_table.remove_selected_rows, 
                                          style="Danger.TButton")
-        self.hapus_baris_btn.pack(side="left", padx=(0, 8))
+        self.hapus_baris_btn.pack(side="left", padx=(0, 6))  # Reduced padx
         
-        self.kosongkan_baris_btn = ttk.Button(btn_frame, text="🗑️ Kosongkan", 
+        self.kosongkan_baris_btn = ttk.Button(btn_frame, text="🗑️ Kosong", 
                                               command=self.instruksi_table.kosongkan_semua_baris, 
                                               style="Secondary.TButton")
         self.kosongkan_baris_btn.pack(side="left")
@@ -599,8 +452,7 @@ class FormApp(tk.Tk):
         return input_widgets
 
     def create_button_frame(self, parent):
-        from disposisi_app.views.components.button_frame import create_button_frame
-
+        """FIXED: Use the improved button frame"""
         callbacks = {
             "save_pdf": self.save_to_pdf,
             "save_sheet": self.save_to_sheet,
@@ -608,10 +460,7 @@ class FormApp(tk.Tk):
             "get_disposisi_labels": self.get_disposisi_labels,
             "clear_form": self.clear_form
         }
-        self._button_frame = create_button_frame(
-            parent,
-            callbacks
-        )
+        self._button_frame = create_button_frame(parent, callbacks)
         return self._button_frame
 
     def get_disposisi_labels(self):
@@ -654,6 +503,7 @@ class FormApp(tk.Tk):
         self.update_status("Menyiapkan pengiriman email...")
         
         # Collect form data
+        from disposisi_app.views.components.export_utils import collect_form_data_safely
         data = collect_form_data_safely(self)
         if not data.get("no_surat", "").strip():
             messagebox.showerror("Validation Error", "No. Surat tidak boleh kosong untuk mengirim email.")
@@ -864,6 +714,63 @@ class FormApp(tk.Tk):
             except Exception as e:
                 print(f"[WARNING] Could not remove temporary files: {e}")
 
+    def add_pdf_attachment(self):
+        """Add PDF attachment to the form"""
+        from tkinter import filedialog
+        import os
+        
+        files = filedialog.askopenfilenames(
+            title="Pilih PDF lampiran",
+            filetypes=[("PDF Documents", "*.pdf"), ("All Files", "*.*")]
+        )
+        
+        for file_path in files:
+            if file_path not in self.pdf_attachments:
+                self.pdf_attachments.append(file_path)
+                filename = os.path.basename(file_path)
+                display_name = f"📄 {filename}"
+                self.attachment_listbox.insert(tk.END, display_name)
+                print(f"[DEBUG] Added PDF attachment: {filename}")
+        
+        if files:
+            self.update_status(f"✓ {len(files)} PDF ditambahkan")
+
+    def remove_pdf_attachment(self):
+        """Remove selected PDF attachment from the form"""
+        import os
+        
+        selected = self.attachment_listbox.curselection()
+        if selected:
+            idx = selected[0]
+            if idx < len(self.pdf_attachments):
+                filename = os.path.basename(self.pdf_attachments[idx])
+                self.attachment_listbox.delete(idx)
+                del self.pdf_attachments[idx]
+                self.update_status(f"🗑️ {filename} dihapus")
+                print(f"[DEBUG] Removed PDF attachment: {filename}")
+            else:
+                print(f"[WARNING] Index {idx} out of range for pdf_attachments")
+        else:
+            messagebox.showwarning("Hapus Lampiran", "Pilih file yang akan dihapus terlebih dahulu.")
+
+    def refresh_pdf_attachments(self, parent):
+        """Refresh PDF attachments display"""
+        # Clear current listbox
+        if hasattr(self, 'attachment_listbox'):
+            self.attachment_listbox.delete(0, tk.END)
+            
+            # Repopulate with current attachments
+            for pdf_path in self.pdf_attachments:
+                filename = os.path.basename(pdf_path)
+                display_name = f"📄 {filename}"
+                self.attachment_listbox.insert(tk.END, display_name)
+
+    def add_tooltips(self, input_widgets):
+        add_tooltips(input_widgets, TOOLTIP_LABELS)
+
+    def attach_tooltip(self, widget, text):
+        attach_tooltip(widget, text)
+
     def save_to_pdf(self):
         save_to_pdf(self)
 
@@ -878,182 +785,6 @@ class FormApp(tk.Tk):
 
     def _global_on_shift_mousewheel(self, event):
         pass
-
-
-# TAMBAHAN: Fungsi untuk debug dan test sistem email
-def test_admin_sheet_connection():
-    """
-    Test function untuk memverifikasi koneksi ke admin sheet
-    Jalankan ini untuk debug masalah email
-    """
-    try:
-        from email_sender.send_email import EmailSender
-        
-        print("=== TESTING ADMIN SHEET CONNECTION ===")
-        
-        email_sender = EmailSender()
-        
-        if not email_sender.sheets_service:
-            print("❌ ERROR: Google Sheets service not initialized")
-            print("Check:")
-            print("1. admin/credentials.json file exists")
-            print("2. Credentials have proper permissions")
-            print("3. Internet connection available")
-            return False
-        
-        print("✅ Google Sheets service initialized")
-        print(f"Admin Sheet ID: {email_sender.admin_sheet_id}")
-        
-        # Test reading each position
-        print("\n=== TESTING EMAIL LOOKUPS ===")
-        all_positions = [
-            "Direktur Utama",
-            "Direktur Keuangan", 
-            "Direktur Teknik",
-            "GM Keuangan & Administrasi",
-            "GM Operasional & Pemeliharaan",
-            "Manager"
-        ]
-        
-        valid_emails = 0
-        for position in all_positions:
-            email, msg = email_sender.get_recipient_email(position)
-            if email and '@' in email:
-                print(f"✅ {position}: {email}")
-                valid_emails += 1
-            else:
-                print(f"❌ {position}: {msg}")
-        
-        print(f"\n=== SUMMARY ===")
-        print(f"Valid emails found: {valid_emails}/{len(all_positions)}")
-        
-        if valid_emails > 0:
-            print("✅ System ready for sending emails")
-            return True
-        else:
-            print("❌ No valid emails found - check admin spreadsheet")
-            return False
-            
-    except Exception as e:
-        print(f"❌ ERROR during test: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-
-def collect_form_data_safely(self):
-    """Safely collect all form data with proper error handling"""
-    try:
-        # Start with vars data (IntVar, StringVar, etc.)
-        data = {}
-        if hasattr(self, 'vars') and self.vars:
-            for key, var in self.vars.items():
-                try:
-                    data[key] = var.get()
-                except Exception as e:
-                    print(f"[WARNING] Error getting value from var {key}: {e}")
-                    data[key] = 0 if 'IntVar' in str(type(var)) else ""
-        
-        # Get data from form input widgets
-        if hasattr(self, 'form_input_widgets') and self.form_input_widgets:
-            # Text widgets (multiline)
-            text_fields = ["perihal", "asal_surat", "ditujukan", "bicarakan_dengan", "teruskan_kepada"]
-            for field in text_fields:
-                if field in self.form_input_widgets:
-                    try:
-                        widget = self.form_input_widgets[field]
-                        if hasattr(widget, 'get'):
-                            if hasattr(widget, 'insert'):  # Text widget
-                                data[field] = widget.get("1.0", "end").strip()
-                            else:  # Entry widget
-                                data[field] = str(widget.get())
-                        else:
-                            data[field] = ""
-                    except Exception as e:
-                        print(f"[WARNING] Error getting value from {field}: {e}")
-                        data[field] = ""
-            
-            # Date widget for tgl_surat
-            if "tgl_surat" in self.form_input_widgets:
-                try:
-                    widget = self.form_input_widgets["tgl_surat"]
-                    if hasattr(widget, 'get_date'):
-                        date_obj = widget.get_date()
-                        data["tgl_surat"] = date_obj.strftime("%d-%m-%Y")
-                    elif hasattr(widget, 'get'):
-                        data["tgl_surat"] = str(widget.get())
-                    else:
-                        data["tgl_surat"] = ""
-                except Exception as e:
-                    print(f"[WARNING] Error getting tgl_surat: {e}")
-                    data["tgl_surat"] = ""
-        
-        # Handle special date entries
-        if hasattr(self, 'tgl_terima_entry'):
-            try:
-                if hasattr(self.tgl_terima_entry, 'get_date'):
-                    date_obj = self.tgl_terima_entry.get_date()
-                    data["tgl_terima"] = date_obj.strftime("%d-%m-%Y")
-                elif hasattr(self.tgl_terima_entry, 'get'):
-                    data["tgl_terima"] = str(self.tgl_terima_entry.get())
-                else:
-                    data["tgl_terima"] = ""
-            except Exception as e:
-                print(f"[WARNING] Error getting tgl_terima: {e}")
-                data["tgl_terima"] = ""
-        else:
-            data["tgl_terima"] = ""
-        
-        if hasattr(self, 'harap_selesai_tgl_entry'):
-            try:
-                if hasattr(self.harap_selesai_tgl_entry, 'get_date'):
-                    date_obj = self.harap_selesai_tgl_entry.get_date()
-                    data["harap_selesai_tgl"] = date_obj.strftime("%d-%m-%Y")
-                elif hasattr(self.harap_selesai_tgl_entry, 'get'):
-                    data["harap_selesai_tgl"] = str(self.harap_selesai_tgl_entry.get())
-                else:
-                    data["harap_selesai_tgl"] = ""
-            except Exception as e:
-                print(f"[WARNING] Error getting harap_selesai_tgl: {e}")
-                data["harap_selesai_tgl"] = ""
-        else:
-            data["harap_selesai_tgl"] = ""
-        
-        # Ensure required fields have default values
-        required_defaults = {
-            "indeks": "",
-            "rahasia": 0,
-            "penting": 0,
-            "segera": 0,
-            "kode_klasifikasi": "",
-            "no_agenda": "",
-            "no_surat": "",
-            "perihal": "",
-            "asal_surat": "",
-            "ditujukan": ""
-        }
-        
-        for field, default_value in required_defaults.items():
-            if field not in data or data[field] is None:
-                data[field] = default_value
-        
-        # Collect instructions safely
-        if hasattr(self, "instruksi_table") and hasattr(self.instruksi_table, "get_data"):
-            try:
-                data["isi_instruksi"] = self.instruksi_table.get_data()
-            except Exception as e:
-                print(f"[WARNING] Error getting instruction data: {e}")
-                data["isi_instruksi"] = []
-        else:
-            data["isi_instruksi"] = []
-        
-        return data
-        
-    except Exception as e:
-        print(f"[ERROR] Error collecting form data: {e}")
-        import traceback
-        traceback.print_exc()
-        return {}
 
 
 # Main application entry point

@@ -1,21 +1,26 @@
+# disposisi_app/views/components/form_sections.py - FIXED VERSION with better layout
 from tkinter import ttk, Text
 from tkcalendar import DateEntry
 import tkinter as tk
 
-def create_modern_input_frame(parent, label_text):
-    """Create a modern input frame with label"""
+def create_modern_input_frame(parent, label_text, compact=False):
+    """Create a modern input frame with label - now with compact option"""
     frame = tk.Frame(parent, bg="#FFFFFF")
-    frame.pack(fill="x", pady=(0, 12))
+    padding_y = (0, 8) if compact else (0, 12)
+    frame.pack(fill="x", pady=padding_y)
     
-    # Label with modern styling
+    # Label with modern styling - smaller for compact mode
+    font_size = 9 if compact else 10
     label = tk.Label(frame, text=label_text, 
-                    font=("Inter", 10) if "Inter" in tk.font.families() else ("Segoe UI", 10),
+                    font=("Inter", font_size) if "Inter" in tk.font.families() else ("Segoe UI", font_size),
                     bg="#FFFFFF", fg="#475569")
-    label.pack(anchor="w", pady=(0, 6))
+    label_pady = (0, 4) if compact else (0, 6)
+    label.pack(anchor="w", pady=label_pady)
     
     return frame
 
-def populate_frame_kiri(frame, vars):
+def populate_frame_kiri(frame, vars, compact=False):
+    """FIXED: More compact version of left frame"""
     input_widgets = {}
     
     # Modern card-like inner frame
@@ -32,16 +37,17 @@ def populate_frame_kiri(frame, vars):
     ]
     
     for label, key, field_type in fields:
-        container = create_modern_input_frame(inner_frame, label)
+        container = create_modern_input_frame(inner_frame, label, compact)
         
         if field_type == "date":
-            # Modern date picker
+            # Compact date picker
             date_frame = tk.Frame(container, bg="#FFFFFF")
             date_frame.pack(fill="x")
             
-            input_widgets[key] = DateEntry(date_frame, width=30, 
+            font_size = 10 if compact else 11
+            input_widgets[key] = DateEntry(date_frame, width=25 if compact else 30, 
                                          date_pattern="dd-mm-yyyy", 
-                                         font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11),
+                                         font=("Inter", font_size) if "Inter" in tk.font.families() else ("Segoe UI", font_size),
                                          background='#3B82F6',
                                          foreground='white',
                                          borderwidth=2,
@@ -56,14 +62,14 @@ def populate_frame_kiri(frame, vars):
             input_widgets[key].pack(side="left", fill="x", expand=True)
             input_widgets[key].delete(0, 'end')
             
-            # Modern clear button
+            # Compact clear button
             clear_btn = tk.Button(date_frame, text="✕", 
-                                font=("Arial", 10, "bold"),
+                                font=("Arial", 9 if compact else 10, "bold"),
                                 bg="#F1F5F9", fg="#64748B",
-                                bd=0, padx=12, pady=6,
+                                bd=0, padx=8 if compact else 12, pady=4 if compact else 6,
                                 cursor="hand2",
                                 command=lambda w=input_widgets[key]: w.delete(0, 'end'))
-            clear_btn.pack(side="right", padx=(8, 0))
+            clear_btn.pack(side="right", padx=(6 if compact else 8, 0))
             
             # Hover effect
             def on_enter(e, btn=clear_btn):
@@ -75,14 +81,19 @@ def populate_frame_kiri(frame, vars):
             clear_btn.bind("<Leave>", on_leave)
             
         elif field_type == "textarea":
-            # Modern text area with border
+            # Compact text area with border
             text_frame = tk.Frame(container, bg="#E2E8F0", bd=1)
             text_frame.pack(fill="x")
             
-            input_widgets[key] = Text(text_frame, height=2, wrap="word", 
-                                    font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11),
+            height = 1.5 if compact else 2
+            font_size = 10 if compact else 11
+            padding_x = 8 if compact else 12
+            padding_y = 6 if compact else 10
+            
+            input_widgets[key] = Text(text_frame, height=height, wrap="word", 
+                                    font=("Inter", font_size) if "Inter" in tk.font.families() else ("Segoe UI", font_size),
                                     bg="#FFFFFF", fg="#0F172A",
-                                    bd=0, padx=12, pady=10,
+                                    bd=0, padx=padding_x, pady=padding_y,
                                     insertbackground="#3B82F6")
             input_widgets[key].pack(fill="x", padx=1, pady=1)
             
@@ -96,26 +107,31 @@ def populate_frame_kiri(frame, vars):
             input_widgets[key].bind("<FocusOut>", on_focus_out)
             
         else:  # text input
+            font_size = 10 if compact else 11
             input_widgets[key] = ttk.Entry(container, textvariable=vars[key], 
-                                         font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11),
+                                         font=("Inter", font_size) if "Inter" in tk.font.families() else ("Segoe UI", font_size),
                                          style="TEntry")
             input_widgets[key].pack(fill="x")
     
     return input_widgets
 
-def populate_frame_kanan(frame, vars):
+def populate_frame_kanan(frame, vars, compact=False):
+    """FIXED: More compact version of right frame"""
     input_widgets = {}
     
-    # Modern classification section
+    # Modern classification section with reduced spacing
     klasifikasi_frame = tk.Frame(frame, bg="#FFFFFF")
-    klasifikasi_frame.pack(fill="x", pady=(0, 20))
+    padding_y = (0, 15) if compact else (0, 20)
+    klasifikasi_frame.pack(fill="x", pady=padding_y)
     
+    font_size = 10 if compact else 11
     klasifikasi_label = tk.Label(klasifikasi_frame, text="Klasifikasi Dokumen",
-                               font=("Inter", 11, "600") if "Inter" in tk.font.families() else ("Segoe UI", 11, "bold"),
+                               font=("Inter", font_size, "600") if "Inter" in tk.font.families() else ("Segoe UI", font_size, "bold"),
                                bg="#FFFFFF", fg="#0F172A")
-    klasifikasi_label.pack(anchor="w", pady=(0, 10))
+    label_pady = (0, 8) if compact else (0, 10)
+    klasifikasi_label.pack(anchor="w", pady=label_pady)
     
-    # Modern radio-style checkboxes
+    # Compact radio-style checkboxes
     klasifikasi_items = [
         ("RAHASIA", "rahasia", "#EF4444"),
         ("PENTING", "penting", "#F59E0B"),
@@ -124,15 +140,19 @@ def populate_frame_kanan(frame, vars):
     
     for text, key, color in klasifikasi_items:
         checkbox_frame = tk.Frame(klasifikasi_frame, bg="#FFFFFF")
-        checkbox_frame.pack(anchor="w", pady=4)
+        checkbox_pady = 3 if compact else 4
+        checkbox_frame.pack(anchor="w", pady=checkbox_pady)
         
-        # Custom checkbox with colored indicator
-        indicator = tk.Label(checkbox_frame, text="○", font=("Arial", 14),
+        # Custom checkbox with colored indicator - smaller for compact
+        indicator_font_size = 12 if compact else 14
+        indicator = tk.Label(checkbox_frame, text="○", font=("Arial", indicator_font_size),
                            bg="#FFFFFF", fg="#E2E8F0")
-        indicator.pack(side="left", padx=(0, 8))
+        indicator_padx = (0, 6) if compact else (0, 8)
+        indicator.pack(side="left", padx=indicator_padx)
         
+        label_font_size = 9 if compact else 10
         label = tk.Label(checkbox_frame, text=text,
-                        font=("Inter", 10) if "Inter" in tk.font.families() else ("Segoe UI", 10),
+                        font=("Inter", label_font_size) if "Inter" in tk.font.families() else ("Segoe UI", label_font_size),
                         bg="#FFFFFF", fg="#475569")
         label.pack(side="left")
         
@@ -162,7 +182,7 @@ def populate_frame_kanan(frame, vars):
         vars[key].trace("w", update_indicator)
         update_indicator()
     
-    # Date and classification fields
+    # Date and classification fields - more compact
     fields = [
         ("Tanggal Penerimaan", "tgl_terima", "date"),
         ("Kode / Klasifikasi", "kode_klasifikasi", "text"),
@@ -170,15 +190,18 @@ def populate_frame_kanan(frame, vars):
     ]
     
     for label, key, field_type in fields:
-        container = create_modern_input_frame(frame, label)
+        container = create_modern_input_frame(frame, label, compact)
         
         if field_type == "date":
             date_frame = tk.Frame(container, bg="#FFFFFF")
             date_frame.pack(fill="x")
             
-            tgl_terima_entry = DateEntry(date_frame, width=25,
+            width = 20 if compact else 25
+            font_size = 10 if compact else 11
+            
+            tgl_terima_entry = DateEntry(date_frame, width=width,
                                        date_pattern="dd-mm-yyyy",
-                                       font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11),
+                                       font=("Inter", font_size) if "Inter" in tk.font.families() else ("Segoe UI", font_size),
                                        background='#3B82F6',
                                        foreground='white',
                                        borderwidth=2)
@@ -186,24 +209,27 @@ def populate_frame_kanan(frame, vars):
             tgl_terima_entry.delete(0, 'end')
             input_widgets[key] = tgl_terima_entry
             
-            # Clear button
+            # Compact clear button
             clear_btn = tk.Button(date_frame, text="✕",
-                                font=("Arial", 10, "bold"),
+                                font=("Arial", 9 if compact else 10, "bold"),
                                 bg="#F1F5F9", fg="#64748B",
-                                bd=0, padx=12, pady=6,
+                                bd=0, padx=8 if compact else 12, pady=4 if compact else 6,
                                 cursor="hand2",
                                 command=lambda: tgl_terima_entry.delete(0, 'end'))
-            clear_btn.pack(side="right", padx=(8, 0))
+            clear_btn.pack(side="right", padx=(6 if compact else 8, 0))
         else:
+            font_size = 10 if compact else 11
             entry = ttk.Entry(container, textvariable=vars[key],
-                            font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11),
+                            font=("Inter", font_size) if "Inter" in tk.font.families() else ("Segoe UI", font_size),
                             style="TEntry")
             entry.pack(fill="x")
     
-    return input_widgets
+    # Return the tgl_terima_entry for compatibility
+    return input_widgets.get("tgl_terima") or input_widgets
 
-def populate_frame_disposisi(frame, vars):
-    # Modern checkbox list with hover effects
+def populate_frame_disposisi(frame, vars, compact=False):
+    """FIXED: More compact disposisi frame"""
+    # Modern checkbox list with hover effects - more compact
     disposisi_items = [
         ("Direktur Utama", "dir_utama"),
         ("Direktur Keuangan", "dir_keu"),
@@ -214,13 +240,16 @@ def populate_frame_disposisi(frame, vars):
     ]
     
     for text, key in disposisi_items:
-        # Modern checkbox container
+        # Compact checkbox container
         check_container = tk.Frame(frame, bg="#FFFFFF", relief="flat")
-        check_container.pack(fill="x", pady=3)
+        pady = 2 if compact else 3
+        check_container.pack(fill="x", pady=pady)
         
         cb = ttk.Checkbutton(check_container, text=text, variable=vars[key],
                            style="TCheckbutton")
-        cb.pack(anchor="w", padx=8, pady=8)
+        padx = 6 if compact else 8
+        pady = 4 if compact else 8
+        cb.pack(anchor="w", padx=padx, pady=pady)
         
         # Hover effect
         def on_enter(e, container=check_container):
@@ -231,10 +260,11 @@ def populate_frame_disposisi(frame, vars):
         check_container.bind("<Enter>", on_enter)
         check_container.bind("<Leave>", on_leave)
 
-def populate_frame_instruksi(frame, vars):
+def populate_frame_instruksi(frame, vars, compact=False):
+    """FIXED: More compact instruction frame"""
     input_widgets = {}
     
-    # Modern checkbox grid
+    # Compact checkbox grid
     checks = [
         "Ketahui & File", "Proses Selesai", "Teliti & Pendapat",
         "Buatkan Resume", "Edarkan", "Sesuai Disposisi", "Bicarakan dengan Saya"
@@ -244,55 +274,70 @@ def populate_frame_instruksi(frame, vars):
         "buatkan_resume", "edarkan", "sesuai_disposisi", "bicarakan_saya"
     ]
     
-    # Create a grid layout
+    # Create a more compact grid layout
     for i, (label, key) in enumerate(zip(checks, vars_keys)):
         row = i // 2
         col = i % 2
         
         check_frame = tk.Frame(frame, bg="#FFFFFF")
-        check_frame.grid(row=row, column=col, sticky="ew", padx=4, pady=3)
+        padx = 2 if compact else 4
+        pady = 2 if compact else 3
+        check_frame.grid(row=row, column=col, sticky="ew", padx=padx, pady=pady)
         
         cb = ttk.Checkbutton(check_frame, text=label, variable=vars[key],
                            style="TCheckbutton")
-        cb.pack(anchor="w", padx=8, pady=8)
+        cb_padx = 4 if compact else 8
+        cb_pady = 4 if compact else 8
+        cb.pack(anchor="w", padx=cb_padx, pady=cb_pady)
     
-    # Additional fields section
+    # Additional fields section - more compact spacing
     row_offset = (len(checks) + 1) // 2 + 1
     
-    # Deadline date
-    deadline_container = create_modern_input_frame(frame, "Harap Selesai Tanggal")
-    deadline_container.grid(row=row_offset, column=0, columnspan=2, sticky="ew", pady=(15, 0))
+    # Deadline date - compact
+    deadline_container = create_modern_input_frame(frame, "Harap Selesai Tanggal", compact)
+    deadline_pady = (10, 0) if compact else (15, 0)
+    deadline_container.grid(row=row_offset, column=0, columnspan=2, sticky="ew", pady=deadline_pady)
     
     date_frame = tk.Frame(deadline_container, bg="#FFFFFF")
     date_frame.pack(fill="x")
     
-    harap_selesai_entry = DateEntry(date_frame, width=25,
+    width = 20 if compact else 25
+    font_size = 10 if compact else 11
+    
+    harap_selesai_entry = DateEntry(date_frame, width=width,
                                   date_pattern="dd-mm-yyyy",
-                                  font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11),
+                                  font=("Inter", font_size) if "Inter" in tk.font.families() else ("Segoe UI", font_size),
                                   background='#3B82F6',
                                   foreground='white')
     harap_selesai_entry.pack(side="left", fill="x", expand=True)
     harap_selesai_entry.delete(0, 'end')
     input_widgets["harap_selesai_tgl"] = harap_selesai_entry
     
-    # Modern text areas
+    # Compact text areas
     text_fields = [
         ("Bicarakan dengan", "bicarakan_dengan"),
         ("Teruskan Kepada", "teruskan_kepada")
     ]
     
     for idx, (label, key) in enumerate(text_fields):
-        container = create_modern_input_frame(frame, label)
+        container = create_modern_input_frame(frame, label, compact)
+        container_pady = (8, 0) if compact else (10, 0)
         container.grid(row=row_offset + idx + 1, column=0, columnspan=2, 
-                      sticky="ew", pady=(10, 0))
+                      sticky="ew", pady=container_pady)
         
         text_frame = tk.Frame(container, bg="#E2E8F0", bd=1)
         text_frame.pack(fill="x")
         
-        text_widget = Text(text_frame, height=2, wrap="word",
-                          font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11),
+        # More compact text widget
+        height = 1.5 if compact else 2
+        font_size = 10 if compact else 11
+        padx = 8 if compact else 12
+        pady = 6 if compact else 10
+        
+        text_widget = Text(text_frame, height=height, wrap="word",
+                          font=("Inter", font_size) if "Inter" in tk.font.families() else ("Segoe UI", font_size),
                           bg="#FFFFFF", fg="#0F172A",
-                          bd=0, padx=12, pady=10,
+                          bd=0, padx=padx, pady=pady,
                           insertbackground="#3B82F6")
         text_widget.pack(fill="x", padx=1, pady=1)
         input_widgets[key] = text_widget

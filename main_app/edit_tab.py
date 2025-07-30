@@ -1,3 +1,4 @@
+# main_app/edit_tab.py - FIXED VERSION with better layout
 import tkinter as tk
 from tkinter import ttk, Text, messagebox
 from tkcalendar import DateEntry
@@ -57,8 +58,10 @@ class EditTab(ttk.Frame):
                 self.vars[key] = tk.StringVar()
 
     def _create_widgets(self):
-        # Main container with scrollbars
+        # FIXED: Better layout structure with proper spacing
         root = self.winfo_toplevel()
+        
+        # Main scrollable container
         self.canvas = tk.Canvas(self, borderwidth=0, highlightthickness=0, bg=getattr(root, 'canvas_bg', '#f8fafc'))
         self.v_scroll = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
         self.h_scroll = ttk.Scrollbar(self, orient="horizontal", command=self.canvas.xview)
@@ -70,9 +73,9 @@ class EditTab(ttk.Frame):
         self.v_scroll.grid(row=0, column=1, sticky="ns")
         self.h_scroll.grid(row=1, column=0, sticky="ew")
         
-        # Main frame inside canvas
-        self.main_frame = ttk.Frame(self.canvas, padding="15", style="TFrame")
-        self._form_main_frame = self.main_frame  # Add reference for consistency with main app
+        # FIXED: Proper main frame with better spacing
+        self.main_frame = ttk.Frame(self.canvas, padding=(10, 10, 10, 10), style="TFrame")  # Reduced padding
+        self._form_main_frame = self.main_frame
         self.canvas.create_window((0, 0), window=self.main_frame, anchor="nw")
         
         # Configure resizing
@@ -80,42 +83,66 @@ class EditTab(ttk.Frame):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         
-        # Create the three main sections
+        # FIXED: Create compact header
+        self._create_compact_header()
+        
+        # Create the three main sections with better spacing
         self._create_top_frame()
         self._create_middle_frame()
-        self._create_button_frame()
+        self._create_action_bar()  # Changed from button frame to action bar
         
         # Mouse wheel bindings
         bind_mousewheel_recursive(self.main_frame, self._on_mousewheel)
 
+    def _create_compact_header(self):
+        """FIXED: Create a compact header for edit mode"""
+        header_frame = ttk.Frame(self.main_frame, style="TFrame")
+        header_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        
+        # Header content
+        header_content = tk.Frame(header_frame, bg="#3B82F6", height=40)  # Compact height
+        header_content.pack(fill="x")
+        header_content.pack_propagate(False)
+        
+        # Title with icon
+        title_frame = tk.Frame(header_content, bg="#3B82F6")
+        title_frame.pack(expand=True, fill="both")
+        
+        title_label = tk.Label(
+            title_frame,
+            text="✏️ Edit Mode - Formulir Disposisi",
+            font=("Segoe UI", 14, "bold"),  # Smaller font
+            bg="#3B82F6",
+            fg="white"
+        )
+        title_label.pack(expand=True, pady=8)  # Reduced padding
+
     def _create_top_frame(self):
-        # Top frame with two columns
-        self.top_frame = ttk.Frame(self.main_frame, style="TFrame", padding=10)
-        self.top_frame.grid(row=0, column=0, sticky="ew", pady=5)
+        # FIXED: More compact top frame
+        self.top_frame = ttk.Frame(self.main_frame, style="TFrame")
+        self.top_frame.grid(row=1, column=0, sticky="ew", pady=(0, 10))  # Reduced padding
         self.top_frame.columnconfigure(0, weight=1)
         self.top_frame.columnconfigure(1, weight=1)
         
-        # Left frame - Detail Surat
-        self.frame_kiri = ttk.LabelFrame(self.top_frame, text="Detail Surat", padding="15", style="TLabelframe")
-        self.frame_kiri.grid(row=0, column=0, sticky="nsew", padx=5)
+        # Left frame - Detail Surat with reduced padding
+        self.frame_kiri = ttk.LabelFrame(self.top_frame, text="Detail Surat", padding=(10, 8, 10, 8), style="TLabelframe")  # Reduced padding
+        self.frame_kiri.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
         self.form_input_widgets.update(populate_frame_kiri(self.frame_kiri, self.vars))
         
-        # Right frame - Klasifikasi
-        self.frame_kanan = ttk.LabelFrame(self.top_frame, text="Klasifikasi", padding="15", style="TLabelframe")
-        self.frame_kanan.grid(row=0, column=1, sticky="nsew", padx=5)
-        # FIX: Store the returned widgets properly
+        # Right frame - Klasifikasi with reduced padding
+        self.frame_kanan = ttk.LabelFrame(self.top_frame, text="Klasifikasi", padding=(10, 8, 10, 8), style="TLabelframe")  # Reduced padding
+        self.frame_kanan.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
         kanan_widgets = populate_frame_kanan(self.frame_kanan, self.vars)
         if isinstance(kanan_widgets, dict):
             self.form_input_widgets.update(kanan_widgets)
-        # Store the tgl_terima_entry separately if it's returned directly
         elif kanan_widgets:
             self.tgl_terima_entry = kanan_widgets
             self.form_input_widgets["tgl_terima"] = kanan_widgets
 
     def _create_middle_frame(self):
-        # Middle frame with three columns
-        self.middle_frame = ttk.Frame(self.main_frame, style="TFrame", padding=10)
-        self.middle_frame.grid(row=1, column=0, sticky="nsew", pady=5)
+        # FIXED: More compact middle frame
+        self.middle_frame = ttk.Frame(self.main_frame, style="TFrame")
+        self.middle_frame.grid(row=2, column=0, sticky="nsew", pady=(0, 10))  # Reduced padding
         
         # Configure grid weights
         self.middle_frame.columnconfigure(0, weight=1)
@@ -123,23 +150,22 @@ class EditTab(ttk.Frame):
         self.middle_frame.columnconfigure(2, weight=2)
         self.middle_frame.rowconfigure(0, weight=1)
         
-        # Left column - Disposisi Kepada
-        self.frame_disposisi = ttk.LabelFrame(self.middle_frame, text="Disposisi Kepada", padding="15", style="TLabelframe")
-        self.frame_disposisi.grid(row=0, column=0, sticky="nsew", padx=5)
+        # Left column - Disposisi Kepada with reduced padding
+        self.frame_disposisi = ttk.LabelFrame(self.middle_frame, text="Disposisi Kepada", padding=(10, 8, 10, 8), style="TLabelframe")
+        self.frame_disposisi.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
         populate_frame_disposisi(self.frame_disposisi, self.vars)
         
-        # Middle column - Untuk di
-        self.frame_instruksi = ttk.LabelFrame(self.middle_frame, text="Untuk di", padding="15", style="TLabelframe")
-        self.frame_instruksi.grid(row=0, column=1, sticky="nsew", padx=5)
+        # Middle column - Untuk di with reduced padding
+        self.frame_instruksi = ttk.LabelFrame(self.middle_frame, text="Untuk di", padding=(10, 8, 10, 8), style="TLabelframe")
+        self.frame_instruksi.grid(row=0, column=1, sticky="nsew", padx=(5, 5))
         instruksi_widgets = populate_frame_instruksi(self.frame_instruksi, self.vars)
         self.form_input_widgets.update(instruksi_widgets)
-        # Store harap_selesai_tgl_entry if it exists
         if "harap_selesai_tgl" in instruksi_widgets:
             self.harap_selesai_tgl_entry = instruksi_widgets["harap_selesai_tgl"]
         
-        # Right column - Isi Instruksi/Informasi
-        self.frame_info = ttk.LabelFrame(self.middle_frame, text="Isi Instruksi / Informasi", padding="15", style="TLabelframe")
-        self.frame_info.grid(row=0, column=2, sticky="nsew", padx=5)
+        # Right column - Isi Instruksi/Informasi with reduced padding
+        self.frame_info = ttk.LabelFrame(self.middle_frame, text="Isi Instruksi / Informasi", padding=(10, 8, 10, 8), style="TLabelframe")
+        self.frame_info.grid(row=0, column=2, sticky="nsew", padx=(5, 0))
         
         # Instruction table inside frame_info
         self.posisi_options = [
@@ -150,40 +176,87 @@ class EditTab(ttk.Frame):
         self.frame_instruksi_table.grid(row=0, column=0, sticky="nsew")
         self.instruksi_table = InstruksiTable(self.frame_instruksi_table, self.posisi_options, use_grid=True)
         
-        # Tombol tambah/hapus baris
+        # FIXED: Compact button row for instruction table
         self.frame_instruksi_btn = ttk.Frame(self.frame_info)
         self.frame_instruksi_btn.grid(row=1, column=0, sticky="ew", pady=(5,0))
-        self.btn_tambah_baris = ttk.Button(self.frame_instruksi_btn, text="+ Tambah Baris", command=self._on_tambah_baris, style="Secondary.TButton")
-        self.btn_tambah_baris.pack(side="left", padx=2)
-        self.btn_hapus_baris = ttk.Button(self.frame_instruksi_btn, text="🗑 Hapus Baris Terpilih", command=self._on_hapus_baris, style="Secondary.TButton")
-        self.btn_hapus_baris.pack(side="left", padx=2)
-        self.btn_kosongkan_baris = ttk.Button(self.frame_instruksi_btn, text="⏹ Kosongkan Baris", command=self._on_kosongkan_baris, style="Secondary.TButton")
-        self.btn_kosongkan_baris.pack(side="left", padx=2)
+        
+        # Smaller buttons with reduced padding
+        self.btn_tambah_baris = ttk.Button(self.frame_instruksi_btn, text="+ Tambah", command=self._on_tambah_baris, style="Secondary.TButton")
+        self.btn_tambah_baris.pack(side="left", padx=(0, 3))
+        
+        self.btn_hapus_baris = ttk.Button(self.frame_instruksi_btn, text="🗑 Hapus", command=self._on_hapus_baris, style="Secondary.TButton")
+        self.btn_hapus_baris.pack(side="left", padx=(0, 3))
+        
+        self.btn_kosongkan_baris = ttk.Button(self.frame_instruksi_btn, text="⏹ Kosong", command=self._on_kosongkan_baris, style="Secondary.TButton")
+        self.btn_kosongkan_baris.pack(side="left")
 
-    def _create_button_frame(self):
-        # Create edit-specific buttons
-        btn_frame = ttk.Frame(self.main_frame)
-        btn_frame.grid(row=2, column=0, sticky="ew", pady=10)
+    def _create_action_bar(self):
+        """FIXED: Create a better action bar similar to main form but for edit mode"""
+        # Main action bar container
+        action_container = tk.Frame(self.main_frame, bg="#FFFFFF", relief="flat")
+        action_container.grid(row=3, column=0, sticky="ew", pady=(10, 0))
         
-        # Save button
-        btn_save = ttk.Button(btn_frame, text="💾 Simpan Perubahan", 
-                             command=self._on_save, style="Success.TButton")
-        btn_save.pack(side="left", padx=5)
+        # Add subtle border
+        border_frame = tk.Frame(action_container, bg="#E2E8F0", height=1)
+        border_frame.pack(fill="x", side="top")
         
-        # Export PDF button
-        btn_pdf = ttk.Button(btn_frame, text="📄 Export ke PDF", 
-                            command=self._on_export_pdf, style="Primary.TButton")
-        btn_pdf.pack(side="left", padx=5)
+        # Inner frame with proper padding
+        action_frame = ttk.Frame(action_container, padding=(15, 10), style="Card.TFrame")
+        action_frame.pack(fill="x")
+        action_frame.columnconfigure(0, weight=1)
+        action_frame.columnconfigure(1, weight=0)
+
+        # --- Left Section: Edit Info ---
+        left_section = ttk.Frame(action_frame, style="Card.TFrame")
+        left_section.grid(row=0, column=0, sticky="w", padx=(0, 20))
+
+        edit_info_label = ttk.Label(left_section, text="Edit Actions", 
+                                   style="Caption.TLabel")
+        edit_info_label.grid(row=0, column=0, sticky="w", pady=(0, 8))
         
-        # Send Email button - use simplified approach
-        btn_email = ttk.Button(btn_frame, text="📧 Kirim Email", 
-                              command=self._on_send_email_simple, style="Primary.TButton")
-        btn_email.pack(side="left", padx=5)
+        info_actions_frame = ttk.Frame(left_section, style="Card.TFrame")
+        info_actions_frame.grid(row=1, column=0, sticky="w")
         
         # Cancel button
-        btn_cancel = ttk.Button(btn_frame, text="❌ Batal", 
+        btn_cancel = ttk.Button(info_actions_frame, text="❌ Batal", 
                                command=self._on_cancel, style="Secondary.TButton")
-        btn_cancel.pack(side="right", padx=5)
+        btn_cancel.pack(side="left", padx=(0, 10))
+
+        # --- Right Section: Save Actions ---
+        right_section = ttk.Frame(action_frame, style="Card.TFrame")
+        right_section.grid(row=0, column=1, sticky="e")
+
+        save_actions_label = ttk.Label(right_section, text="Save & Export", 
+                                      style="Caption.TLabel")
+        save_actions_label.grid(row=0, column=0, sticky="e", pady=(0, 8))
+        
+        # Action buttons container - horizontal layout
+        actions_container = ttk.Frame(right_section, style="Card.TFrame")
+        actions_container.grid(row=1, column=0, sticky="e")
+        
+        # Export PDF button
+        btn_pdf = ttk.Button(actions_container, text="📄 Export PDF", 
+                            command=self._on_export_pdf, style="Secondary.TButton")
+        btn_pdf.pack(side="left", padx=(0, 8))
+        
+        # Send Email button
+        btn_email = ttk.Button(actions_container, text="📧 Kirim Email", 
+                              command=self._on_send_email_simple, style="Secondary.TButton")
+        btn_email.pack(side="left", padx=(0, 8))
+        
+        # Main save button
+        btn_save = ttk.Button(actions_container, text="💾 Simpan Perubahan", 
+                             command=self._on_save, style="Primary.TButton")
+        btn_save.pack(side="left")
+        
+        # Helper text - compact
+        helper_frame = ttk.Frame(right_section, style="Card.TFrame")
+        helper_frame.grid(row=2, column=0, sticky="e", pady=(3, 0))
+        
+        helper_text = ttk.Label(helper_frame, 
+                               text="Simpan perubahan data formulir",
+                               style="Caption.TLabel")
+        helper_text.pack(side="right")
 
     def get_disposisi_labels(self):
         """Get selected disposisi labels - compatible with main app"""
@@ -322,7 +395,6 @@ class EditTab(ttk.Frame):
                 success_msg = f"Email berhasil dikirim!\n\n{message}"
                 if details.get('failed_lookups'):
                     success_msg += "\n\nCatatan: Beberapa posisi tidak memiliki email yang valid di database."
-                # Use root window as parent to avoid the messagebox error
                 messagebox.showinfo("Email Sent", success_msg, parent=self.winfo_toplevel())
             else:
                 error_msg = f"Gagal mengirim email:\n{message}"
@@ -474,7 +546,7 @@ class EditTab(ttk.Frame):
                 widget.delete("1.0", tk.END)
                 widget.insert("1.0", data.get(key, ""))
         
-        # FIX: Improved date handling for DateEntry widgets - ALLOW NULL VALUES
+        # FIXED: Improved date handling for DateEntry widgets - ALLOW NULL VALUES
         date_fields = [
             ("tgl_surat", "tgl_surat"),
             ("tgl_terima", "tgl_terima"), 

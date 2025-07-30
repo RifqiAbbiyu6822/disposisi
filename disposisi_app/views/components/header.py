@@ -79,9 +79,9 @@ def create_header(parent):
     status_row = tk.Frame(status_inner, bg="#1E293B")
     status_row.pack(anchor="e", pady=(0, 4))
     
-    # Animated status dot
+    # FIXED: Animated status dot without alpha
     status_dot_outer = tk.Label(status_row, text="●", font=("Arial", 14), 
-                               fg="#10B98130", bg="#1E293B")
+                               fg="#34D399", bg="#1E293B")  # Solid green instead of alpha
     status_dot_outer.pack(side="left")
     
     status_dot = tk.Label(status_row, text="●", font=("Arial", 10), 
@@ -113,10 +113,11 @@ def create_header(parent):
     )
     version_label.pack(padx=8, pady=2)
     
-    # Add subtle animations
+    # FIXED: Add subtle animations without alpha
     def pulse_status():
         current_color = status_dot.cget("fg")
-        new_color = "#10B981" if current_color == "#10B98180" else "#10B98180"
+        # Toggle between two solid green colors instead of using alpha
+        new_color = "#10B981" if current_color == "#34D399" else "#34D399"
         status_dot.config(fg=new_color)
         header_frame.after(1000, pulse_status)
     

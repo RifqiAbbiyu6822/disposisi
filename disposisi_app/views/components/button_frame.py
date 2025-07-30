@@ -1,34 +1,39 @@
+# disposisi_app/views/components/button_frame.py - FIXED VERSION
 import tkinter as tk
 from tkinter import ttk, messagebox
 import os
 
 def create_button_frame(parent, callbacks):
     """
-    Creates the main action button frame with modern styling.
+    Creates the main action button frame with improved layout and positioning.
     """
-    # Main container with card style
+    # Main container with proper layout management
     button_container = tk.Frame(parent, bg="#FFFFFF", relief="flat")
-    button_container.grid(row=2, column=0, sticky="ew", pady=(20, 0))
+    button_container.grid(row=2, column=0, sticky="ew", pady=(15, 0))  # Reduced top padding
     
     # Add subtle border
     border_frame = tk.Frame(button_container, bg="#E2E8F0", height=1)
     border_frame.pack(fill="x", side="top")
     
-    # Inner frame with padding
-    button_frame = ttk.Frame(button_container, padding=(20, 15), style="Card.TFrame")
+    # Inner frame with reduced padding
+    button_frame = ttk.Frame(button_container, padding=(15, 10), style="Card.TFrame")  # Reduced padding
     button_frame.pack(fill="x")
     button_frame.columnconfigure(0, weight=1)
+    button_frame.columnconfigure(1, weight=0)  # Right section doesn't expand
 
-    # --- Quick Actions Section ---
-    quick_actions_label = ttk.Label(button_frame, text="Quick Actions", 
+    # --- Left Section: Quick Actions ---
+    left_section = ttk.Frame(button_frame, style="Card.TFrame")
+    left_section.grid(row=0, column=0, sticky="w", padx=(0, 20))
+
+    # Quick actions header - smaller
+    quick_actions_label = ttk.Label(left_section, text="Quick Actions", 
                                    style="Caption.TLabel")
-    quick_actions_label.grid(row=0, column=0, sticky="w", pady=(0, 10))
+    quick_actions_label.grid(row=0, column=0, sticky="w", pady=(0, 8))  # Reduced padding
     
-    action_frame = ttk.Frame(button_frame, style="Card.TFrame")
-    action_frame.grid(row=1, column=0, sticky="ew", pady=(0, 15))
-    action_frame.columnconfigure(0, weight=1)
+    action_frame = ttk.Frame(left_section, style="Card.TFrame")
+    action_frame.grid(row=1, column=0, sticky="w")
     
-    # Modern Clear Form Button with icon
+    # Modern Clear Form Button with icon - compact
     def on_clear_form():
         func = callbacks.get("clear_form")
         if callable(func):
@@ -37,12 +42,9 @@ def create_button_frame(parent, callbacks):
             messagebox.showwarning("Fungsi Tidak Ditemukan", 
                                  "Fungsi untuk membersihkan form belum diimplementasikan.")
     
-    clear_btn_frame = tk.Frame(action_frame, bg="#FFFFFF")
-    clear_btn_frame.grid(row=0, column=0, sticky="w")
-    
-    btn_bersihkan = ttk.Button(clear_btn_frame, text="🔄  Reset Form", 
+    btn_bersihkan = ttk.Button(action_frame, text="🔄 Reset Form", 
                               command=on_clear_form, style="Ghost.TButton")
-    btn_bersihkan.pack(side="left")
+    btn_bersihkan.pack(side="left", padx=(0, 10))
     
     # Add hover effect
     def on_enter(e):
@@ -53,14 +55,18 @@ def create_button_frame(parent, callbacks):
     btn_bersihkan.bind("<Enter>", on_enter)
     btn_bersihkan.bind("<Leave>", on_leave)
 
-    # --- Main Actions Section ---
-    main_actions_label = ttk.Label(button_frame, text="Complete & Submit", 
+    # --- Right Section: Main Actions ---
+    right_section = ttk.Frame(button_frame, style="Card.TFrame")
+    right_section.grid(row=0, column=1, sticky="e")
+
+    # Main actions header - smaller
+    main_actions_label = ttk.Label(right_section, text="Complete & Submit", 
                                   style="Caption.TLabel")
-    main_actions_label.grid(row=2, column=0, sticky="w", pady=(0, 10))
+    main_actions_label.grid(row=0, column=0, sticky="e", pady=(0, 8))  # Reduced padding
     
-    selesai_frame = ttk.Frame(button_frame, style="Card.TFrame")
-    selesai_frame.grid(row=3, column=0, sticky="ew")
-    selesai_frame.columnconfigure(0, weight=1)
+    # Action buttons container
+    actions_container = ttk.Frame(right_section, style="Card.TFrame")
+    actions_container.grid(row=1, column=0, sticky="e")
 
     def show_finish_dialog():
         from .finish_dialog import FinishDialog
@@ -73,25 +79,20 @@ def create_button_frame(parent, callbacks):
         dialog = FinishDialog(parent, disposisi_labels, dialog_callbacks)
         parent.wait_window(dialog)
 
-    # Main submit button with modern design
-    submit_container = tk.Frame(selesai_frame, bg="#FFFFFF")
-    submit_container.grid(row=0, column=0, sticky="ew")
-    
-    # Button with gradient effect (simulated)
-    btn_selesai = ttk.Button(submit_container, 
-                            text="✅  Selesai & Lanjutkan", 
+    # Main submit button with compact design
+    btn_selesai = ttk.Button(actions_container, 
+                            text="✅ Selesai & Lanjutkan", 
                             command=show_finish_dialog, 
                             style="Primary.TButton")
-    btn_selesai.pack(fill="x")
+    btn_selesai.pack(side="right")
     
-    # Helper text
-    helper_text = ttk.Label(selesai_frame, 
+    # Helper text - smaller and more compact
+    helper_frame = ttk.Frame(right_section, style="Card.TFrame")
+    helper_frame.grid(row=2, column=0, sticky="e", pady=(3, 0))  # Reduced padding
+    
+    helper_text = ttk.Label(helper_frame, 
                            text="Simpan formulir dan pilih tindakan selanjutnya",
                            style="Caption.TLabel")
-    helper_text.grid(row=1, column=0, sticky="w", pady=(5, 0))
-    
-    # Add shadow effect to main button
-    shadow = tk.Frame(submit_container, bg="#0000000A", height=2)
-    shadow.pack(fill="x", side="bottom", pady=(2, 0))
+    helper_text.pack(side="right")
 
     return button_frame

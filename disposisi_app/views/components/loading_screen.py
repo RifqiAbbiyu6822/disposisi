@@ -38,7 +38,7 @@ class LoadingScreen(tk.Toplevel):
         self.geometry(f"+{x}+{y}")
 
     def create_modern_ui(self):
-        # Outer frame with border
+        # Outer frame with border - FIXED: No alpha colors
         outer_frame = tk.Frame(self, bg="#E2E8F0", relief="flat", bd=1)
         outer_frame.pack(fill="both", expand=True, padx=1, pady=1)
         
@@ -91,7 +91,7 @@ class LoadingScreen(tk.Toplevel):
         self.sub_status_label.pack()
 
     def draw_modern_spinner(self):
-        """Draw a modern circular spinner"""
+        """Draw a modern circular spinner - FIXED: No alpha colors"""
         if not self.spinner_canvas.winfo_exists():
             return
             
@@ -100,7 +100,7 @@ class LoadingScreen(tk.Toplevel):
         center_x, center_y = 40, 40
         radius = 30
         
-        # Background circle
+        # Background circle - FIXED: Solid color instead of alpha
         for i in range(8):
             start_angle = i * 45
             self.spinner_canvas.create_arc(
@@ -119,7 +119,7 @@ class LoadingScreen(tk.Toplevel):
             outline="#3B82F6", width=4, style="arc"
         )
         
-        # Secondary arc for effect
+        # Secondary arc for effect - FIXED: Solid color
         self.spinner_canvas.create_arc(
             center_x - radius, center_y - radius,
             center_x + radius, center_y + radius,
@@ -152,7 +152,6 @@ class LoadingScreen(tk.Toplevel):
         if status_text:
             self.sub_status_label.config(text=status_text)
         
-        # Change status based on progress
         # Change status based on progress
         if value < 30:
             self.status_label.config(text="Initializing...")
