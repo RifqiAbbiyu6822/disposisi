@@ -104,117 +104,118 @@ class FormApp(tk.Tk):
         setup_windowed_fullscreen(self)
 
     def create_header(self):
-        header_frame = ttk.Frame(self, style="Surface.TFrame", padding=(0, 0, 0, 0))
-        header_frame.pack(fill="x", padx=0, pady=0)
-        
-        gradient_frame = tk.Frame(header_frame, height=80, bg="#3b82f6")
-        gradient_frame.pack(fill="x")
-        gradient_frame.pack_propagate(False)
-        
-        header_content = tk.Frame(gradient_frame, bg="#3b82f6")
-        header_content.pack(fill="both", expand=True, padx=20, pady=15)
-        
-        left_frame = tk.Frame(header_content, bg="#3b82f6")
-        left_frame.pack(side="left", fill="both", expand=True)
-        
-        self.logo_label = tk.Label(left_frame, 
-                                   text="📋 DISPOSISI", 
-                                   font=("Segoe UI", 16, "bold"), 
-                                   bg="#3b82f6", 
-                                   fg="white")
-        self.logo_label.pack(anchor="w")
-        
-        self.title_label = tk.Label(left_frame, 
-                                      text="Sistem Pembuatan dan Pelaporan Disposisi", 
-                                      font=("Segoe UI", 22, "bold"), 
-                                      bg="#3b82f6", 
-                                      fg="white")
-        self.title_label.pack(anchor="w", pady=(2, 0))
-        
-        self.subtitle_label = tk.Label(left_frame, 
-                                       text="Pelaporan dan Pembuatan Disposisi Modern", 
-                                       font=("Segoe UI", 12), 
-                                       bg="#3b82f6", 
-                                       fg="#bfdbfe")
-        self.subtitle_label.pack(anchor="w", pady=(5, 0))
-        
-        right_frame = tk.Frame(header_content, bg="#3b82f6")
-        right_frame.pack(side="right")
-        
-        version_label = tk.Label(right_frame, 
-                                 text="Version 2.0", 
-                                 font=("Segoe UI", 11, "bold"), 
-                                 bg="#3b82f6", 
-                                 fg="#bfdbfe")
-        version_label.pack(anchor="e")
-        
-        status_label = tk.Label(right_frame, 
-                                text="✓ Online", 
-                                font=("Segoe UI", 10), 
-                                bg="#3b82f6", 
-                                fg="#10b981")
-        status_label.pack(anchor="e", pady=(5, 0))
+        """Create a compact, minimalist header"""
+    # Header frame dengan height yang sangat minimal
+    header_frame = tk.Frame(self, bg="#3b82f6", height=45)  # Reduced from 80 to 45
+    header_frame.pack(fill="x", side="top")
+    header_frame.pack_propagate(False)
+    
+    # Content dengan padding minimal
+    header_content = tk.Frame(header_frame, bg="#3b82f6")
+    header_content.pack(fill="both", expand=True, padx=12, pady=6)  # Minimal padding
+    
+    # Single row layout
+    content_row = tk.Frame(header_content, bg="#3b82f6")
+    content_row.pack(fill="x", expand=True)
+    
+    # Left side - compact title only
+    left_frame = tk.Frame(content_row, bg="#3b82f6")
+    left_frame.pack(side="left", anchor="w")
+    
+    # Single line title - no logo, no subtitle
+    self.title_label = tk.Label(
+        left_frame, 
+        text="📋 Sistem Disposisi", 
+        font=("Segoe UI", 13, "bold"),  # Smaller font
+        bg="#3b82f6", 
+        fg="white"
+    )
+    self.title_label.pack(anchor="w")
+    
+    # Right side - minimal info only
+    right_frame = tk.Frame(content_row, bg="#3b82f6")
+    right_frame.pack(side="right", anchor="e")
+    
+    # Compact info container
+    info_container = tk.Frame(right_frame, bg="#3b82f6")
+    info_container.pack(anchor="e")
+    
+    # Version only
+    version_label = tk.Label(
+        info_container, 
+        text="v2.0", 
+        font=("Segoe UI", 9, "bold"), 
+        bg="#3b82f6", 
+        fg="#bfdbfe"
+    )
+    version_label.pack(side="right", padx=(0, 0))
+    
+    # Simple status dot
+    status_dot = tk.Label(
+        info_container, 
+        text="●", 
+        font=("Segoe UI", 8), 
+        bg="#3b82f6", 
+        fg="#10b981"
+    )
+    status_dot.pack(side="right", padx=(0, 6))
 
     def create_menu_bar(self):
-        menubar = tk.Menu(self, font=("Segoe UI", 10), bg="#ffffff", fg="#1f2937", 
-                          activebackground="#3b82f6", activeforeground="white")
-        self.config(menu=menubar)
-        
-        file_menu = tk.Menu(menubar, tearoff=0, font=("Segoe UI", 10), 
-                            bg="#ffffff", fg="#1f2937",
-                            activebackground="#3b82f6", activeforeground="white")
-        menubar.add_cascade(label="📁 File", menu=file_menu)
-        file_menu.add_command(label="💾 Simpan ke PDF", command=self.save_to_pdf)
-        file_menu.add_separator()
-        file_menu.add_command(label="🚪 Keluar", command=self.quit)
-        
-        edit_menu = tk.Menu(menubar, tearoff=0, font=("Segoe UI", 10),
-                            bg="#ffffff", fg="#1f2937",
-                            activebackground="#3b82f6", activeforeground="white")
-        menubar.add_cascade(label="✏️ Edit", menu=edit_menu)
-        edit_menu.add_command(label="🗑️ Bersihkan Form", command=self.clear_form)
-        
-        help_menu = tk.Menu(menubar, tearoff=0, font=("Segoe UI", 10),
-                            bg="#ffffff", fg="#1f2937",
-                            activebackground="#3b82f6", activeforeground="white")
-        menubar.add_cascade(label="❓ Help", menu=help_menu)
-        help_menu.add_command(label="⌨️ Shortcuts", command=self.show_shortcuts)
-        help_menu.add_command(label="ℹ️ About", command=self.show_about)
+        """Create a compact menu bar"""
+    menubar = tk.Menu(self, font=("Segoe UI", 9), bg="#ffffff", fg="#1f2937", 
+                      activebackground="#3b82f6", activeforeground="white")
+    self.config(menu=menubar)
+    
+    # File menu - lebih sedikit item
+    file_menu = tk.Menu(menubar, tearoff=0, font=("Segoe UI", 9), 
+                        bg="#ffffff", fg="#1f2937",
+                        activebackground="#3b82f6", activeforeground="white")
+    menubar.add_cascade(label="File", menu=file_menu)
+    file_menu.add_command(label="💾 Simpan PDF", command=self.save_to_pdf)
+    file_menu.add_separator()
+    file_menu.add_command(label="🚪 Keluar", command=self.quit)
+    
+    # Edit menu - minimal
+    edit_menu = tk.Menu(menubar, tearoff=0, font=("Segoe UI", 9),
+                        bg="#ffffff", fg="#1f2937",
+                        activebackground="#3b82f6", activeforeground="white")
+    menubar.add_cascade(label="Edit", menu=edit_menu)
+    edit_menu.add_command(label="🗑️ Reset", command=self.clear_form)
+    
+    # Help menu - minimal
+    help_menu = tk.Menu(menubar, tearoff=0, font=("Segoe UI", 9),
+                        bg="#ffffff", fg="#1f2937",
+                        activebackground="#3b82f6", activeforeground="white")
+    menubar.add_cascade(label="Help", menu=help_menu)
+    help_menu.add_command(label="⌨️ Shortcuts", command=self.show_shortcuts)
 
-    def create_status_bar(self):
-        status_frame = tk.Frame(self, bg="#f8fafc", height=35, relief="solid", borderwidth=1)
-        status_frame.pack(side="bottom", fill="x")
-        status_frame.pack_propagate(False)
-        
-        left_status = tk.Frame(status_frame, bg="#f8fafc")
-        left_status.pack(side="left", fill="both", expand=True)
-        
-        self.status_message = tk.Label(left_status, 
-                                       text="✓ Ready", 
-                                       font=("Segoe UI", 10), 
-                                       bg="#f8fafc", 
-                                       fg="#10b981")
-        self.status_message.pack(side="left", padx=20, pady=8)
-        
-        right_status = tk.Frame(status_frame, bg="#f8fafc")
-        right_status.pack(side="right")
-        
-        system_label = tk.Label(right_status, 
-                                text=f"🖥️ {platform.system()}", 
-                                font=("Segoe UI", 9), 
-                                bg="#f8fafc", 
-                                fg="#6b7280")
-        system_label.pack(side="right", padx=10, pady=8)
-        
-        separator_frame = tk.Frame(status_frame, bg="#e5e7eb", width=1)
-        separator_frame.pack(side="right", fill="y", padx=10)
-        
-        version_label = tk.Label(right_status, 
-                                 text="v2.0", 
-                                 font=("Segoe UI", 10, "bold"), 
-                                 bg="#f8fafc", 
-                                 fg="#3b82f6")
-        version_label.pack(side="right", padx=15, pady=8)
+# Update create_status_bar untuk lebih kompak:
+def create_status_bar(self):
+    """Create a compact status bar"""
+    status_frame = tk.Frame(self, bg="#f8fafc", height=28, relief="solid", borderwidth=1)  # Reduced height
+    status_frame.pack(side="bottom", fill="x")
+    status_frame.pack_propagate(False)
+    
+    left_status = tk.Frame(status_frame, bg="#f8fafc")
+    left_status.pack(side="left", fill="both", expand=True)
+    
+    self.status_message = tk.Label(left_status, 
+                                   text="✓ Ready", 
+                                   font=("Segoe UI", 9),  # Smaller font
+                                   bg="#f8fafc", 
+                                   fg="#10b981")
+    self.status_message.pack(side="left", padx=15, pady=4)  # Reduced padding
+    
+    right_status = tk.Frame(status_frame, bg="#f8fafc")
+    right_status.pack(side="right")
+    
+    # Compact version only
+    version_label = tk.Label(right_status, 
+                             text="v2.0", 
+                             font=("Segoe UI", 9, "bold"), 
+                             bg="#f8fafc", 
+                             fg="#3b82f6")
+    version_label.pack(side="right", padx=12, pady=4)
 
     def setup_shortcuts(self):
         setup_shortcuts(
