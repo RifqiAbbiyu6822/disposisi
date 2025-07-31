@@ -8,9 +8,9 @@ from pathlib import Path
 from jinja2 import Template
 
 # Get the path to the logo image if it exists
-# This path assumes 'kop.jpeg' is in the root of the project, one level above the 'email_sender' directory.
+# This path assumes 'kop.jpg' is in the root of the project, one level above the 'email_sender' directory.
 CURRENT_DIR = Path(__file__).parent.parent
-LOGO_PATH = CURRENT_DIR / "kop.jpeg"
+LOGO_PATH = CURRENT_DIR / "kop.jpg"
 
 def get_email_template():
     """

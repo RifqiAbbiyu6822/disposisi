@@ -80,7 +80,7 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
         CHECKBOX_SIZE = 0.4 * cm    
         MARGIN_LEFT = 2.0 * cm    
         MARGIN_RIGHT = 2.0 * cm     
-        FONT_SIZE = 12
+        FONT_SIZE = 11  # Changed from variable to 11
         def draw_checkbox(x, y, text, checked, bold=False):
             box_size = CHECKBOX_SIZE
             box_y = y - box_size/2
@@ -108,14 +108,14 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
             
             # Draw checkmark if checked
             if is_checked:
-                c.setFont("Helvetica-Bold", FONT_SIZE)
-                c.drawString(x + box_size/2 - c.stringWidth("✓", "Helvetica-Bold", FONT_SIZE)/2,
-                             box_y + box_size/2 - FONT_SIZE/2.5, "✓")
+                c.setFont("Helvetica-Bold", 11)
+                c.drawString(x + box_size/2 - c.stringWidth("✓", "Helvetica-Bold", 11)/2,
+                             box_y + box_size/2 - 11/2.5, "✓")
             
-            c.setFont("Helvetica-Bold" if bold else "Helvetica", FONT_SIZE)
-            label_y = y - FONT_SIZE/2.5/2
+            c.setFont("Helvetica-Bold" if bold else "Helvetica", 11)
+            label_y = y - 11/2.5/2
             c.drawString(x + box_size + 0.3*cm, label_y, text)
-        def draw_field_flex(x, y, label, value, colon_x, value_width=8*cm, font_size=FONT_SIZE):
+        def draw_field_flex(x, y, label, value, colon_x, value_width=8*cm, font_size=11):
             c.setFont("Helvetica", font_size)
             c.drawString(x, y, label)
             c.drawString(colon_x, y, ":")
@@ -125,7 +125,7 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
             for i, line in enumerate(lines):
                 c.drawString(value_x, y - (i * 0.6*cm), line)
             return y - (len(lines) if lines else 1) * 0.6*cm - 0.2*cm
-        def draw_field_vertical_flex(x, y, label, value, colon_x, value_width=8*cm, font_size=FONT_SIZE):
+        def draw_field_vertical_flex(x, y, label, value, colon_x, value_width=8*cm, font_size=11):
             c.setFont("Helvetica", font_size)
             c.drawString(x, y, label)
             c.drawString(colon_x, y, ":")
@@ -149,7 +149,7 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
                     return dt.strftime('%d-%m-%Y')
             except Exception:
                 return val
-        def wrap_text(text, max_width, font_size=12):
+        def wrap_text(text, max_width, font_size=11):
             c.setFont("Helvetica", font_size)
             lines = []
             current_line = ""
@@ -167,7 +167,7 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
             return lines
         x_disposisi = MARGIN_LEFT + 12*cm
         y_disposisi = height - 2.5*cm
-        c.setFont("Helvetica-Bold", 22)
+        c.setFont("Helvetica-Bold", 24)
         c.drawString(x_disposisi, y_disposisi, "DISPOSISI")
         try:
             kop_path = "kop.jpeg"
@@ -191,7 +191,7 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
         draw_checkbox(x_klasifikasi, y_klasifikasi_start - LINE_HEIGHT, "PENTING", data.get("penting", 0), bold=True)
         draw_checkbox(x_klasifikasi, y_klasifikasi_start - 2*LINE_HEIGHT, "SEGERA", data.get("segera", 0), bold=True)
         klasifikasi_labels = ["Tanggal Penerimaan", "Kode / Klasifikasi", "Indeks"]
-        max_label_width = max([c.stringWidth(label + " ", "Helvetica", FONT_SIZE) for label in klasifikasi_labels])
+        max_label_width = max([c.stringWidth(label + " ", "Helvetica", 11) for label in klasifikasi_labels])
         colon_x_klasifikasi = x_klasifikasi + max_label_width + 0.2*cm
         y_field_klasifikasi = y_klasifikasi_start - 3.2*LINE_HEIGHT
         klasifikasi_width = 8*cm
@@ -202,7 +202,7 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
         y_start = y_checkbox_segera_top
         x_left = MARGIN_LEFT
         label_no_agenda = "No. Agenda"
-        colon_x_left = x_left + c.stringWidth(label_no_agenda + " ", "Helvetica", FONT_SIZE)
+        colon_x_left = x_left + c.stringWidth(label_no_agenda + " ", "Helvetica", 11)
         y_detil = y_checkbox_segera_top
         y_detil = draw_field_flex(x_left, y_detil, label_no_agenda, data.get("no_agenda", ""), colon_x_left)
         y_detil = draw_field_flex(x_left, y_detil, "No. Surat", data.get("no_surat", ""), colon_x_left)
@@ -211,15 +211,15 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
         y_detil = draw_field_flex(x_left, y_detil, "Asal Surat", data.get("asal_surat", ""), colon_x_left)
         y_detil = draw_field_flex(x_left, y_detil, "Ditujukan", data.get("ditujukan", ""), colon_x_left)
         y_middle = y_detil - 0.32*cm
-        c.setFont("Helvetica-Bold", FONT_SIZE)
+        c.setFont("Helvetica-Bold", 11)
         c.drawString(x_left, y_middle, "Disposisi Kepada :")
         y_disp = y_middle - VERTICAL_SPACING
         baris_y = [y_disp]
         for i in range(1, 4):
             baris_y.append(baris_y[-1] - LINE_HEIGHT)
         draw_checkbox(x_left, baris_y[0], "", data.get("dir_utama", 0))
-        c.setFont("Helvetica", FONT_SIZE)
-        c.drawString(x_left + CHECKBOX_SIZE + 0.3*cm, baris_y[0] - FONT_SIZE/2.5/2, "Direktur Utama")
+        c.setFont("Helvetica", 11)
+        c.drawString(x_left + CHECKBOX_SIZE + 0.3*cm, baris_y[0] - 11/2.5/2, "Direktur Utama")
         keu = data.get("dir_keu", 0)
         teknik = data.get("dir_teknik", 0)
         keu_teknik_checked = bool(keu or teknik)
@@ -228,12 +228,12 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
         label_teknik = "Direktur Teknik"
         label_gabungan = f"{label_keu} / {label_teknik}"
         x_label = x_left + CHECKBOX_SIZE + 0.3*cm
-        c.setFont("Helvetica", FONT_SIZE)
-        c.drawString(x_label, baris_y[1] - FONT_SIZE/2.5/2, label_gabungan)
-        width_keu = c.stringWidth(label_keu, "Helvetica", FONT_SIZE)
-        width_slash = c.stringWidth(" / ", "Helvetica", FONT_SIZE)
-        width_teknik = c.stringWidth(label_teknik, "Helvetica", FONT_SIZE)
-        y_strike = baris_y[1] - FONT_SIZE/2.5/2 + 0.2*cm
+        c.setFont("Helvetica", 11)
+        c.drawString(x_label, baris_y[1] - 11/2.5/2, label_gabungan)
+        width_keu = c.stringWidth(label_keu, "Helvetica", 11)
+        width_slash = c.stringWidth(" / ", "Helvetica", 11)
+        width_teknik = c.stringWidth(label_teknik, "Helvetica", 11)
+        y_strike = baris_y[1] - 11/2.5/2 + 0.2*cm
         if keu and not teknik:
             c.saveState()
             c.setLineWidth(1)
@@ -254,12 +254,12 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
         label_gm_ops = "GM Operasional & Pemeliharaan"
         label_gm_gabungan = f"{label_gm_keu} / {label_gm_ops}"
         x_label_gm = x_left + CHECKBOX_SIZE + 0.3*cm
-        c.setFont("Helvetica", FONT_SIZE)
-        c.drawString(x_label_gm, baris_y[2] - FONT_SIZE/2.5/2, label_gm_gabungan)
-        width_gm_keu = c.stringWidth(label_gm_keu, "Helvetica", FONT_SIZE)
-        width_gm_slash = c.stringWidth(" / ", "Helvetica", FONT_SIZE)
-        width_gm_ops = c.stringWidth(label_gm_ops, "Helvetica", FONT_SIZE)
-        y_strike_gm = baris_y[2] - FONT_SIZE/2.5/2 + 0.2*cm
+        c.setFont("Helvetica", 11)
+        c.drawString(x_label_gm, baris_y[2] - 11/2.5/2, label_gm_gabungan)
+        width_gm_keu = c.stringWidth(label_gm_keu, "Helvetica", 11)
+        width_gm_slash = c.stringWidth(" / ", "Helvetica", 11)
+        width_gm_ops = c.stringWidth(label_gm_ops, "Helvetica", 11)
+        y_strike_gm = baris_y[2] - 11/2.5/2 + 0.2*cm
         if gm_keu and not gm_ops:
             c.saveState()
             c.setLineWidth(1)
@@ -273,13 +273,13 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
             c.line(x_gm_keu, y_strike_gm, x_gm_keu + width_gm_keu, y_strike_gm)
             c.restoreState()
         draw_checkbox(x_left, baris_y[3], "", data.get("manager", 0))
-        c.setFont("Helvetica", FONT_SIZE)
-        c.drawString(x_left + CHECKBOX_SIZE + 0.3*cm, baris_y[3] - FONT_SIZE/2.5/2, "Manager")
+        c.setFont("Helvetica", 11)
+        c.drawString(x_left + CHECKBOX_SIZE + 0.3*cm, baris_y[3] - 11/2.5/2, "Manager")
         y_untuk = y_disp - 4.0*LINE_HEIGHT - 0.2*cm  # Reduced spacing before "Untuk di" section
-        c.setFont("Helvetica-Bold", FONT_SIZE)
+        c.setFont("Helvetica-Bold", 11)
         c.drawString(x_left, y_untuk, "Untuk di :")
-        c.setFont("Helvetica", FONT_SIZE)
-        y_untuk_item = y_untuk - 0.3*cm  # Reduced spacing after "Untuk di" label
+        c.setFont("Helvetica", 11)
+        y_untuk_item = y_untuk - VERTICAL_SPACING  # Changed to use same spacing as "Disposisi Kepada"
         draw_checkbox(x_left, y_untuk_item, "Ketahui & File", data.get("ketahui_file", 0))
         draw_checkbox(x_left, y_untuk_item - LINE_HEIGHT, "Proses Selesai", data.get("proses_selesai", 0))
         draw_checkbox(x_left, y_untuk_item - 2*LINE_HEIGHT, "Teliti & Pendapat", data.get("teliti_pendapat", 0))
@@ -297,9 +297,10 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
         # Position text below label with 12pt (0.42cm) spacing
         value_x_bicarakan = x_left + CHECKBOX_SIZE + 0.5*cm  # Indented from checkbox
         value_y_bicarakan = y_field_tambahan - 0.6*cm  # 12pt spacing below label
-        # Adjusted wrapping width
-        value_width_bicarakan = 7*cm
-        bicarakan_lines = wrap_text(bicarakan_isi, value_width_bicarakan, font_size=FONT_SIZE) if bicarakan_isi else []
+        # Limit to 1 line maximum
+        value_width_bicarakan = 5*cm  # Reduced width for single line
+        bicarakan_lines = wrap_text(bicarakan_isi, value_width_bicarakan, font_size=11) if bicarakan_isi else []
+        bicarakan_lines = bicarakan_lines[:1]  # Limit to 1 line maximum
         
         # Draw all lines with proper indentation
         for i, line in enumerate(bicarakan_lines):
@@ -319,9 +320,10 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
         # Position text below label with 12pt (0.42cm) spacing
         value_x_teruskan = x_left + CHECKBOX_SIZE + 0.5*cm  # Indented from checkbox
         value_y_teruskan = y_field_tambahan2 - 0.6*cm  # 12pt spacing below label
-        # Adjusted wrapping width
-        value_width_teruskan = 7*cm
-        teruskan_lines = wrap_text(teruskan_isi, value_width_teruskan, font_size=FONT_SIZE) if teruskan_isi else []
+        # Limit to 1 line maximum
+        value_width_teruskan = 5*cm  # Reduced width for single line
+        teruskan_lines = wrap_text(teruskan_isi, value_width_teruskan, font_size=11) if teruskan_isi else []
+        teruskan_lines = teruskan_lines[:1]  # Limit to 1 line maximum
         
         # Draw all lines with proper indentation
         for i, line in enumerate(teruskan_lines):
@@ -331,24 +333,35 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
         lines_count = max(1, len(teruskan_lines))
         y_field_tambahan3 = value_y_teruskan - (lines_count * 0.4*cm) - 0.3*cm
         y_deadline_label = y_field_tambahan3 - 0.32*cm
-        c.setFont("Helvetica-Bold", FONT_SIZE)
-        c.drawString(x_left, y_deadline_label, "Harap diselesaikan Tanggal :")
+        c.setFont("Helvetica-Bold", 11)
+        deadline_label = "Harap diselesaikan Tanggal :"
+        c.drawString(x_left, y_deadline_label, deadline_label)
+        
+        # Calculate colon position for deadline label
+        deadline_colon_x = x_left + c.stringWidth(deadline_label, "Helvetica-Bold", 11)
+        c.drawString(deadline_colon_x, y_deadline_label, "")  # No colon drawn separately since it's in the label
+        
         y_deadline_box = y_deadline_label - 0.32*cm
         deadline_box_height = 0.8*cm
-        c.rect(x_left, y_deadline_box - deadline_box_height, 7*cm, deadline_box_height)
+        # Make box width match the colon position
+        deadline_box_width = deadline_colon_x - x_left + 0.3*cm
+        c.rect(x_left, y_deadline_box - deadline_box_height, deadline_box_width, deadline_box_height)
         if data.get('harap_selesai_tgl', ''):
-            c.setFont("Helvetica", FONT_SIZE)
+            c.setFont("Helvetica", 11)
             c.drawString(x_left + 0.3*cm, y_deadline_box - 0.6*cm, format_tanggal(data.get('harap_selesai_tgl', '')))
-        blok_kiri_width = 7.0*cm
-        x_instruksi = x_left + blok_kiri_width + 0.2*cm
+        # Position instruction section with spacing and equal margins
+        x_instruksi = deadline_colon_x + 0.8*cm  # Add spacing from deadline area
         y_checkbox_manager_disp = y_disp - 3*LINE_HEIGHT
         y_label_instruksi = y_checkbox_manager_disp
-        c.setFont("Helvetica-Bold", FONT_SIZE)
+        c.setFont("Helvetica-Bold", 11)
         c.drawString(x_instruksi, y_label_instruksi, "Isi Instruksi / Informasi")
         table_x = x_instruksi
         margin_bawah = 2.0*cm
         n_rows = 5
-        instruksi_table_width = width - table_x - 1.2*cm
+        # Calculate table width ensuring equal margins - use remaining space after left content
+        available_width = width - MARGIN_LEFT - MARGIN_RIGHT
+        left_content_width = x_instruksi - MARGIN_LEFT
+        instruksi_table_width = available_width - left_content_width
         # Get instruction data
         isi_instruksi = data.get("isi_instruksi", [])
         
@@ -360,7 +373,7 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
         # Kolom tanggal kembali ke 20%, dan wrapping jika terlalu panjang
         col_widths = [instruksi_table_width*0.20, instruksi_table_width*0.55, instruksi_table_width*0.25]
         instruksi_lines_per_row = []
-        INSTRUKSI_FONT_SIZE = 10
+        INSTRUKSI_FONT_SIZE = 11  # Changed to 11
         
         for row in range(n_rows):
             instruksi = ""
@@ -403,9 +416,11 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
                 tanggal = str(isi_instruksi[row].get("tanggal", ""))
             posisi_lines = wrap_text(posisi, col_widths[0] - 0.3*cm, font_size=INSTRUKSI_FONT_SIZE) if posisi else [""]
             instruksi_lines = wrap_text(instruksi, col_widths[1] - 0.3*cm, font_size=INSTRUKSI_FONT_SIZE) if instruksi else [""]
+            tanggal_lines = wrap_text(tanggal, col_widths[2] - 0.3*cm, font_size=INSTRUKSI_FONT_SIZE) if tanggal else [""]
             row_height = row_heights[row]
             y_row -= row_height
             row_bottoms.append(y_row)
+            # CENTER posisi
             total_lines = len(posisi_lines)
             text_block_height = total_lines * (0.6 * cm)
             y_start_posisi = (y_row + row_height) - ((row_height - text_block_height) / 2) - (0.4 * cm)
@@ -419,7 +434,9 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
                     c.drawString(x_center, y_line, line)
             x_cursor += col_widths[0]
             # CENTER isi instruksi
-            y_start_instruksi = y_row + row_height - 0.3*cm
+            total_lines = len(instruksi_lines)
+            text_block_height = total_lines * (0.6 * cm)
+            y_start_instruksi = (y_row + row_height) - ((row_height - text_block_height) / 2) - (0.4 * cm)
             for i, line in enumerate(instruksi_lines):
                 c.setFont("Helvetica", INSTRUKSI_FONT_SIZE)
                 text_width = c.stringWidth(line, "Helvetica", INSTRUKSI_FONT_SIZE)
@@ -430,13 +447,15 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
                     c.drawString(x_center, y_line, line)
             x_cursor += col_widths[1]
             # CENTER tanggal instruksi
-            tanggal_lines = wrap_text(tanggal, col_widths[2] - 0.3*cm, font_size=FONT_SIZE) if tanggal else [""]
+            total_lines = len(tanggal_lines)
+            text_block_height = total_lines * (0.6 * cm)
+            y_start_tanggal = (y_row + row_height) - ((row_height - text_block_height) / 2) - (0.4 * cm)
             for i, line in enumerate(tanggal_lines):
-                c.setFont("Helvetica", FONT_SIZE)
-                text_width = c.stringWidth(line, "Helvetica", FONT_SIZE)
+                c.setFont("Helvetica", INSTRUKSI_FONT_SIZE)
+                text_width = c.stringWidth(line, "Helvetica", INSTRUKSI_FONT_SIZE)
                 cell_width = col_widths[2]
                 x_center = x_cursor + (cell_width - text_width) / 2
-                y_line = y_row + row_height - 0.3*cm - 0.4*cm - i*0.6*cm
+                y_line = y_start_tanggal - i*0.6*cm
                 if line.strip() != "":
                     c.drawString(x_center, y_line, line)
         for i in range(len(col_widths)+1):
