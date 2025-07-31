@@ -38,7 +38,7 @@ class LoadingScreen(tk.Toplevel):
         self.geometry(f"+{x}+{y}")
 
     def create_modern_ui(self):
-        # Outer frame with border - FIXED: No alpha colors
+        # Outer frame with border
         outer_frame = tk.Frame(self, bg="#E2E8F0", relief="flat", bd=1)
         outer_frame.pack(fill="both", expand=True, padx=1, pady=1)
         
@@ -91,7 +91,7 @@ class LoadingScreen(tk.Toplevel):
         self.sub_status_label.pack()
 
     def draw_modern_spinner(self):
-        """Draw a modern circular spinner - FIXED: No alpha colors"""
+        """Draw a modern circular spinner"""
         if not self.spinner_canvas.winfo_exists():
             return
             
@@ -100,7 +100,7 @@ class LoadingScreen(tk.Toplevel):
         center_x, center_y = 40, 40
         radius = 30
         
-        # Background circle - FIXED: Solid color instead of alpha
+        # Background circle
         for i in range(8):
             start_angle = i * 45
             self.spinner_canvas.create_arc(
@@ -119,7 +119,7 @@ class LoadingScreen(tk.Toplevel):
             outline="#3B82F6", width=4, style="arc"
         )
         
-        # Secondary arc for effect - FIXED: Solid color
+        # Secondary arc for effect
         self.spinner_canvas.create_arc(
             center_x - radius, center_y - radius,
             center_x + radius, center_y + radius,
@@ -153,52 +153,3 @@ class LoadingScreen(tk.Toplevel):
             self.sub_status_label.config(text=status_text)
         
         # Change status based on progress
-        if value < 30:
-            self.status_label.config(text="Initializing...")
-        elif value < 60:
-            self.status_label.config(text="Processing data...")
-        elif value < 90:
-            self.status_label.config(text="Finalizing...")
-        else:
-            self.status_label.config(text="Almost done...")
-        
-        # Complete state
-        if value >= 100:
-            self.spinner_canvas.delete("all")
-            # Draw checkmark
-            center_x, center_y = 40, 40
-            self.spinner_canvas.create_oval(
-                center_x - 30, center_y - 30,
-                center_x + 30, center_y + 30,
-                outline="#10B981", width=3
-            )
-            self.spinner_canvas.create_line(
-                center_x - 15, center_y,
-                center_x - 5, center_y + 10,
-                fill="#10B981", width=3
-            )
-            self.spinner_canvas.create_line(
-                center_x - 5, center_y + 10,
-                center_x + 15, center_y - 10,
-                fill="#10B981", width=3
-            )
-            
-            self.status_label.config(text="Complete!", fg="#10B981")
-            self.percentage_label.config(fg="#10B981")
-            self.progress_bar.config(bg="#10B981")
-            self.sub_status_label.config(text="Operation completed successfully")
-            
-            # Auto close after delay
-            self.after(1000, self.destroy)
-        
-        self.update()
-
-    def set_status(self, message):
-        """Set custom status message"""
-        if not getattr(self, '_destroyed', False):
-            self.sub_status_label.config(text=message)
-            self.update()
-
-    def destroy(self):
-        self._destroyed = True
-        super().destroy()

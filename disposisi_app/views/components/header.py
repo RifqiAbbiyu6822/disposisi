@@ -2,125 +2,181 @@ from tkinter import ttk
 import tkinter as tk
 
 def create_header(parent):
-    # Main header container with modern glass effect
-    header_frame = ttk.Frame(parent, style="HeaderGlass.TFrame", height=90)
+    # Main header container with gradient effect
+    header_frame = ttk.Frame(parent, style="Header.TFrame")
     header_frame.pack(fill="x", padx=0, pady=0)
-    header_frame.pack_propagate(False)
     
-    # Gradient background simulation
-    gradient_top = tk.Frame(header_frame, bg="#0F172A", height=45)
-    gradient_top.pack(fill="x", side="top")
+    # Add subtle shadow/border at bottom
+    shadow_frame = ttk.Frame(header_frame, height=1, style="HeaderShadow.TFrame")
+    shadow_frame.pack(fill="x", side="bottom")
     
-    gradient_bottom = tk.Frame(header_frame, bg="#1E293B", height=45)
-    gradient_bottom.pack(fill="x", side="bottom")
+    # Main content container with proper padding
+    header_content = ttk.Frame(header_frame, style="Header.TFrame")
+    header_content.pack(fill="both", expand=True, padx=24, pady=16)
     
-    # Main content overlay
-    content_overlay = tk.Frame(header_frame, bg="#0F172A")
-    content_overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
+    # Left side - Logo and branding
+    left_section = ttk.Frame(header_content, style="Header.TFrame")
+    left_section.pack(side="left", fill="y")
     
-    # Content container with padding
-    header_content = tk.Frame(content_overlay, bg="#0F172A")
-    header_content.pack(fill="both", expand=True, padx=32, pady=20)
+    # Logo container with background accent
+    logo_container = ttk.Frame(left_section, style="HeaderAccent.TFrame")
+    logo_container.pack(side="left", padx=(0, 20))
     
-    # Left section - Modern branding
-    left_section = tk.Frame(header_content, bg="#0F172A")
-    left_section.pack(side="left", fill="both", expand=True)
+    # Logo/Icon - using Unicode symbol for professional look
+    logo_label = ttk.Label(logo_container, text="📋", font=("Segoe UI", 24), style="HeaderIcon.TLabel")
+    logo_label.pack(padx=12, pady=8)
     
-    # Logo and title container
-    brand_container = tk.Frame(left_section, bg="#0F172A")
-    brand_container.pack(side="left", fill="y")
-    
-    # Logo with modern badge style
-    logo_frame = tk.Frame(brand_container, bg="#3B82F6", width=50, height=50)
-    logo_frame.pack(side="left", padx=(0, 20))
-    logo_frame.pack_propagate(False)
-    
-    logo_label = tk.Label(logo_frame, text="📋", font=("Segoe UI", 24), 
-                         bg="#3B82F6", fg="white")
-    logo_label.place(relx=0.5, rely=0.5, anchor="center")
-    
-    # Title section
-    title_container = tk.Frame(brand_container, bg="#0F172A")
+    # Title and subtitle container
+    title_container = ttk.Frame(left_section, style="Header.TFrame")
     title_container.pack(side="left", fill="both", expand=True)
     
-    # Main title
-    title_label = tk.Label(
+    # Main title with better typography
+    title_label = ttk.Label(
         title_container, 
-        text="Sistem Disposisi Digital", 
-        font=("Inter", 22, "bold") if "Inter" in tk.font.families() else ("Segoe UI", 22, "bold"), 
-        bg="#0F172A",
-        fg="white"
+        text="Sistem Disposisi", 
+        font=("Inter", 20, "bold") if "Inter" in tk.font.families() else ("Segoe UI", 20, "bold"), 
+        style="HeaderTitle.TLabel"
     )
     title_label.pack(anchor="w")
     
-    # Subtitle with modern styling
-    subtitle_label = tk.Label(
+    # Subtitle with better spacing
+    subtitle_label = ttk.Label(
         title_container, 
-        text="Enterprise Document Management System", 
-        font=("Inter", 12) if "Inter" in tk.font.families() else ("Segoe UI", 12), 
-        bg="#0F172A",
-        fg="#94A3B8"
+        text="Pembuatan dan Pelaporan Surat Disposisi", 
+        font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11), 
+        style="HeaderSubtitle.TLabel"
     )
     subtitle_label.pack(anchor="w", pady=(4, 0))
     
-    # Right section - Modern status indicators
-    right_section = tk.Frame(header_content, bg="#0F172A")
+    # Right side - Info and actions
+    right_section = ttk.Frame(header_content, style="Header.TFrame")
     right_section.pack(side="right", fill="y")
     
-    # Status container with glass effect
-    status_container = tk.Frame(right_section, bg="#1E293B", relief="flat")
-    status_container.pack(side="right", fill="y", padx=20, pady=5)
+    # Status indicator
+    status_container = ttk.Frame(right_section, style="Header.TFrame")
+    status_container.pack(side="right", padx=(20, 0))
     
-    # Inner status frame
-    status_inner = tk.Frame(status_container, bg="#1E293B")
-    status_inner.pack(padx=15, pady=8)
+    # Online status indicator
+    status_frame = ttk.Frame(status_container, style="Header.TFrame")
+    status_frame.pack(anchor="e", pady=(0, 8))
     
-    # Connection status with modern indicator
-    status_row = tk.Frame(status_inner, bg="#1E293B")
-    status_row.pack(anchor="e", pady=(0, 4))
-    
-    # FIXED: Animated status dot without alpha
-    status_dot_outer = tk.Label(status_row, text="●", font=("Arial", 14), 
-                               fg="#34D399", bg="#1E293B")  # Solid green instead of alpha
-    status_dot_outer.pack(side="left")
-    
-    status_dot = tk.Label(status_row, text="●", font=("Arial", 10), 
-                         fg="#10B981", bg="#1E293B")
-    status_dot.place(in_=status_dot_outer, relx=0.5, rely=0.5, anchor="center")
-    
-    status_text = tk.Label(
-        status_row, 
-        text="System Online", 
-        font=("Inter", 10, "bold") if "Inter" in tk.font.families() else ("Segoe UI", 10, "bold"), 
-        fg="#10B981",
-        bg="#1E293B"
+    # Status dot (green circle)
+    status_dot = tk.Label(
+        status_frame, 
+        text="●", 
+        font=("Segoe UI", 12), 
+        fg="#10B981", 
+        bg=parent.master.primary_color if hasattr(parent.master, 'primary_color') else "#1A1B23"
     )
-    status_text.pack(side="left", padx=(8, 0))
+    status_dot.pack(side="left")
     
-    # Version info with modern badge
-    version_frame = tk.Frame(status_inner, bg="#1E293B")
-    version_frame.pack(anchor="e")
+    status_text = ttk.Label(
+        status_frame, 
+        text="Online", 
+        font=("Inter", 9) if "Inter" in tk.font.families() else ("Segoe UI", 9), 
+        style="HeaderStatus.TLabel"
+    )
+    status_text.pack(side="left", padx=(4, 0))
     
-    version_badge = tk.Frame(version_frame, bg="#3B82F6", relief="flat")
-    version_badge.pack(side="right")
+    # Version and build info
+    info_container = ttk.Frame(status_container, style="Header.TFrame")
+    info_container.pack(anchor="e")
     
-    version_label = tk.Label(
-        version_badge, 
-        text=" v2.0.1 ", 
+    version_label = ttk.Label(
+        info_container, 
+        text="v2.0.1", 
         font=("Inter", 9, "bold") if "Inter" in tk.font.families() else ("Segoe UI", 9, "bold"), 
-        bg="#3B82F6",
-        fg="white"
+        style="HeaderVersion.TLabel"
     )
-    version_label.pack(padx=8, pady=2)
+    version_label.pack(anchor="e")
     
-    # FIXED: Add subtle animations without alpha
-    def pulse_status():
-        current_color = status_dot.cget("fg")
-        # Toggle between two solid green colors instead of using alpha
-        new_color = "#10B981" if current_color == "#34D399" else "#34D399"
-        status_dot.config(fg=new_color)
-        header_frame.after(1000, pulse_status)
+    build_label = ttk.Label(
+        info_container, 
+        text="Build 2024.07", 
+        font=("Inter", 8) if "Inter" in tk.font.families() else ("Segoe UI", 8), 
+        style="HeaderBuild.TLabel"
+    )
+    build_label.pack(anchor="e", pady=(2, 0))
     
-    pulse_status()
+    # Add hover effects and interactions
+    def on_logo_hover(event):
+        logo_label.configure(style="HeaderIconHover.TLabel")
+    
+    def on_logo_leave(event):
+        logo_label.configure(style="HeaderIcon.TLabel")
+    
+    # Bind hover events
+    logo_label.bind("<Enter>", on_logo_hover)
+    logo_label.bind("<Leave>", on_logo_leave)
     
     return header_frame
+
+# Additional styles to be added to your setup_styles function
+def add_header_styles(style, root):
+    """Add enhanced header styles to the existing style configuration"""
+    
+    # Get colors from root or use defaults
+    primary_color = getattr(root, 'primary_color', '#1A1B23')
+    accent_color = getattr(root, 'accent_color', '#4F46E5')
+    card_color = getattr(root, 'card_color', '#FFFFFF')
+    
+    # Header shadow/border
+    style.configure("HeaderShadow.TFrame", 
+                   background="#E5E7EB", 
+                   relief="flat")
+    
+    # Header accent container
+    style.configure("HeaderAccent.TFrame", 
+                   background=accent_color, 
+                   relief="flat")
+    
+    # Enhanced header icon
+    style.configure("HeaderIcon.TLabel", 
+                   background=accent_color, 
+                   foreground=card_color, 
+                   font=("Segoe UI", 24))
+    
+    style.configure("HeaderIconHover.TLabel", 
+                   background="#3730A3", 
+                   foreground=card_color, 
+                   font=("Segoe UI", 24))
+    
+    # Enhanced title styles
+    style.configure("HeaderTitle.TLabel", 
+                   background=primary_color, 
+                   foreground=card_color, 
+                   font=("Inter", 20, "bold") if "Inter" in tk.font.families() else ("Segoe UI", 20, "bold"))
+    
+    style.configure("HeaderSubtitle.TLabel", 
+                   background=primary_color, 
+                   foreground="#D1D5DB", 
+                   font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11))
+    
+    # Status and info labels
+    style.configure("HeaderStatus.TLabel", 
+                   background=primary_color, 
+                   foreground="#10B981", 
+                   font=("Inter", 9) if "Inter" in tk.font.families() else ("Segoe UI", 9))
+    
+    style.configure("HeaderVersion.TLabel", 
+                   background=primary_color, 
+                   foreground=card_color, 
+                   font=("Inter", 9, "bold") if "Inter" in tk.font.families() else ("Segoe UI", 9, "bold"))
+    
+    style.configure("HeaderBuild.TLabel", 
+                   background=primary_color, 
+                   foreground="#9CA3AF", 
+                   font=("Inter", 8) if "Inter" in tk.font.families() else ("Segoe UI", 8))
+
+# Usage example:
+"""
+# In your main application setup, after creating styles:
+def setup_styles(root):
+    # ... your existing setup_styles code ...
+    
+    # Add enhanced header styles
+    add_header_styles(style, root)
+
+# Then create header:
+header = create_header(main_window)
+"""

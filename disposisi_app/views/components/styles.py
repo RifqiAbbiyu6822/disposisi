@@ -5,7 +5,7 @@ def setup_styles(root):
     style = ttk.Style()
     style.theme_use('clam')
     
-    # Ultra Modern Professional Color Palette - FIXED: No alpha values
+    # Ultra Modern Professional Color Palette - ALL VALID COLORS
     primary_color = '#0F172A'       # Slate 900 - Deep professional
     secondary_color = '#1E293B'     # Slate 800
     accent_color = '#3B82F6'        # Blue 500 - Modern accent
@@ -24,10 +24,10 @@ def setup_styles(root):
     error_color = '#EF4444'        # Red 500
     info_color = '#06B6D4'         # Cyan 500
 
-    # FIXED: Enhanced shadow and gradient colors without alpha
-    shadow_light = '#F0F0F0'       # Light gray instead of alpha
-    shadow_medium = '#E0E0E0'      # Medium gray instead of alpha
-    shadow_dark = '#D0D0D0'        # Dark gray instead of alpha
+    # Enhanced shadow and gradient colors - VALID ALTERNATIVES
+    shadow_light = '#F8F9FA'       # Very light gray instead of transparent
+    shadow_medium = '#E9ECEF'      # Light gray instead of alpha
+    shadow_dark = '#DEE2E6'        # Medium gray instead of alpha
     gradient_start = '#F8FAFC'
     gradient_end = '#F1F5F9'
 
@@ -222,10 +222,10 @@ def setup_styles(root):
                    relief="flat",
                    focuscolor='none')
 
-    # Ghost Button (New)
+    # Ghost Button (New) - FIXED: Use valid background
     style.configure("Ghost.TButton", 
                    font=("Inter", 11), 
-                   background=surface_color,  # FIXED: Changed from "transparent" 
+                   background=surface_color,  # Use solid white instead of transparent
                    foreground=accent_color, 
                    padding=(16, 10), 
                    borderwidth=1,
@@ -235,7 +235,7 @@ def setup_styles(root):
     
     style.map("Ghost.TButton", 
              foreground=[('active', accent_hover)],
-             background=[('active', card_hover)])  # FIXED: Added background mapping
+             background=[('active', card_hover)])
 
     # Modern Notebook Tabs
     style.configure("TNotebook", 
@@ -381,3 +381,12 @@ def setup_styles(root):
     setattr(root, 'blue_color', accent_color)
     setattr(root, 'yellow_gold_color', warning_color)
     setattr(root, 'white_color', surface_color)
+    setattr(root, 'tooltip_bg', primary_color)
+    setattr(root, 'tooltip_fg', surface_color)
+    setattr(root, 'tooltip_font', ("Segoe UI", 9))
+    setattr(root, 'header_font', ("Segoe UI", 12, "bold"))
+    setattr(root, 'combobox_font', ("Segoe UI", 11))
+    setattr(root, 'text_font', ("Segoe UI", 13))
+    setattr(root, 'dateentry_font', ("Segoe UI", 13))
+    setattr(root, 'active_row_bg', card_hover)
+    setattr(root, 'inactive_row_bg', surface_color)
