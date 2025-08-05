@@ -29,7 +29,10 @@ class EmailManagerApp:
             "Direktur Teknik",
             "GM Keuangan & Administrasi",
             "GM Operasional & Pemeliharaan",
-            "Manager"
+            "Manager Pemeliharaan",
+            "Manager Operasional",
+            "Manager Administrasi",
+            "Manager Keuangan"
         ]
         
         # Setup UI
@@ -577,6 +580,14 @@ class EmailManagerApp:
         
     def create_email_table(self, parent):
         """Create email management table"""
+        # Gunakan singkatan untuk manager dalam display
+        abbreviation_map = {
+            "Manager Pemeliharaan": "pml",
+            "Manager Operasional": "ops",
+            "Manager Administrasi": "adm",
+            "Manager Keuangan": "keu"
+        }
+        
         # Clear existing widgets
         for widget in parent.winfo_children():
             widget.destroy()
@@ -629,6 +640,12 @@ class EmailManagerApp:
             updated_val = row['last_updated'] if pd.notna(row['last_updated']) and row['last_updated'] != '' else '-'
             status = "✅ Lengkap" if email_val != '-' else "❌ Kosong"
             
+            # Gunakan singkatan untuk manager dalam display
+            posisi = row['posisi']
+            display_posisi = abbreviation_map.get(posisi, posisi)
+            if display_posisi in ["pml", "ops", "adm", "keu"]:
+                display_posisi = f"Manager {display_posisi}"
+            
             tags = ('filled',) if email_val != '-' else ('empty',)
             if i % 2 == 0:
                 tags = tags + ('evenrow',)
@@ -636,7 +653,7 @@ class EmailManagerApp:
                 tags = tags + ('oddrow',)
             
             self.email_tree.insert("", "end", values=(
-                row['posisi'],
+                display_posisi,
                 email_val,
                 updated_val,
                 status
@@ -663,7 +680,13 @@ class EmailManagerApp:
                 self.email_tree.delete(item)
             
             for i, (_, row) in enumerate(df.iterrows()):
-                if search_term in row['posisi'].lower():
+                # Gunakan singkatan untuk manager dalam search
+                posisi = row['posisi']
+                display_posisi = abbreviation_map.get(posisi, posisi)
+                if display_posisi in ["pml", "ops", "adm", "keu"]:
+                    display_posisi = f"Manager {display_posisi}"
+                
+                if search_term in display_posisi.lower():
                     email_val = row['email'] if pd.notna(row['email']) and row['email'] != '' else '-'
                     updated_val = row['last_updated'] if pd.notna(row['last_updated']) and row['last_updated'] != '' else '-'
                     status = "✅ Lengkap" if email_val != '-' else "❌ Kosong"
@@ -675,7 +698,7 @@ class EmailManagerApp:
                         tags = tags + ('oddrow',)
                     
                     self.email_tree.insert("", "end", values=(
-                        row['posisi'],
+                        display_posisi,
                         email_val,
                         updated_val,
                         status
@@ -688,8 +711,18 @@ class EmailManagerApp:
         selection = self.email_tree.selection()
         if selection:
             item = self.email_tree.item(selection[0])
-            posisi = item['values'][0]
-            self.show_edit_email_form(posisi)
+            display_posisi = item['values'][0]
+            
+            # Konversi dari singkatan ke nama lengkap untuk edit
+            reverse_abbreviation_map = {
+                "Manager pml": "Manager Pemeliharaan",
+                "Manager ops": "Manager Operasional",
+                "Manager adm": "Manager Administrasi",
+                "Manager keu": "Manager Keuangan"
+            }
+            
+            full_posisi = reverse_abbreviation_map.get(display_posisi, display_posisi)
+            self.show_edit_email_form(full_posisi)
             
     def show_add_email_form(self):
         """Show add email form"""
@@ -701,8 +734,23 @@ class EmailManagerApp:
         
     def show_email_form(self, edit_posisi=None):
         """Show email form (add/edit) with enhanced UI"""
+        # Gunakan singkatan untuk manager dalam display
+        abbreviation_map = {
+            "Manager Pemeliharaan": "pml",
+            "Manager Operasional": "ops",
+            "Manager Administrasi": "adm",
+            "Manager Keuangan": "keu"
+        }
+        
         form_window = tk.Toplevel(self.root)
-        form_window.title("Tambah Email" if not edit_posisi else f"Edit Email - {edit_posisi}")
+        if edit_posisi:
+            # Gunakan singkatan untuk display dalam window title
+            display_edit_posisi = abbreviation_map.get(edit_posisi, edit_posisi)
+            if display_edit_posisi in ["pml", "ops", "adm", "keu"]:
+                display_edit_posisi = f"Manager {display_edit_posisi}"
+            form_window.title(f"Edit Email - {display_edit_posisi}")
+        else:
+            form_window.title("Tambah Email")
         form_window.geometry("450x350")
         form_window.configure(bg='white')
         form_window.transient(self.root)
@@ -721,8 +769,17 @@ class EmailManagerApp:
         header_frame.pack_propagate(False)
         
         # Header title
+        if edit_posisi:
+            # Gunakan singkatan untuk display dalam title
+            display_edit_posisi = abbreviation_map.get(edit_posisi, edit_posisi)
+            if display_edit_posisi in ["pml", "ops", "adm", "keu"]:
+                display_edit_posisi = f"Manager {display_edit_posisi}"
+            title_text = f"Edit Email - {display_edit_posisi}"
+        else:
+            title_text = "Tambah Email Baru"
+            
         header_title = tk.Label(header_frame,
-                               text="📝 " + ("Tambah Email Baru" if not edit_posisi else f"Edit Email - {edit_posisi}"),
+                               text="📝 " + title_text,
                                font=('Arial', 14, 'bold'),
                                bg=self.colors['primary'],
                                fg='white')
@@ -747,16 +804,29 @@ class EmailManagerApp:
                 fg=self.colors['dark']).pack(anchor='w', pady=(0, 5))
         
         position_var = tk.StringVar()
+        
+        # Buat list untuk display dengan singkatan
+        display_positions = []
+        for pos in self.positions:
+            abbrev = abbreviation_map.get(pos, pos)
+            if abbrev in ["pml", "ops", "adm", "keu"]:
+                abbrev = f"Manager {abbrev}"
+            display_positions.append(abbrev)
+        
         position_combo = ttk.Combobox(form_frame, 
                                     textvariable=position_var, 
-                                    values=self.positions, 
+                                    values=display_positions, 
                                     font=('Arial', 11),
                                     width=40,
                                     state='readonly' if edit_posisi else 'normal')
         position_combo.pack(pady=(0, 20), fill='x', ipady=5)
         
         if edit_posisi:
-            position_var.set(edit_posisi)
+            # Konversi edit_posisi ke singkatan untuk display
+            display_edit_posisi = abbreviation_map.get(edit_posisi, edit_posisi)
+            if display_edit_posisi in ["pml", "ops", "adm", "keu"]:
+                display_edit_posisi = f"Manager {display_edit_posisi}"
+            position_var.set(display_edit_posisi)
         
         # Email input with validation
         tk.Label(form_frame, 
@@ -808,7 +878,18 @@ class EmailManagerApp:
             posisi = position_var.get().strip()
             email = email_entry.get().strip()
             
-            if not posisi:
+            # Konversi dari singkatan ke nama lengkap untuk penyimpanan
+            reverse_abbreviation_map = {
+                "Manager pml": "Manager Pemeliharaan",
+                "Manager ops": "Manager Operasional",
+                "Manager adm": "Manager Administrasi",
+                "Manager keu": "Manager Keuangan"
+            }
+            
+            # Konversi posisi dari display ke nama lengkap
+            full_posisi = reverse_abbreviation_map.get(posisi, posisi)
+            
+            if not full_posisi:
                 messagebox.showerror("Error", "Pilih posisi terlebih dahulu!")
                 return
             if not email:
@@ -827,26 +908,34 @@ class EmailManagerApp:
                 })
             
             # Check if position already has email (for add mode)
-            if not edit_posisi and posisi in df['posisi'].values:
-                existing_email = df[df['posisi'] == posisi]['email'].iloc[0]
+            if not edit_posisi and full_posisi in df['posisi'].values:
+                existing_email = df[df['posisi'] == full_posisi]['email'].iloc[0]
                 if pd.notna(existing_email) and existing_email != '':
-                    if not messagebox.askyesno("Konfirmasi", f"Posisi {posisi} sudah memiliki email.\nApakah Anda ingin menggantinya?"):
+                    # Gunakan singkatan untuk display dalam konfirmasi
+                    display_posisi = abbreviation_map.get(full_posisi, full_posisi)
+                    if display_posisi in ["pml", "ops", "adm", "keu"]:
+                        display_posisi = f"Manager {display_posisi}"
+                    if not messagebox.askyesno("Konfirmasi", f"Posisi {display_posisi} sudah memiliki email.\nApakah Anda ingin menggantinya?"):
                         return
             
             # Update or add
-            if posisi in df['posisi'].values:
-                df.loc[df['posisi'] == posisi, 'email'] = email
-                df.loc[df['posisi'] == posisi, 'last_updated'] = datetime.now().strftime("%d/%m/%Y %H:%M")
+            if full_posisi in df['posisi'].values:
+                df.loc[df['posisi'] == full_posisi, 'email'] = email
+                df.loc[df['posisi'] == full_posisi, 'last_updated'] = datetime.now().strftime("%d/%m/%Y %H:%M")
             else:
                 new_row = pd.DataFrame({
-                    'posisi': [posisi],
+                    'posisi': [full_posisi],
                     'email': [email],
                     'last_updated': [datetime.now().strftime("%d/%m/%Y %H:%M")]
                 })
                 df = pd.concat([df, new_row], ignore_index=True)
             
             if self.write_data(self.sheet, df):
-                messagebox.showinfo("Sukses", f"Email untuk posisi '{posisi}' berhasil disimpan!")
+                # Gunakan singkatan untuk display dalam pesan sukses
+                display_posisi = abbreviation_map.get(full_posisi, full_posisi)
+                if display_posisi in ["pml", "ops", "adm", "keu"]:
+                    display_posisi = f"Manager {display_posisi}"
+                messagebox.showinfo("Sukses", f"Email untuk posisi '{display_posisi}' berhasil disimpan!")
                 form_window.destroy()
                 self.refresh_email_table()
             else:
@@ -855,15 +944,23 @@ class EmailManagerApp:
         # Delete function
         def delete_email():
             if edit_posisi:
+                # Gunakan singkatan untuk display dalam konfirmasi
+                display_edit_posisi = abbreviation_map.get(edit_posisi, edit_posisi)
+                if display_edit_posisi in ["pml", "ops", "adm", "keu"]:
+                    display_edit_posisi = f"Manager {display_edit_posisi}"
                 if messagebox.askyesno("Konfirmasi Hapus", 
-                                     f"Apakah Anda yakin ingin menghapus email untuk posisi '{edit_posisi}'?"):
+                                     f"Apakah Anda yakin ingin menghapus email untuk posisi '{display_edit_posisi}'?"):
                     df = self.read_data(self.sheet)
                     if not df.empty and edit_posisi in df['posisi'].values:
                         df.loc[df['posisi'] == edit_posisi, 'email'] = ''
                         df.loc[df['posisi'] == edit_posisi, 'last_updated'] = datetime.now().strftime("%d/%m/%Y %H:%M")
                         
                         if self.write_data(self.sheet, df):
-                            messagebox.showinfo("Sukses", f"Email untuk posisi '{edit_posisi}' berhasil dihapus!")
+                            # Gunakan singkatan untuk display dalam pesan sukses
+                            display_edit_posisi = abbreviation_map.get(edit_posisi, edit_posisi)
+                            if display_edit_posisi in ["pml", "ops", "adm", "keu"]:
+                                display_edit_posisi = f"Manager {display_edit_posisi}"
+                            messagebox.showinfo("Sukses", f"Email untuk posisi '{display_edit_posisi}' berhasil dihapus!")
                             form_window.destroy()
                             self.refresh_email_table()
                         else:

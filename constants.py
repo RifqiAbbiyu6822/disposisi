@@ -21,7 +21,10 @@ FIELD_LABELS = {
     "dir_teknik": "Direktur Teknik",
     "gm_keu": "GM Keuangan & Administrasi",
     "gm_ops": "GM Operasional & Pemeliharaan",
-    "manager": "Manager",
+    "manager_pemeliharaan": "Manager Pemeliharaan",
+    "manager_operasional": "Manager Operasional",
+    "manager_administrasi": "Manager Administrasi",
+    "manager_keuangan": "Manager Keuangan",
     "ketahui_file": "Ketahui & File",
     "proses_selesai": "Proses Selesai",
     "teliti_pendapat": "Teliti & Pendapat",
@@ -41,7 +44,8 @@ FIELD_LABELS = {
 ALL_FIELDS = [
     "id", "no_agenda", "no_surat", "tgl_surat", "perihal", "asal_surat",
     "ditujukan", "rahasia", "penting", "segera", "kode_klasifikasi",
-    "indeks", "dir_utama", "dir_keu", "dir_teknik", "gm_keu", "gm_ops", "manager",
+    "indeks", "dir_utama", "dir_keu", "dir_teknik", "gm_keu", "gm_ops", 
+    "manager_pemeliharaan", "manager_operasional", "manager_administrasi", "manager_keuangan",
     "ketahui_file", "proses_selesai", "teliti_pendapat", "buatkan_resume",
     "edarkan", "sesuai_disposisi", "bicarakan_saya", "bicarakan_dengan",
     "teruskan_kepada", "harap_selesai_tgl", "isi_instruksi", "created_at"
@@ -49,7 +53,8 @@ ALL_FIELDS = [
 
 # Field yang berupa checkbox
 CHECKBOX_FIELDS = [
-    "rahasia", "penting", "segera", "dir_utama", "dir_keu", "dir_teknik", "gm_keu", "gm_ops", "manager",
+    "rahasia", "penting", "segera", "dir_utama", "dir_keu", "dir_teknik", "gm_keu", "gm_ops", 
+    "manager_pemeliharaan", "manager_operasional", "manager_administrasi", "manager_keuangan",
     "ketahui_file", "proses_selesai", "teliti_pendapat", "buatkan_resume", "edarkan", "sesuai_disposisi", "bicarakan_saya"
 ]
 

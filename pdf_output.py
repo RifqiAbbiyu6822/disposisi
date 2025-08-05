@@ -29,6 +29,24 @@ def convert_to_boolean(value):
         except:
             return False
 
+def get_abbreviated_manager_text(data):
+    """Generate abbreviated manager text from form data"""
+    manager_mapping = {
+        "manager_pemeliharaan": "pml",
+        "manager_operasional": "ops", 
+        "manager_administrasi": "adm",
+        "manager_keuangan": "keu"
+    }
+    
+    selected_abbreviations = []
+    for field, abbreviation in manager_mapping.items():
+        if convert_to_boolean(data.get(field, 0)):
+            selected_abbreviations.append(abbreviation)
+    
+    if selected_abbreviations:
+        return f"Manager {', '.join(selected_abbreviations)}"
+    return ""
+
 def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
     try:
         # FIX: Check and handle file permissions before creating PDF
@@ -231,7 +249,7 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
         c.drawString(x_left, y_middle, "Disposisi Kepada :")
         y_disp = y_middle - VERTICAL_SPACING
         baris_y = [y_disp]
-        for i in range(1, 4):
+        for i in range(1, 4):  # Changed back to 4 since manager is now on single line
             baris_y.append(baris_y[-1] - LINE_HEIGHT)
         
         # Direktur Utama
@@ -321,13 +339,18 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
             c.line(x_gm_keu, y_strike_gm, x_gm_keu + width_gm_keu, y_strike_gm)
             c.restoreState()
         
-        # Manager
-        draw_checkbox(x_left, baris_y[3], "", data.get("manager", 0))
+        # Manager section - abbreviated format on single line
+        manager_text = get_abbreviated_manager_text(data)
+        manager_selected = bool(manager_text)
+        draw_checkbox(x_left, baris_y[3], "", manager_selected)
         c.setFont("Helvetica", 11)
-        c.drawString(x_left + CHECKBOX_SIZE + 0.3*cm, baris_y[3] - 11/2.5/2, "Manager")
+        if manager_text:
+            c.drawString(x_left + CHECKBOX_SIZE + 0.3*cm, baris_y[3] - 11/2.5/2, manager_text)
+        else:
+            c.drawString(x_left + CHECKBOX_SIZE + 0.3*cm, baris_y[3] - 11/2.5/2, "Manager")
         
         # Untuk di section
-        y_untuk = y_disp - 4.0*LINE_HEIGHT - 0.2*cm  # Reduced spacing before "Untuk di" section
+        y_untuk = y_disp - 4.0*LINE_HEIGHT - 0.2*cm  # Changed back to 4.0 since manager is now on single line
         c.setFont("Helvetica-Bold", 11)
         c.drawString(x_left, y_untuk, "Untuk di :")
         c.setFont("Helvetica", 11)
@@ -410,7 +433,7 @@ def save_form_to_pdf(filepath: str, data: Dict[str, Any]) -> None:
         
         # Instruction section
         x_instruksi = deadline_colon_x + 0.8*cm  # Add spacing from deadline area
-        y_checkbox_manager_disp = y_disp - 3*LINE_HEIGHT
+        y_checkbox_manager_disp = y_disp - 3*LINE_HEIGHT  # Changed back to 3 since manager is now on single line
         y_label_instruksi = y_checkbox_manager_disp
         c.setFont("Helvetica-Bold", 11)
         c.drawString(x_instruksi, y_label_instruksi, "Isi Instruksi / Informasi")

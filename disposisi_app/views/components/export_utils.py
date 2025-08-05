@@ -327,14 +327,14 @@ def export_excel_advanced(self, filepath):
         ws.title = "Log Disposisi"
         
         # Header setup
-        ws.merge_cells('A1:AB1')
+        ws.merge_cells('A1:AH1')
         ws['A1'] = 'LAPORAN DISPOSISI'
         ws['A1'].font = Font(bold=True, size=14)
         ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
         
         import datetime
         today_str = datetime.datetime.now().strftime('%d-%m-%Y')
-        ws.merge_cells('A2:AB2')
+        ws.merge_cells('A2:AH2')
         ws['A2'] = f'terakhir di update: {today_str}'
         ws['A2'].alignment = Alignment(horizontal='center', vertical='center')
         
@@ -373,7 +373,7 @@ def export_excel_advanced(self, filepath):
         if search_col and search_val:
             filter_info.append(f"Pencarian: {search_col} = {search_val}")
         
-        ws.merge_cells('A3:AB3')
+        ws.merge_cells('A3:AH3')
         ws['A3'] = ' | '.join(filter_info) if filter_info else 'Semua Data'
         ws['A3'].alignment = Alignment(horizontal='center', vertical='center')
         
@@ -383,25 +383,32 @@ def export_excel_advanced(self, filepath):
             "Klasifikasi", "Disposisi kepada", "Untuk Di :", "Selesai Tgl.", "Kode Klasifikasi", 
             "Tgl. Penerimaan", "Indeks", "Bicarakan dengan", "Teruskan kepada", "Harap Selesai Tanggal",
             "Direktur Utama", "", "Direktur Keuangan", "", "Direktur Teknik", "", 
-            "GM Keuangan & Administrasi", "", "GM Operasional & Pemeliharaan", "", "Manager", ""
+            "GM Keuangan & Administrasi", "", "GM Operasional & Pemeliharaan", "", 
+            "Manager Pemeliharaan", "", "Manager Operasional", "", "Manager Administrasi", "", "Manager Keuangan", ""
         ]
         ws.append(header_row3)
         
         header_row4 = ["" for _ in range(28)]
-        positions = [16, 18, 20, 22, 24, 26]  # Instruction columns
+        positions = [16, 18, 20, 22, 24, 26]  # Instruction columns for existing positions
         for pos in positions:
-            header_row4[pos] = "Instruksi"
-            header_row4[pos + 1] = "Tanggal"
+            if pos < 28:  # Ensure we don't exceed the range
+                header_row4[pos] = "Instruksi"
+                if pos + 1 < 28:  # Ensure we don't exceed the range
+                    header_row4[pos + 1] = "Tanggal"
         ws.append(header_row4)
         
-        # Define enhanced header for data extraction
+        # Enhanced header with 34 columns (A-AH) matching Google Sheets structure
         ENHANCED_HEADER = [
-            "No. Agenda", "No. Surat", "Tgl. Surat", "Perihal", "Asal Surat", "Ditujukan", 
+            "No. Agenda", "No. Surat", "Tgl. Surat", "Perihal", "Asal Surat", "Ditujukan",
             "Klasifikasi", "Disposisi kepada", "Untuk Di :", "Selesai Tgl.", "Kode Klasifikasi", 
             "Tgl. Penerimaan", "Indeks", "Bicarakan dengan", "Teruskan kepada", "Harap Selesai Tanggal",
             "Direktur Utama Instruksi", "Direktur Utama Tanggal", "Direktur Keuangan Instruksi", "Direktur Keuangan Tanggal",
             "Direktur Teknik Instruksi", "Direktur Teknik Tanggal", "GM Keuangan & Administrasi Instruksi", "GM Keuangan & Administrasi Tanggal",
-            "GM Operasional & Pemeliharaan Instruksi", "GM Operasional & Pemeliharaan Tanggal", "Manager Instruksi", "Manager Tanggal"
+            "GM Operasional & Pemeliharaan Instruksi", "GM Operasional & Pemeliharaan Tanggal", 
+            "Manager Pemeliharaan Instruksi", "Manager Pemeliharaan Tanggal",
+            "Manager Operasional Instruksi", "Manager Operasional Tanggal",
+            "Manager Administrasi Instruksi", "Manager Administrasi Tanggal",
+            "Manager Keuangan Instruksi", "Manager Keuangan Tanggal"
         ]
         
         # Add data rows safely
@@ -550,6 +557,58 @@ def send_email_with_disposisi(self, selected_positions):
         'tanggal': datetime.now().strftime('%d %B %Y'),
     }
     
+    # Tambahkan informasi disposisi kepada dengan format abbreviation
+    try:
+        if hasattr(self, 'get_disposisi_labels_with_abbreviation'):
+            disposisi_labels = self.get_disposisi_labels_with_abbreviation()
+        else:
+            # Fallback jika fungsi tidak tersedia
+            disposisi_labels = []
+            mapping = [
+                ("dir_utama", "Direktur Utama"),
+                ("dir_keu", "Direktur Keuangan"),
+                ("dir_teknik", "Direktur Teknik"),
+                ("gm_keu", "GM Keuangan & Administrasi"),
+                ("gm_ops", "GM Operasional & Pemeliharaan"),
+                ("manager_pemeliharaan", "Manager Pemeliharaan"),
+                ("manager_operasional", "Manager Operasional"),
+                ("manager_administrasi", "Manager Administrasi"),
+                ("manager_keuangan", "Manager Keuangan"),
+            ]
+            
+            labels = []
+            manager_labels = []
+            
+            for var, label in mapping:
+                if data.get(var, 0):
+                    if label.startswith("Manager"):
+                        manager_labels.append(label)
+                    else:
+                        labels.append(label)
+            
+            # Gabungkan manager dengan singkatan
+            if manager_labels:
+                manager_abbreviations = []
+                for manager in manager_labels:
+                    if "Pemeliharaan" in manager:
+                        manager_abbreviations.append("pml")
+                    elif "Operasional" in manager:
+                        manager_abbreviations.append("ops")
+                    elif "Administrasi" in manager:
+                        manager_abbreviations.append("adm")
+                    elif "Keuangan" in manager:
+                        manager_abbreviations.append("keu")
+                
+                if manager_abbreviations:
+                    labels.append(f"Manager {', '.join(manager_abbreviations)}")
+            
+            disposisi_labels = labels
+        
+        template_data['disposisi_kepada'] = disposisi_labels
+    except Exception as e:
+        print(f"[WARNING] Error getting disposisi labels: {e}")
+        template_data['disposisi_kepada'] = []
+    
     # Tambahkan instruksi jika ada
     instruksi_text = []
     
@@ -583,7 +642,26 @@ def send_email_with_disposisi(self, selected_positions):
     if 'isi_instruksi' in data and data['isi_instruksi']:
         for instr in data['isi_instruksi']:
             if instr.get('instruksi'):
-                instruksi_text.append(instr.get('instruksi'))
+                posisi = instr.get('posisi', '')
+                instruksi_text_content = instr.get('instruksi', '')
+                
+                # Gunakan singkatan untuk manager dalam instruksi
+                abbreviation_map = {
+                    "Manager Pemeliharaan": "pml",
+                    "Manager Operasional": "ops",
+                    "Manager Administrasi": "adm",
+                    "Manager Keuangan": "keu"
+                }
+                
+                # Konversi posisi ke singkatan jika ada
+                display_posisi = abbreviation_map.get(posisi, posisi)
+                if display_posisi in ["pml", "ops", "adm", "keu"]:
+                    display_posisi = f"Manager {display_posisi}"
+                
+                if display_posisi:
+                    instruksi_text_content = f"{display_posisi}: {instruksi_text_content}"
+                
+                instruksi_text.append(instruksi_text_content)
     
     # Tambahkan instruksi ke template data
     template_data['instruksi_list'] = instruksi_text

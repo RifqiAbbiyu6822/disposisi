@@ -12,7 +12,11 @@ ENHANCED_HEADER = [
     "Tgl. Penerimaan", "Indeks", "Bicarakan dengan", "Teruskan kepada", "Harap Selesai Tanggal",
     "Direktur Utama Instruksi", "Direktur Utama Tanggal", "Direktur Keuangan Instruksi", "Direktur Keuangan Tanggal",
     "Direktur Teknik Instruksi", "Direktur Teknik Tanggal", "GM Keuangan & Administrasi Instruksi", "GM Keuangan & Administrasi Tanggal",
-    "GM Operasional & Pemeliharaan Instruksi", "GM Operasional & Pemeliharaan Tanggal", "Manager Instruksi", "Manager Tanggal"
+    "GM Operasional & Pemeliharaan Instruksi", "GM Operasional & Pemeliharaan Tanggal", 
+    "Manager Pemeliharaan Instruksi", "Manager Pemeliharaan Tanggal",
+    "Manager Operasional Instruksi", "Manager Operasional Tanggal",
+    "Manager Administrasi Instruksi", "Manager Administrasi Tanggal",
+    "Manager Keuangan Instruksi", "Manager Keuangan Tanggal"
 ]
 
 # Field mapping for consistent data conversion
@@ -138,7 +142,10 @@ def get_disposisi_labels(self):
         ("dir_teknik", "Direktur Teknik"),
         ("gm_keu", "GM Keuangan & Administrasi"),
         ("gm_ops", "GM Operasional & Pemeliharaan"),
-        ("manager", "Manager"),
+        ("manager_pemeliharaan", "Manager Pemeliharaan"),
+        ("manager_operasional", "Manager Operasional"),
+        ("manager_administrasi", "Manager Administrasi"),
+        ("manager_keuangan", "Manager Keuangan"),
     ]
     labels = []
     for var, label in mapping:
@@ -147,6 +154,52 @@ def get_disposisi_labels(self):
                 labels.append(label)
         except Exception as e:
             print(f"[WARNING] Error getting disposisi value for {var}: {e}")
+    return labels
+
+def get_disposisi_labels_with_abbreviation(self):
+    """Get selected disposisi labels with abbreviation for managers"""
+    mapping = [
+        ("dir_utama", "Direktur Utama"),
+        ("dir_keu", "Direktur Keuangan"),
+        ("dir_teknik", "Direktur Teknik"),
+        ("gm_keu", "GM Keuangan & Administrasi"),
+        ("gm_ops", "GM Operasional & Pemeliharaan"),
+        ("manager_pemeliharaan", "Manager Pemeliharaan"),
+        ("manager_operasional", "Manager Operasional"),
+        ("manager_administrasi", "Manager Administrasi"),
+        ("manager_keuangan", "Manager Keuangan"),
+    ]
+    
+    labels = []
+    manager_labels = []
+    
+    for var, label in mapping:
+        try:
+            if hasattr(self, 'vars') and var in self.vars and self.vars[var].get():
+                # Pisahkan manager dari label lainnya
+                if label.startswith("Manager"):
+                    manager_labels.append(label)
+                else:
+                    labels.append(label)
+        except Exception as e:
+            print(f"[WARNING] Error getting disposisi value for {var}: {e}")
+    
+    # Gabungkan semua manager menjadi satu dengan singkatan pendek
+    if manager_labels:
+        manager_abbreviations = []
+        for manager in manager_labels:
+            if "Pemeliharaan" in manager:
+                manager_abbreviations.append("pml")
+            elif "Operasional" in manager:
+                manager_abbreviations.append("ops")
+            elif "Administrasi" in manager:
+                manager_abbreviations.append("adm")
+            elif "Keuangan" in manager:
+                manager_abbreviations.append("keu")
+        
+        if manager_abbreviations:
+            labels.append(f"Manager {', '.join(manager_abbreviations)}")
+    
     return labels
 
 def get_untuk_di_labels(self, data):
@@ -196,7 +249,7 @@ def prepare_row_data(self, data):
             safe_get_value(data, "asal_surat"),
             safe_get_value(data, "ditujukan"),
             klasifikasi,
-            ", ".join(get_disposisi_labels(self)),
+            ", ".join(get_disposisi_labels_with_abbreviation(self)),  # Use abbreviation for output
             get_untuk_di_labels(self, data),
             safe_get_value(data, "selesai_tgl", safe_get_value(data, "harap_selesai_tgl")),  # Use selesai_tgl if available, else harap_selesai_tgl
             safe_get_value(data, "kode_klasifikasi"),
@@ -214,7 +267,10 @@ def prepare_row_data(self, data):
             ("dir_teknik", "Direktur Teknik"),
             ("gm_keu", "GM Keuangan & Administrasi"),
             ("gm_ops", "GM Operasional & Pemeliharaan"),
-            ("manager", "Manager")
+            ("manager_pemeliharaan", "Manager Pemeliharaan"),
+            ("manager_operasional", "Manager Operasional"),
+            ("manager_administrasi", "Manager Administrasi"),
+            ("manager_keuangan", "Manager Keuangan")
         ]
         
         # Initialize instruction map
@@ -230,15 +286,15 @@ def prepare_row_data(self, data):
                         instruksi_map[posisi]["instruksi"] = safe_get_value(instruksi_item, "instruksi")
                         instruksi_map[posisi]["tanggal"] = normalize_date_format(instruksi_item.get("tanggal", ""))
         
-        # Add instruction and date columns
+        # Add instruction and date columns for all positions (including managers separately)
         for _, label in pejabat_keys:
             row_data.append(instruksi_map[label]["instruksi"])
             row_data.append(instruksi_map[label]["tanggal"])
         
-        # Ensure we have exactly 28 columns
-        while len(row_data) < 28:
+        # Ensure we have exactly 34 columns
+        while len(row_data) < 34:
             row_data.append("")
-        row_data = row_data[:28]  # Trim if too many
+        row_data = row_data[:34]  # Trim if too many
         
         return row_data
         
@@ -246,7 +302,7 @@ def prepare_row_data(self, data):
         print(f"[prepare_row_data] Error: {e}")
         traceback.print_exc()
         # Return minimal valid row data to prevent complete failure
-        return [""] * 28
+        return [""] * 34
 
 def upload_to_sheet(self, call_from_pdf=False, data_override=None):
     """Upload data to Google Sheets with improved error handling and null safety"""
@@ -462,7 +518,7 @@ def update_log_entry(data_lama, data_baru):
         for col in ENHANCED_HEADER:
             try:
                 if col in ["No. Agenda", "No. Surat", "Tgl. Surat", "Perihal", "Asal Surat", "Ditujukan", 
-                           "Kode Klasifikasi", "Tgl. Penerimaan", "Indeks", "Bicarakan dengan", 
+                           "Klasifikasi", "Tgl. Penerimaan", "Indeks", "Bicarakan dengan", 
                            "Teruskan kepada", "Harap Selesai Tanggal", "Selesai Tgl."]:
                     value = safe_get_value(merged_data, col)
                     if col in ["Tgl. Surat", "Tgl. Penerimaan", "Harap Selesai Tanggal", "Selesai Tgl."]:
@@ -502,7 +558,10 @@ def update_log_entry(data_lama, data_baru):
                     if merged_data.get("dir_teknik", 0): disposisi_labels.append("Direktur Teknik")
                     if merged_data.get("gm_keu", 0): disposisi_labels.append("GM Keuangan & Administrasi")
                     if merged_data.get("gm_ops", 0): disposisi_labels.append("GM Operasional & Pemeliharaan")
-                    if merged_data.get("manager", 0): disposisi_labels.append("Manager")
+                    if merged_data.get("manager_pemeliharaan", 0): disposisi_labels.append("Manager Pemeliharaan")
+                    if merged_data.get("manager_operasional", 0): disposisi_labels.append("Manager Operasional")
+                    if merged_data.get("manager_administrasi", 0): disposisi_labels.append("Manager Administrasi")
+                    if merged_data.get("manager_keuangan", 0): disposisi_labels.append("Manager Keuangan")
                     row_data.append(", ".join(disposisi_labels))
                     
                 elif col == "Untuk Di :":

@@ -373,7 +373,9 @@ class FormApp(tk.Tk):
             "rahasia": tk.IntVar(), "penting": tk.IntVar(), "segera": tk.IntVar(),
             "kode_klasifikasi": tk.StringVar(), "indeks": tk.StringVar(),
             "dir_utama": tk.IntVar(), "dir_keu": tk.IntVar(), "dir_teknik": tk.IntVar(),
-            "gm_keu": tk.IntVar(), "gm_ops": tk.IntVar(), "manager": tk.IntVar(),
+            "gm_keu": tk.IntVar(), "gm_ops": tk.IntVar(), 
+            "manager_pemeliharaan": tk.IntVar(), "manager_operasional": tk.IntVar(),
+            "manager_administrasi": tk.IntVar(), "manager_keuangan": tk.IntVar(),
             "ketahui_file": tk.IntVar(), "proses_selesai": tk.IntVar(),
             "teliti_pendapat": tk.IntVar(), "buatkan_resume": tk.IntVar(),
             "edarkan": tk.IntVar(), "sesuai_disposisi": tk.IntVar(),
@@ -557,22 +559,24 @@ class FormApp(tk.Tk):
         parent.rowconfigure(1, weight=1)
         parent.columnconfigure(0, weight=1)
         
-        middle_frame.columnconfigure(0, weight=1)
-        middle_frame.columnconfigure(1, weight=1)
-        middle_frame.columnconfigure(2, weight=2)
+        # Fixed: More balanced grid weights
+        middle_frame.columnconfigure(0, weight=1)  # Disposisi Kepada
+        middle_frame.columnconfigure(1, weight=1)  # Untuk di
+        middle_frame.columnconfigure(2, weight=1)  # Isi Instruksi - Fixed: Changed from 2 to 1
         middle_frame.rowconfigure(0, weight=1)
         
         frame_disposisi = ttk.LabelFrame(middle_frame, text="👥 Disposisi Kepada", 
                                          padding=(20, 15, 20, 20), style="TLabelframe")
-        frame_disposisi.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
-        frame_disposisi.columnconfigure(0, weight=1)
+        frame_disposisi.grid(row=0, column=0, sticky="nsew", padx=(0, 10))  # Fixed: Increased padding
+        frame_disposisi.columnconfigure(0, weight=1)  # Fixed: Added column weight
         
         populate_frame_disposisi(frame_disposisi, self.vars)
         
         frame_instruksi = ttk.LabelFrame(middle_frame, text="📋 Untuk di", 
                                          padding=(20, 15, 20, 20), style="TLabelframe")
-        frame_instruksi.grid(row=0, column=1, sticky="nsew", padx=(8, 8))
-        frame_instruksi.columnconfigure(0, weight=1)
+        frame_instruksi.grid(row=0, column=1, sticky="nsew", padx=(10, 10))  # Fixed: Increased padding
+        frame_instruksi.columnconfigure(0, weight=1)  # Fixed: Added column weight
+        frame_instruksi.columnconfigure(1, weight=1)  # Fixed: Added column weight
         
         input_widgets.update(populate_frame_instruksi(frame_instruksi, self.vars))
         
@@ -580,14 +584,14 @@ class FormApp(tk.Tk):
         
         frame_info = ttk.LabelFrame(middle_frame, text="📝 Isi Instruksi / Informasi", 
                                     padding=(20, 15, 20, 20), style="TLabelframe")
-        frame_info.grid(row=0, column=2, sticky="nsew", padx=(8, 0))
-        frame_info.columnconfigure(0, weight=1)
-        frame_info.rowconfigure(0, weight=1)
+        frame_info.grid(row=0, column=2, sticky="nsew", padx=(10, 0))  # Fixed: Increased padding
+        frame_info.columnconfigure(0, weight=1)  # Fixed: Added column weight
+        frame_info.rowconfigure(0, weight=1)  # Fixed: Added row weight
         
         frame_instruksi_table = ttk.Frame(frame_info, style="Surface.TFrame")
         frame_instruksi_table.grid(row=0, column=0, sticky="nsew")
-        frame_instruksi_table.columnconfigure(0, weight=1)
-        frame_instruksi_table.rowconfigure(0, weight=1)
+        frame_instruksi_table.columnconfigure(0, weight=1)  # Fixed: Added column weight
+        frame_instruksi_table.rowconfigure(0, weight=1)  # Fixed: Added row weight
         
         self.posisi_options = POSISI_OPTIONS
         self.instruksi_table = InstruksiTable(frame_instruksi_table, self.posisi_options, use_grid=True)
@@ -636,12 +640,58 @@ class FormApp(tk.Tk):
             ("dir_teknik", "Direktur Teknik"),
             ("gm_keu", "GM Keuangan & Administrasi"),
             ("gm_ops", "GM Operasional & Pemeliharaan"),
-            ("manager", "Manager"),
+            ("manager_pemeliharaan", "Manager Pemeliharaan"),
+            ("manager_operasional", "Manager Operasional"),
+            ("manager_administrasi", "Manager Administrasi"),
+            ("manager_keuangan", "Manager Keuangan"),
         ]
         labels = []
         for var, label in mapping:
             if var in self.vars and self.vars[var].get():
                 labels.append(label)
+        return labels
+
+    def get_disposisi_labels_with_abbreviation(self):
+        """Get selected disposisi labels with abbreviation for managers"""
+        mapping = [
+            ("dir_utama", "Direktur Utama"),
+            ("dir_keu", "Direktur Keuangan"),
+            ("dir_teknik", "Direktur Teknik"),
+            ("gm_keu", "GM Keuangan & Administrasi"),
+            ("gm_ops", "GM Operasional & Pemeliharaan"),
+            ("manager_pemeliharaan", "Manager Pemeliharaan"),
+            ("manager_operasional", "Manager Operasional"),
+            ("manager_administrasi", "Manager Administrasi"),
+            ("manager_keuangan", "Manager Keuangan"),
+        ]
+        
+        labels = []
+        manager_labels = []
+        
+        for var, label in mapping:
+            if var in self.vars and self.vars[var].get():
+                # Pisahkan manager dari label lainnya
+                if label.startswith("Manager"):
+                    manager_labels.append(label)
+                else:
+                    labels.append(label)
+        
+        # Gabungkan semua manager menjadi satu dengan singkatan pendek
+        if manager_labels:
+            manager_abbreviations = []
+            for manager in manager_labels:
+                if "Pemeliharaan" in manager:
+                    manager_abbreviations.append("pml")
+                elif "Operasional" in manager:
+                    manager_abbreviations.append("ops")
+                elif "Administrasi" in manager:
+                    manager_abbreviations.append("adm")
+                elif "Keuangan" in manager:
+                    manager_abbreviations.append("keu")
+            
+            if manager_abbreviations:
+                labels.append(f"Manager {', '.join(manager_abbreviations)}")
+        
         return labels
 
     def send_email_with_disposisi(self, selected_positions):
@@ -746,8 +796,25 @@ class FormApp(tk.Tk):
         
         # Show warnings for failed lookups
         if failed_lookups:
+            # Gunakan singkatan untuk manager dalam warning message
+            abbreviation_map = {
+                "Manager Pemeliharaan": "pml",
+                "Manager Operasional": "ops",
+                "Manager Administrasi": "adm",
+                "Manager Keuangan": "keu"
+            }
+            
+            # Konversi failed lookups ke singkatan untuk display
+            display_failed_lookups = []
+            for lookup in failed_lookups:
+                for full_name, abbrev in abbreviation_map.items():
+                    if full_name in lookup:
+                        lookup = lookup.replace(full_name, f"Manager {abbrev}")
+                        break
+                display_failed_lookups.append(lookup)
+            
             warning_msg = ("Tidak dapat menemukan alamat email yang valid untuk posisi berikut:\n" + 
-                          "\n".join([f"• {lookup}" for lookup in failed_lookups]))
+                          "\n".join([f"• {lookup}" for lookup in display_failed_lookups]))
             
             if len(failed_lookups) == len(selected_positions):
                 # All positions failed
@@ -782,6 +849,14 @@ class FormApp(tk.Tk):
             'tahun': datetime.now().year
         }
         
+        # Tambahkan informasi disposisi kepada dengan format abbreviation
+        try:
+            disposisi_labels = self.get_disposisi_labels_with_abbreviation()
+            template_data['disposisi_kepada'] = disposisi_labels
+        except Exception as e:
+            print(f"[WARNING] Error getting disposisi labels: {e}")
+            template_data['disposisi_kepada'] = []
+        
         # Add classification
         if data.get('rahasia', 0):
             template_data['klasifikasi'].append("RAHASIA")
@@ -813,7 +888,20 @@ class FormApp(tk.Tk):
                     instruksi_text = instr.get('instruksi', '')
                     tanggal = instr.get('tanggal', '')
                     
-                    instr_line = f"{posisi}: {instruksi_text}"
+                    # Gunakan singkatan untuk manager dalam instruksi
+                    abbreviation_map = {
+                        "Manager Pemeliharaan": "pml",
+                        "Manager Operasional": "ops",
+                        "Manager Administrasi": "adm",
+                        "Manager Keuangan": "keu"
+                    }
+                    
+                    # Konversi posisi ke singkatan jika ada
+                    display_posisi = abbreviation_map.get(posisi, posisi)
+                    if display_posisi in ["pml", "ops", "adm", "keu"]:
+                        display_posisi = f"Manager {display_posisi}"
+                    
+                    instr_line = f"{display_posisi}: {instruksi_text}"
                     if tanggal:
                         instr_line += f" (Tanggal: {tanggal})"
                     template_data['instruksi_list'].append(instr_line)
@@ -854,7 +942,24 @@ class FormApp(tk.Tk):
                 success_msg = f"Email berhasil dikirim ke:\n{chr(10).join([f'• {email}' for email in recipient_emails])}"
                 
                 if successful_lookups:
-                    success_msg += f"\n\nDetail penerima:\n{chr(10).join([f'• {lookup}' for lookup in successful_lookups])}"
+                    # Gunakan singkatan untuk manager dalam successful lookups
+                    abbreviation_map = {
+                        "Manager Pemeliharaan": "pml",
+                        "Manager Operasional": "ops",
+                        "Manager Administrasi": "adm",
+                        "Manager Keuangan": "keu"
+                    }
+                    
+                    # Konversi successful lookups ke singkatan untuk display
+                    display_successful_lookups = []
+                    for lookup in successful_lookups:
+                        for full_name, abbrev in abbreviation_map.items():
+                            if full_name in lookup:
+                                lookup = lookup.replace(full_name, f"Manager {abbrev}")
+                                break
+                        display_successful_lookups.append(lookup)
+                    
+                    success_msg += f"\n\nDetail penerima:\n{chr(10).join([f'• {lookup}' for lookup in display_successful_lookups])}"
                 
                 messagebox.showinfo("Email Sent Successfully", success_msg, parent=self)
             else:
@@ -926,7 +1031,10 @@ def test_admin_sheet_connection():
             "Direktur Teknik",
             "GM Keuangan & Administrasi",
             "GM Operasional & Pemeliharaan",
-            "Manager"
+            "Manager Pemeliharaan",
+            "Manager Operasional",
+            "Manager Administrasi",
+            "Manager Keuangan"
         ]
         
         valid_emails = 0

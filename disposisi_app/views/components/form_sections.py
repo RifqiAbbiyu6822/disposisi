@@ -186,7 +186,7 @@ def populate_frame_kanan(frame, vars):
     
     klasifikasi_frame.grid_columnconfigure(0, weight=1)
     
-    # Date and classification fields
+    # Date and classification fields - Fixed: Proper row calculation
     fields = [
         ("Tanggal Penerimaan", "tgl_terima", "date"),
         ("Kode / Klasifikasi", "kode_klasifikasi", "text"),
@@ -195,16 +195,23 @@ def populate_frame_kanan(frame, vars):
     
     tgl_terima_entry = None
     
+    # Fixed: Calculate proper row offset after klasifikasi section
+    row_offset = len(klasifikasi_items) + 1  # +1 for the label
+    
     for idx, (label, key, field_type) in enumerate(fields):
+        current_row = row_offset + (idx * 2)  # Fixed: Proper row calculation
+        
         # Create label
         label_widget = tk.Label(frame, text=label,
                                font=("Inter", 10) if "Inter" in tk.font.families() else ("Segoe UI", 10),
                                bg="#FFFFFF", fg="#475569")
-        label_widget.grid(row=idx+1, column=0, sticky="w", pady=(10, 6))
+        label_widget.grid(row=current_row, column=0, sticky="w", pady=(10, 6))
+        frame.grid_rowconfigure(current_row, weight=0)  # Fixed: Set row weight
         
         if field_type == "date":
             date_frame = tk.Frame(frame, bg="#FFFFFF")
-            date_frame.grid(row=idx+1, column=0, sticky="ew", pady=(30, 0))
+            date_frame.grid(row=current_row + 1, column=0, sticky="ew", pady=(0, 10))  # Fixed: Proper row and padding
+            frame.grid_rowconfigure(current_row + 1, weight=0)  # Fixed: Set row weight
             
             tgl_terima_entry = DateEntry(date_frame, width=25,
                                        date_pattern="dd-mm-yyyy",
@@ -230,11 +237,8 @@ def populate_frame_kanan(frame, vars):
             entry = ttk.Entry(frame, textvariable=vars[key],
                             font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11),
                             style="TEntry")
-            entry.grid(row=idx+1, column=0, sticky="ew", pady=(30, 10))
-    
-    # Configure grid
-    for i in range(len(fields)+1):
-        frame.grid_rowconfigure(i, weight=0)
+            entry.grid(row=current_row + 1, column=0, sticky="ew", pady=(0, 10))  # Fixed: Proper row and padding
+            frame.grid_rowconfigure(current_row + 1, weight=0)  # Fixed: Set row weight
     
     return tgl_terima_entry
 
@@ -246,7 +250,10 @@ def populate_frame_disposisi(frame, vars):
         ("Direktur Teknik", "dir_teknik"),
         ("GM Keuangan & Administrasi", "gm_keu"),
         ("GM Operasional & Pemeliharaan", "gm_ops"),
-        ("Manager", "manager")
+        ("Manager Pemeliharaan", "manager_pemeliharaan"),
+        ("Manager Operasional", "manager_operasional"),
+        ("Manager Administrasi", "manager_administrasi"),
+        ("Manager Keuangan", "manager_keuangan")
     ]
     
     for idx, (text, key) in enumerate(disposisi_items):
@@ -275,6 +282,10 @@ def populate_frame_disposisi(frame, vars):
 def populate_frame_instruksi(frame, vars):
     input_widgets = {}
     
+    # Configure frame grid weights properly
+    frame.grid_columnconfigure(0, weight=1)
+    frame.grid_columnconfigure(1, weight=1)
+    
     # Modern checkbox grid
     checks = [
         "Ketahui & File", "Proses Selesai", "Teliti & Pendapat",
@@ -285,7 +296,7 @@ def populate_frame_instruksi(frame, vars):
         "buatkan_resume", "edarkan", "sesuai_disposisi", "bicarakan_saya"
     ]
     
-    # Create a grid layout
+    # Create a grid layout with proper spacing
     for i, (label, key) in enumerate(zip(checks, vars_keys)):
         row = i // 2
         col = i % 2
@@ -298,22 +309,21 @@ def populate_frame_instruksi(frame, vars):
         cb.grid(row=0, column=0, sticky="w", padx=8, pady=8)
         
         check_frame.grid_columnconfigure(0, weight=1)
+        frame.grid_rowconfigure(row, weight=0)  # Fixed: Set row weight to 0
     
-    # Configure grid weights
-    frame.grid_columnconfigure(0, weight=1)
-    frame.grid_columnconfigure(1, weight=1)
-    
-    # Additional fields section
-    row_offset = (len(checks) + 1) // 2 + 1
+    # Additional fields section - calculate proper row offset
+    row_offset = (len(checks) + 1) // 2  # Fixed: Removed +1 to prevent extra spacing
     
     # Deadline date
     deadline_label = tk.Label(frame, text="Harap Selesai Tanggal",
                              font=("Inter", 10) if "Inter" in tk.font.families() else ("Segoe UI", 10),
                              bg="#FFFFFF", fg="#475569")
     deadline_label.grid(row=row_offset, column=0, columnspan=2, sticky="w", pady=(15, 6))
+    frame.grid_rowconfigure(row_offset, weight=0)  # Fixed: Set row weight
     
     date_frame = tk.Frame(frame, bg="#FFFFFF")
     date_frame.grid(row=row_offset+1, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+    frame.grid_rowconfigure(row_offset+1, weight=0)  # Fixed: Set row weight
     
     harap_selesai_entry = DateEntry(date_frame, width=25,
                                   date_pattern="dd-mm-yyyy",
@@ -327,22 +337,26 @@ def populate_frame_instruksi(frame, vars):
     
     date_frame.grid_columnconfigure(0, weight=1)
     
-    # Modern text areas
+    # Modern text areas with proper spacing
     text_fields = [
         ("Bicarakan dengan", "bicarakan_dengan"),
         ("Teruskan Kepada", "teruskan_kepada")
     ]
     
     for idx, (label, key) in enumerate(text_fields):
+        current_row = row_offset + 2 + (idx * 2)  # Fixed: Better row calculation
+        
         label_widget = tk.Label(frame, text=label,
                                font=("Inter", 10) if "Inter" in tk.font.families() else ("Segoe UI", 10),
                                bg="#FFFFFF", fg="#475569")
-        label_widget.grid(row=row_offset + idx + 2, column=0, columnspan=2, 
+        label_widget.grid(row=current_row, column=0, columnspan=2, 
                          sticky="w", pady=(10, 6))
+        frame.grid_rowconfigure(current_row, weight=0)  # Fixed: Set row weight
         
         text_frame = tk.Frame(frame, bg="#E2E8F0", bd=1)
-        text_frame.grid(row=row_offset + idx + 3, column=0, columnspan=2, 
+        text_frame.grid(row=current_row + 1, column=0, columnspan=2, 
                        sticky="ew", pady=(0, 10))
+        frame.grid_rowconfigure(current_row + 1, weight=0)  # Fixed: Set row weight
         
         text_widget = Text(text_frame, height=2, wrap="word",
                           font=("Inter", 11) if "Inter" in tk.font.families() else ("Segoe UI", 11),
@@ -361,9 +375,5 @@ def populate_frame_instruksi(frame, vars):
         
         text_widget.bind("<FocusIn>", on_focus_in)
         text_widget.bind("<FocusOut>", on_focus_out)
-    
-    # Configure remaining grid weights
-    for row in range(row_offset + len(text_fields) * 2 + 2):
-        frame.grid_rowconfigure(row, weight=0)
     
     return input_widgets

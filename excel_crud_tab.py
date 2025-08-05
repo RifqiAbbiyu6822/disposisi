@@ -22,16 +22,18 @@ logging.basicConfig(level=logging.WARNING)
 
 SHEET_NAME = 'Sheet1'
 
-# Enhanced header that matches the actual Google Sheets structure
-# This header corresponds to the 28 columns (A-AB) in the Google Sheets
-# Structure matches the write_multilayer_header function in google_sheets_connect.py
+# Enhanced header with 34 columns (A-AH) matching Google Sheets structure
 ENHANCED_HEADER = [
-    "No. Agenda", "No. Surat", "Tgl. Surat", "Perihal", "Asal Surat", "Ditujukan", 
+    "No. Agenda", "No. Surat", "Tgl. Surat", "Perihal", "Asal Surat", "Ditujukan",
     "Klasifikasi", "Disposisi kepada", "Untuk Di :", "Selesai Tgl.", "Kode Klasifikasi", 
     "Tgl. Penerimaan", "Indeks", "Bicarakan dengan", "Teruskan kepada", "Harap Selesai Tanggal",
     "Direktur Utama Instruksi", "Direktur Utama Tanggal", "Direktur Keuangan Instruksi", "Direktur Keuangan Tanggal",
     "Direktur Teknik Instruksi", "Direktur Teknik Tanggal", "GM Keuangan & Administrasi Instruksi", "GM Keuangan & Administrasi Tanggal",
-    "GM Operasional & Pemeliharaan Instruksi", "GM Operasional & Pemeliharaan Tanggal", "Manager Instruksi", "Manager Tanggal"
+    "GM Operasional & Pemeliharaan Instruksi", "GM Operasional & Pemeliharaan Tanggal", 
+    "Manager Pemeliharaan Instruksi", "Manager Pemeliharaan Tanggal",
+    "Manager Operasional Instruksi", "Manager Operasional Tanggal",
+    "Manager Administrasi Instruksi", "Manager Administrasi Tanggal",
+    "Manager Keuangan Instruksi", "Manager Keuangan Tanggal"
 ]
 
 # Searchable columns (without position instruction columns)
@@ -250,25 +252,25 @@ class LogTab(ttk.Frame):
         style = ttk.Style()
         style.theme_use('clam')
         style.configure("Treeview",
-                       background="#f4f6fa",
-                       foreground="#1a2233",
-                       rowheight=30,
-                       fieldbackground="#f4f6fa",
+                       background="#FFFFFF",
+                       foreground="#111827",
+                       rowheight=36,
+                       fieldbackground="#FFFFFF",
                        borderwidth=0,
                        relief="flat",
-                       font=("Segoe UI", 11))
+                       font=("Inter", 10) if "Inter" in tk.font.families() else ("Segoe UI", 10))
         style.configure("Treeview.Heading",
-                       background="#2563eb",
-                       foreground="#fff",
+                       background="#F9FAFB",
+                       foreground="#111827",
                        relief="flat",
                        borderwidth=0,
-                       font=('Segoe UI', 12, 'bold'))
+                       font=("Inter", 11, "medium") if "Inter" in tk.font.families() else ("Segoe UI", 11, "bold"))
         style.map("Treeview.Heading",
-                  background=[('active', '#0D234E'), ('!active', '#2563eb')],
-                  foreground=[('active', '#fff'), ('!active', '#fff')])
+                  background=[('active', '#F3F4F6'), ('!active', '#F9FAFB')],
+                  foreground=[('active', '#111827'), ('!active', '#111827')])
         style.map("Treeview",
-                 background=[('selected', '#2563eb')],
-                 foreground=[('selected', '#fff')])
+                 background=[('selected', '#6366F1')],
+                 foreground=[('selected', '#FFFFFF')])
         self.tree = ttk.Treeview(table_frame, columns=ENHANCED_HEADER, show="headings", selectmode="extended", height=18)
         self.tree['show'] = 'headings'  # Pastikan heading selalu aktif
         v_scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
@@ -464,7 +466,7 @@ class LogTab(ttk.Frame):
                                 except:
                                     pass
                                 return val
-                            if col in ["Tgl. Surat", "Selesai Tgl.", "Tgl. Penerimaan", "Harap Selesai Tanggal", "Direktur Utama Tanggal", "Direktur Keuangan Tanggal", "Direktur Teknik Tanggal", "GM Keuangan & Administrasi Tanggal", "GM Operasional & Pemeliharaan Tanggal", "Manager Tanggal"]:
+                            if col in ["Tgl. Surat", "Selesai Tgl.", "Tgl. Penerimaan", "Harap Selesai Tanggal", "Direktur Utama Tanggal", "Direktur Keuangan Tanggal", "Direktur Teknik Tanggal", "GM Keuangan & Administrasi Tanggal", "GM Operasional & Pemeliharaan Tanggal", "Manager Pemeliharaan Tanggal", "Manager Operasional Tanggal", "Manager Administrasi Tanggal", "Manager Keuangan Tanggal"]:
                                 val = excel_serial_to_date(val)
                             if col == "Tgl. Surat":
                                 tgl_surat_val = val
@@ -586,8 +588,14 @@ class LogTab(ttk.Frame):
             "GM Keuangan & Administrasi Tanggal": "GM Keu Tgl",
             "GM Operasional & Pemeliharaan Instruksi": "GM Ops Inst",
             "GM Operasional & Pemeliharaan Tanggal": "GM Ops Tgl",
-            "Manager Instruksi": "Manager Inst",
-            "Manager Tanggal": "Manager Tgl"
+            "Manager Pemeliharaan Instruksi": "Manager Pem Inst",
+            "Manager Pemeliharaan Tanggal": "Manager Pem Tgl",
+            "Manager Operasional Instruksi": "Manager Ops Inst",
+            "Manager Operasional Tanggal": "Manager Ops Tgl",
+            "Manager Administrasi Instruksi": "Manager Adm Inst",
+            "Manager Administrasi Tanggal": "Manager Adm Tgl",
+            "Manager Keuangan Instruksi": "Manager Keu Inst",
+            "Manager Keuangan Tanggal": "Manager Keu Tgl"
         }
         return display_names.get(col_name, col_name)
     

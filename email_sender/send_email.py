@@ -29,14 +29,17 @@ class EmailSender:
         # Initialize sheets service
         self.sheets_service = self._get_sheets_service()
         
-        # Position to cell mapping for reading emails from admin sheet
+        # Position to cell mapping in admin sheet
         self.position_cell_mapping = {
             "Direktur Utama": "B2",
             "Direktur Keuangan": "B3", 
             "Direktur Teknik": "B4",
             "GM Keuangan & Administrasi": "B5",
             "GM Operasional & Pemeliharaan": "B6",
-            "Manager": "B7"
+            "Manager Pemeliharaan": "B7",
+            "Manager Operasional": "B8",
+            "Manager Administrasi": "B9",
+            "Manager Keuangan": "B10"
         }
 
     def _get_sheets_service(self):
@@ -298,7 +301,25 @@ class EmailSender:
         if success:
             message = f"Email sent to {len(recipient_emails)} recipient(s): {', '.join(recipient_emails)}"
             if failed_lookups:
-                message += f"\n\nNote: Could not find emails for: {', '.join([f.split(' - ')[0] for f in failed_lookups])}"
+                # Gunakan singkatan untuk manager dalam message
+                abbreviation_map = {
+                    "Manager Pemeliharaan": "pml",
+                    "Manager Operasional": "ops",
+                    "Manager Administrasi": "adm",
+                    "Manager Keuangan": "keu"
+                }
+                
+                # Konversi failed lookups ke singkatan untuk display
+                display_failed_positions = []
+                for f in failed_lookups:
+                    position = f.split(' - ')[0]
+                    for full_name, abbrev in abbreviation_map.items():
+                        if full_name in position:
+                            position = position.replace(full_name, f"Manager {abbrev}")
+                            break
+                    display_failed_positions.append(position)
+                
+                message += f"\n\nNote: Could not find emails for: {', '.join(display_failed_positions)}"
         else:
             message = send_msg
         
@@ -371,8 +392,20 @@ def test_email_system():
     
     if results['email_data']:
         print(f"\nFound emails for {len(results['email_data'])} positions:")
+        # Gunakan singkatan untuk manager dalam output
+        abbreviation_map = {
+            "Manager Pemeliharaan": "pml",
+            "Manager Operasional": "ops",
+            "Manager Administrasi": "adm",
+            "Manager Keuangan": "keu"
+        }
+        
         for position, email in results['email_data'].items():
-            print(f"  • {position}: {email}")
+            # Konversi posisi ke singkatan untuk display
+            display_position = abbreviation_map.get(position, position)
+            if display_position in ["pml", "ops", "adm", "keu"]:
+                display_position = f"Manager {display_position}"
+            print(f"  • {display_position}: {email}")
     
     if results['errors']:
         print(f"\nErrors encountered:")

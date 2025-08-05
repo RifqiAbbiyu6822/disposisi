@@ -10,7 +10,11 @@ ENHANCED_HEADER = [
     "Tgl. Penerimaan", "Indeks", "Bicarakan dengan", "Teruskan kepada", "Harap Selesai Tanggal",
     "Direktur Utama Instruksi", "Direktur Utama Tanggal", "Direktur Keuangan Instruksi", "Direktur Keuangan Tanggal",
     "Direktur Teknik Instruksi", "Direktur Teknik Tanggal", "GM Keuangan & Administrasi Instruksi", "GM Keuangan & Administrasi Tanggal",
-    "GM Operasional & Pemeliharaan Instruksi", "GM Operasional & Pemeliharaan Tanggal", "Manager Instruksi", "Manager Tanggal"
+    "GM Operasional & Pemeliharaan Instruksi", "GM Operasional & Pemeliharaan Tanggal", 
+    "Manager Pemeliharaan Instruksi", "Manager Pemeliharaan Tanggal",
+    "Manager Operasional Instruksi", "Manager Operasional Tanggal",
+    "Manager Administrasi Instruksi", "Manager Administrasi Tanggal",
+    "Manager Keuangan Instruksi", "Manager Keuangan Tanggal"
 ]
 
 def normalize_date_format(date_str):
@@ -69,7 +73,10 @@ def get_log_entry_by_no_surat(no_surat):
                 ("Direktur Teknik Instruksi", "Direktur Teknik", "Direktur Teknik Tanggal"),
                 ("GM Keuangan & Administrasi Instruksi", "GM Keuangan & Administrasi", "GM Keuangan & Administrasi Tanggal"),
                 ("GM Operasional & Pemeliharaan Instruksi", "GM Operasional & Pemeliharaan", "GM Operasional & Pemeliharaan Tanggal"),
-                ("Manager Instruksi", "Manager", "Manager Tanggal")
+                ("Manager Pemeliharaan Instruksi", "Manager Pemeliharaan", "Manager Pemeliharaan Tanggal"),
+                ("Manager Operasional Instruksi", "Manager Operasional", "Manager Operasional Tanggal"),
+                ("Manager Administrasi Instruksi", "Manager Administrasi", "Manager Administrasi Tanggal"),
+                ("Manager Keuangan Instruksi", "Manager Keuangan", "Manager Keuangan Tanggal")
             ]
             instruksi_from_log = []
             for instr_col, posisi_label, tgl_col in instruksi_jabatan_map:
@@ -144,7 +151,8 @@ def update_log_entry(data_lama, data_baru):
         # FIXED: Valid position labels only
         pejabat_labels = [
             "Direktur Utama", "Direktur Keuangan", "Direktur Teknik",
-            "GM Keuangan & Administrasi", "GM Operasional & Pemeliharaan", "Manager"
+            "GM Keuangan & Administrasi", "GM Operasional & Pemeliharaan", 
+            "Manager Pemeliharaan", "Manager Operasional", "Manager Administrasi", "Manager Keuangan"
         ]
         
         # Initialize instruction map with valid positions only
@@ -195,15 +203,17 @@ def update_log_entry(data_lama, data_baru):
                         row_data.append("")
                         
                 elif col == "Disposisi kepada":
-                    # Handle disposition checkboxes
                     disposisi_labels = []
                     if merged_data.get("dir_utama", 0): disposisi_labels.append("Direktur Utama")
                     if merged_data.get("dir_keu", 0): disposisi_labels.append("Direktur Keuangan")
                     if merged_data.get("dir_teknik", 0): disposisi_labels.append("Direktur Teknik")
                     if merged_data.get("gm_keu", 0): disposisi_labels.append("GM Keuangan & Administrasi")
                     if merged_data.get("gm_ops", 0): disposisi_labels.append("GM Operasional & Pemeliharaan")
-                    if merged_data.get("manager", 0): disposisi_labels.append("Manager")
-                    row_data.append(", ".join(disposisi_labels))
+                    if merged_data.get("manager_pemeliharaan", 0): disposisi_labels.append("Manager Pemeliharaan")
+                    if merged_data.get("manager_operasional", 0): disposisi_labels.append("Manager Operasional")
+                    if merged_data.get("manager_administrasi", 0): disposisi_labels.append("Manager Administrasi")
+                    if merged_data.get("manager_keuangan", 0): disposisi_labels.append("Manager Keuangan")
+                    merged_data[col] = ", ".join(disposisi_labels)
                     
                 elif col == "Untuk Di :":
                     # Handle action checkboxes

@@ -389,6 +389,17 @@ def get_email_template():
                     </div>
                     {% endif %}
 
+                    {% if disposisi_kepada and disposisi_kepada|length > 0 %}
+                    <div class="document-info" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; border-left: 5px solid #1abc9c;">
+                        <h3 style="color: white;">Disposisi Kepada</h3>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px;">
+                            {% for posisi in disposisi_kepada %}
+                            <span style="background: rgba(255, 255, 255, 0.2); color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; border: 1px solid rgba(255, 255, 255, 0.3);">{{ posisi }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
                     {% if instruksi_list and instruksi_list|length > 0 %}
                     <div class="instructions">
                         <h3>Instruksi Disposisi</h3>

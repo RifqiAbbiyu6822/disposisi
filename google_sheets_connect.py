@@ -56,7 +56,7 @@ def append_row_to_sheet(row_data, sheet_id=None, range_name='Sheet1!A1'):
                             'startRowIndex': row_idx,
                             'endRowIndex': row_idx + 1,
                             'startColumnIndex': 0,
-                            'endColumnIndex': 28
+                            'endColumnIndex': 34
                         },
                         'cell': {
                             'userEnteredFormat': {
@@ -127,30 +127,34 @@ def write_multilayer_header(sheet_id=None, sheet_name='Sheet1'):
     if sheet_id is None:
         sheet_id = SHEET_ID
     # Baris 1: Label utama (akan di-merge)
-    row1 = ["LAPORAN DISPOSISI"] + ["" for _ in range(27)]
+    row1 = ["LAPORAN DISPOSISI"] + ["" for _ in range(33)]
     # Baris 2: Tanggal update (akan di-merge)
     import datetime
     today_str = datetime.datetime.now().strftime('%d-%m-%Y')
-    row2 = [f"terakhir di update: {today_str}"] + ["" for _ in range(27)]
+    row2 = [f"terakhir di update: {today_str}"] + ["" for _ in range(33)]
     # Baris 3: Header utama (label field)
     row3 = [
         "No. Agenda", "No. Surat", "Tgl. Surat", "Perihal", "Asal Surat", "Ditujukan", "Klasifikasi", "Disposisi kepada", "Untuk Di :", "Selesai Tgl.", "Kode Klasifikasi", "Tgl. Penerimaan", "Indeks", "Bicarakan dengan", "Teruskan kepada", "Harap Selesai Tanggal",
-        "Direktur Utama", "", "Direktur Keuangan", "", "Direktur Teknik", "", "GM Keuangan & Administrasi", "", "GM Operasional & Pemeliharaan", "", "Manager", ""
+        "Direktur Utama", "", "Direktur Keuangan", "", "Direktur Teknik", "", "GM Keuangan & Administrasi", "", "GM Operasional & Pemeliharaan", "", 
+        "Manager Pemeliharaan", "", "Manager Operasional", "", "Manager Administrasi", "", "Manager Keuangan", ""
     ]
     # Baris 4: Sub-header jabatan
-    row4 = ["" for _ in range(28)]
+    row4 = ["" for _ in range(34)]
     row4[16] = "Instruksi"; row4[17] = "Tanggal"
     row4[18] = "Instruksi"; row4[19] = "Tanggal"
     row4[20] = "Instruksi"; row4[21] = "Tanggal"
     row4[22] = "Instruksi"; row4[23] = "Tanggal"
     row4[24] = "Instruksi"; row4[25] = "Tanggal"
     row4[26] = "Instruksi"; row4[27] = "Tanggal"
+    row4[28] = "Instruksi"; row4[29] = "Tanggal"
+    row4[30] = "Instruksi"; row4[31] = "Tanggal"
+    row4[32] = "Instruksi"; row4[33] = "Tanggal"
     # Baris 5: Kosong
-    row5 = ["" for _ in range(28)]
+    row5 = ["" for _ in range(34)]
     body = {
         'values': [row1, row2, row3, row4, row5]
     }
-    range_name = f'{sheet_name}!A1:AB5'
+    range_name = f'{sheet_name}!A1:AH5'
     service.spreadsheets().values().update(
         spreadsheetId=sheet_id,
         range=range_name,
@@ -159,7 +163,7 @@ def write_multilayer_header(sheet_id=None, sheet_name='Sheet1'):
     ).execute()
     sheet_id_num = service.spreadsheets().get(spreadsheetId=sheet_id).execute()['sheets'][0]['properties']['sheetId']
     requests = [
-        # Merge A1:AB1 for main label
+        # Merge A1:AH1 for main label
         {
             'mergeCells': {
                 'range': {
@@ -167,12 +171,12 @@ def write_multilayer_header(sheet_id=None, sheet_name='Sheet1'):
                     'startRowIndex': 0,
                     'endRowIndex': 1,
                     'startColumnIndex': 0,
-                    'endColumnIndex': 28
+                    'endColumnIndex': 34
                 },
                 'mergeType': 'MERGE_ALL'
             }
         },
-        # Merge A2:AB2 for update date
+        # Merge A2:AH2 for update date
         {
             'mergeCells': {
                 'range': {
@@ -180,7 +184,7 @@ def write_multilayer_header(sheet_id=None, sheet_name='Sheet1'):
                     'startRowIndex': 1,
                     'endRowIndex': 2,
                     'startColumnIndex': 0,
-                    'endColumnIndex': 28
+                    'endColumnIndex': 34
                 },
                 'mergeType': 'MERGE_ALL'
             }
@@ -193,7 +197,7 @@ def write_multilayer_header(sheet_id=None, sheet_name='Sheet1'):
                     'startRowIndex': 0,
                     'endRowIndex': 1,
                     'startColumnIndex': 0,
-                    'endColumnIndex': 28
+                    'endColumnIndex': 34
                 },
                 'cell': {
                     'userEnteredFormat': {
@@ -213,7 +217,7 @@ def write_multilayer_header(sheet_id=None, sheet_name='Sheet1'):
                     'startRowIndex': 1,
                     'endRowIndex': 2,
                     'startColumnIndex': 0,
-                    'endColumnIndex': 28
+                    'endColumnIndex': 34
                 },
                 'cell': {
                     'userEnteredFormat': {
@@ -225,7 +229,7 @@ def write_multilayer_header(sheet_id=None, sheet_name='Sheet1'):
                 'fields': 'userEnteredFormat(horizontalAlignment,verticalAlignment,textFormat)'
             }
         },
-        # Center all header cells (A1:AB5)
+        # Center all header cells (A1:AH5)
         {
             'repeatCell': {
                 'range': {
@@ -233,7 +237,7 @@ def write_multilayer_header(sheet_id=None, sheet_name='Sheet1'):
                     'startRowIndex': 0,
                     'endRowIndex': 5,
                     'startColumnIndex': 0,
-                    'endColumnIndex': 28
+                    'endColumnIndex': 34
                 },
                 'cell': {
                     'userEnteredFormat': {
@@ -244,7 +248,7 @@ def write_multilayer_header(sheet_id=None, sheet_name='Sheet1'):
                 'fields': 'userEnteredFormat(horizontalAlignment,verticalAlignment)'
             }
         },
-        # Tambahkan border all untuk header (A1:AB5)
+        # Tambahkan border all untuk header (A1:AH5)
         {
             'updateBorders': {
                 'range': {
@@ -252,7 +256,7 @@ def write_multilayer_header(sheet_id=None, sheet_name='Sheet1'):
                     'startRowIndex': 0,
                     'endRowIndex': 5,
                     'startColumnIndex': 0,
-                    'endColumnIndex': 28
+                    'endColumnIndex': 34
                 },
                 'top':    {'style': 'SOLID', 'width': 1, 'color': {'red': 0, 'green': 0, 'blue': 0}},
                 'bottom': {'style': 'SOLID', 'width': 1, 'color': {'red': 0, 'green': 0, 'blue': 0}},
@@ -276,7 +280,7 @@ def write_multilayer_header(sheet_id=None, sheet_name='Sheet1'):
                     'startRowIndex': 5,  
                     'endRowIndex': 1000, 
                     'startColumnIndex': 0,
-                    'endColumnIndex': 28
+                    'endColumnIndex': 34
                 },
                 'cell': {
                     'userEnteredFormat': {

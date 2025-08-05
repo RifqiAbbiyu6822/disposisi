@@ -43,10 +43,22 @@ class FinishDialog(tk.Toplevel):
         if not self.disposisi_labels:
             ttk.Label(self.email_frame, text="Tidak ada posisi yang dipilih.").pack()
         else:
+            # Mapping untuk singkatan manager
+            abbreviation_map = {
+                "Manager Pemeliharaan": "pml",
+                "Manager Operasional": "ops",
+                "Manager Administrasi": "adm",
+                "Manager Keuangan": "keu"
+            }
+            
             for label in self.disposisi_labels:
                 var = tk.BooleanVar(value=True)
-                self.email_vars[label] = var
-                ttk.Checkbutton(self.email_frame, text=label, variable=var).pack(anchor="w")
+                # Gunakan singkatan untuk display
+                display_label = abbreviation_map.get(label, label)
+                if display_label in ["pml", "ops", "adm", "keu"]:
+                    display_label = f"Manager {display_label}"
+                self.email_vars[label] = var  # Keep original label for email lookup
+                ttk.Checkbutton(self.email_frame, text=display_label, variable=var).pack(anchor="w")
         
         button_frame = ttk.Frame(main_frame)
         button_frame.pack(fill="x", pady=(20, 0))

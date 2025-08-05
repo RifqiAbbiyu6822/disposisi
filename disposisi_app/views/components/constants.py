@@ -5,7 +5,10 @@ POSISI_OPTIONS = [
     "Direktur Teknik",
     "GM Keuangan & Administrasi",
     "GM Operasional & Pemeliharaan",
-    "Manager"
+    "Manager Pemeliharaan",
+    "Manager Operasional",
+    "Manager Administrasi",
+    "Manager Keuangan"
 ]
 TOOLTIP_LABELS = {
     "no_surat": "Nomor surat harus unik dan wajib diisi.",

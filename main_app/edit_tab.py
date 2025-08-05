@@ -42,7 +42,8 @@ class EditTab(ttk.Frame):
         keys = [
             "no_agenda", "no_surat", "perihal", "asal_surat", "ditujukan",
             "rahasia", "penting", "segera", "kode_klasifikasi", "indeks",
-            "dir_utama", "dir_keu", "dir_teknik", "gm_keu", "gm_ops", "manager",
+            "dir_utama", "dir_keu", "dir_teknik", "gm_keu", "gm_ops", 
+            "manager_pemeliharaan", "manager_operasional", "manager_administrasi", "manager_keuangan",
             "ketahui_file", "proses_selesai", "teliti_pendapat", "buatkan_resume",
             "edarkan", "sesuai_disposisi", "bicarakan_saya", "bicarakan_dengan",
             "teruskan_kepada", "harap_selesai_tgl"
@@ -50,7 +51,8 @@ class EditTab(ttk.Frame):
         
         for key in keys:
             if key in ["rahasia", "penting", "segera", "dir_utama", "dir_keu", "dir_teknik", 
-                      "gm_keu", "gm_ops", "manager", "ketahui_file", "proses_selesai", 
+                      "gm_keu", "gm_ops", "manager_pemeliharaan", "manager_operasional", 
+                      "manager_administrasi", "manager_keuangan", "ketahui_file", "proses_selesai", 
                       "teliti_pendapat", "buatkan_resume", "edarkan", "sesuai_disposisi", 
                       "bicarakan_saya"]:
                 self.vars[key] = tk.IntVar()
@@ -140,40 +142,48 @@ class EditTab(ttk.Frame):
             self.form_input_widgets["tgl_terima"] = kanan_widgets
 
     def _create_middle_frame(self):
-        # FIXED: More compact middle frame
+        # FIXED: More compact middle frame with better spacing
         self.middle_frame = ttk.Frame(self.main_frame, style="TFrame")
         self.middle_frame.grid(row=2, column=0, sticky="nsew", pady=(0, 10))  # Reduced padding
         
-        # Configure grid weights
-        self.middle_frame.columnconfigure(0, weight=1)
-        self.middle_frame.columnconfigure(1, weight=1)
-        self.middle_frame.columnconfigure(2, weight=2)
+        # Configure grid weights - Fixed: More balanced weights
+        self.middle_frame.columnconfigure(0, weight=1)  # Disposisi Kepada
+        self.middle_frame.columnconfigure(1, weight=1)  # Untuk di
+        self.middle_frame.columnconfigure(2, weight=1)  # Isi Instruksi - Fixed: Changed from 2 to 1
         self.middle_frame.rowconfigure(0, weight=1)
         
-        # Left column - Disposisi Kepada with reduced padding
+        # Left column - Disposisi Kepada with proper padding
         self.frame_disposisi = ttk.LabelFrame(self.middle_frame, text="Disposisi Kepada", padding=(10, 8, 10, 8), style="TLabelframe")
-        self.frame_disposisi.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        self.frame_disposisi.grid(row=0, column=0, sticky="nsew", padx=(0, 8))  # Fixed: Increased padding
+        self.frame_disposisi.grid_columnconfigure(0, weight=1)  # Fixed: Added column weight
         populate_frame_disposisi(self.frame_disposisi, self.vars)
         
-        # Middle column - Untuk di with reduced padding
+        # Middle column - Untuk di with proper padding
         self.frame_instruksi = ttk.LabelFrame(self.middle_frame, text="Untuk di", padding=(10, 8, 10, 8), style="TLabelframe")
-        self.frame_instruksi.grid(row=0, column=1, sticky="nsew", padx=(5, 5))
+        self.frame_instruksi.grid(row=0, column=1, sticky="nsew", padx=(8, 8))  # Fixed: Increased padding
+        self.frame_instruksi.grid_columnconfigure(0, weight=1)  # Fixed: Added column weight
+        self.frame_instruksi.grid_columnconfigure(1, weight=1)  # Fixed: Added column weight
         instruksi_widgets = populate_frame_instruksi(self.frame_instruksi, self.vars)
         self.form_input_widgets.update(instruksi_widgets)
         if "harap_selesai_tgl" in instruksi_widgets:
             self.harap_selesai_tgl_entry = instruksi_widgets["harap_selesai_tgl"]
         
-        # Right column - Isi Instruksi/Informasi with reduced padding
+        # Right column - Isi Instruksi/Informasi with proper padding
         self.frame_info = ttk.LabelFrame(self.middle_frame, text="Isi Instruksi / Informasi", padding=(10, 8, 10, 8), style="TLabelframe")
-        self.frame_info.grid(row=0, column=2, sticky="nsew", padx=(5, 0))
+        self.frame_info.grid(row=0, column=2, sticky="nsew", padx=(8, 0))  # Fixed: Increased padding
+        self.frame_info.grid_columnconfigure(0, weight=1)  # Fixed: Added column weight
+        self.frame_info.grid_rowconfigure(0, weight=1)  # Fixed: Added row weight
         
         # Instruction table inside frame_info
         self.posisi_options = [
             "Direktur Utama", "Direktur Keuangan", "Direktur Teknik",
-            "GM Keuangan & Administrasi", "GM Operasional & Pemeliharaan", "Manager"
+            "GM Keuangan & Administrasi", "GM Operasional & Pemeliharaan",
+            "Manager Pemeliharaan", "Manager Operasional", "Manager Administrasi", "Manager Keuangan"
         ]
         self.frame_instruksi_table = ttk.Frame(self.frame_info)
         self.frame_instruksi_table.grid(row=0, column=0, sticky="nsew")
+        self.frame_instruksi_table.grid_columnconfigure(0, weight=1)  # Fixed: Added column weight
+        self.frame_instruksi_table.grid_rowconfigure(0, weight=1)  # Fixed: Added row weight
         self.instruksi_table = InstruksiTable(self.frame_instruksi_table, self.posisi_options, use_grid=True)
         
         # FIXED: Compact button row for instruction table
@@ -266,7 +276,10 @@ class EditTab(ttk.Frame):
             ("dir_teknik", "Direktur Teknik"),
             ("gm_keu", "GM Keuangan & Administrasi"),
             ("gm_ops", "GM Operasional & Pemeliharaan"),
-            ("manager", "Manager"),
+            ("manager_pemeliharaan", "Manager Pemeliharaan"),
+            ("manager_operasional", "Manager Operasional"),
+            ("manager_administrasi", "Manager Administrasi"),
+            ("manager_keuangan", "Manager Keuangan"),
         ]
         labels = []
         for var, label in mapping:
@@ -274,10 +287,53 @@ class EditTab(ttk.Frame):
                 labels.append(label)
         return labels
 
+    def get_disposisi_labels_with_abbreviation(self):
+        """Get selected disposisi labels with abbreviation for managers"""
+        mapping = [
+            ("dir_utama", "Direktur Utama"),
+            ("dir_keu", "Direktur Keuangan"),
+            ("dir_teknik", "Direktur Teknik"),
+            ("gm_keu", "GM Keuangan & Administrasi"),
+            ("gm_ops", "GM Operasional & Pemeliharaan"),
+            ("manager_pemeliharaan", "Manager Pemeliharaan"),
+            ("manager_operasional", "Manager Operasional"),
+            ("manager_administrasi", "Manager Administrasi"),
+            ("manager_keuangan", "Manager Keuangan"),
+        ]
+        
+        labels = []
+        manager_labels = []
+        
+        for var, label in mapping:
+            if var in self.vars and self.vars[var].get():
+                # Pisahkan manager dari label lainnya
+                if label.startswith("Manager"):
+                    manager_labels.append(label)
+                else:
+                    labels.append(label)
+        
+        # Gabungkan semua manager menjadi satu dengan singkatan pendek
+        if manager_labels:
+            manager_abbreviations = []
+            for manager in manager_labels:
+                if "Pemeliharaan" in manager:
+                    manager_abbreviations.append("pml")
+                elif "Operasional" in manager:
+                    manager_abbreviations.append("ops")
+                elif "Administrasi" in manager:
+                    manager_abbreviations.append("adm")
+                elif "Keuangan" in manager:
+                    manager_abbreviations.append("keu")
+            
+            if manager_abbreviations:
+                labels.append(f"Manager {', '.join(manager_abbreviations)}")
+        
+        return labels
+
     def _on_send_email_simple(self):
         """Simplified email sending without complex dialogs"""
         try:
-            disposisi_labels = self.get_disposisi_labels()
+            disposisi_labels = self.get_disposisi_labels_with_abbreviation()  # Use abbreviation for display
             if not disposisi_labels:
                 messagebox.showwarning("Peringatan", "Pilih minimal satu disposisi kepada untuk mengirim email.")
                 return
@@ -292,8 +348,9 @@ class EditTab(ttk.Frame):
             if not confirm:
                 return
             
-            # Send email directly
-            self._send_email_to_positions(disposisi_labels)
+            # Send email directly - use full names for email lookup
+            full_disposisi_labels = self.get_disposisi_labels()  # Use full names for email lookup
+            self._send_email_to_positions(full_disposisi_labels)
             
         except Exception as e:
             import traceback
@@ -351,7 +408,20 @@ class EditTab(ttk.Frame):
                         instruksi_text = instr.get("instruksi", "")
                         tanggal = instr.get("tanggal", "")
                         
-                        instr_line = f"{posisi}: {instruksi_text}"
+                        # Gunakan singkatan untuk manager dalam instruksi
+                        abbreviation_map = {
+                            "Manager Pemeliharaan": "pml",
+                            "Manager Operasional": "ops",
+                            "Manager Administrasi": "adm",
+                            "Manager Keuangan": "keu"
+                        }
+                        
+                        # Konversi posisi ke singkatan jika ada
+                        display_posisi = abbreviation_map.get(posisi, posisi)
+                        if display_posisi in ["pml", "ops", "adm", "keu"]:
+                            display_posisi = f"Manager {display_posisi}"
+                        
+                        instr_line = f"{display_posisi}: {instruksi_text}"
                         if tanggal:
                             instr_line += f" (Tanggal: {tanggal})"
                         instruksi_list.append(instr_line)
@@ -368,6 +438,13 @@ class EditTab(ttk.Frame):
             if data.get("harap_selesai_tgl", "").strip():
                 instruksi_list.append(f"Harap diselesaikan tanggal: {data['harap_selesai_tgl']}")
             
+            # Tambahkan informasi disposisi kepada
+            try:
+                disposisi_labels = self.get_disposisi_labels_with_abbreviation()
+            except Exception as e:
+                print(f"[WARNING] Error getting disposisi labels: {e}")
+                disposisi_labels = []
+            
             template_data = {
                 'nomor_surat': data.get("no_surat", ""),
                 'nama_pengirim': data.get("asal_surat", ""),
@@ -375,6 +452,7 @@ class EditTab(ttk.Frame):
                 'tanggal': datetime.now().strftime('%d %B %Y'),
                 'klasifikasi': klasifikasi,
                 'instruksi_list': instruksi_list,
+                'disposisi_kepada': disposisi_labels,
                 'tahun': datetime.now().year
             }
             
@@ -399,7 +477,24 @@ class EditTab(ttk.Frame):
             else:
                 error_msg = f"Gagal mengirim email:\n{message}"
                 if details.get('failed_lookups'):
-                    error_msg += "\n\nPosisi tanpa email:\n" + "\n".join(details['failed_lookups'])
+                    # Gunakan singkatan untuk manager dalam error message
+                    abbreviation_map = {
+                        "Manager Pemeliharaan": "pml",
+                        "Manager Operasional": "ops",
+                        "Manager Administrasi": "adm",
+                        "Manager Keuangan": "keu"
+                    }
+                    
+                    # Konversi failed lookups ke singkatan untuk display
+                    display_failed_lookups = []
+                    for lookup in details['failed_lookups']:
+                        for full_name, abbrev in abbreviation_map.items():
+                            if full_name in lookup:
+                                lookup = lookup.replace(full_name, f"Manager {abbrev}")
+                                break
+                        display_failed_lookups.append(lookup)
+                    
+                    error_msg += "\n\nPosisi tanpa email:\n" + "\n".join(display_failed_lookups)
                 messagebox.showerror("Email Error", error_msg, parent=self.winfo_toplevel())
                 
         except Exception as e:
@@ -485,7 +580,10 @@ class EditTab(ttk.Frame):
             "Direktur Teknik": "dir_teknik",
             "GM Keuangan & Administrasi": "gm_keu",
             "GM Operasional & Pemeliharaan": "gm_ops",
-            "Manager": "manager"
+            "Manager Pemeliharaan": "manager_pemeliharaan",
+            "Manager Operasional": "manager_operasional",
+            "Manager Administrasi": "manager_administrasi",
+            "Manager Keuangan": "manager_keuangan"
         }
         for label, key in disposisi_map.items():
             data[key] = 1 if label in data.get("Disposisi kepada", "") else 0
@@ -514,7 +612,10 @@ class EditTab(ttk.Frame):
                 ("Direktur Teknik Instruksi", "Direktur Teknik", "Direktur Teknik Tanggal"),
                 ("GM Keuangan & Administrasi Instruksi", "GM Keuangan & Administrasi", "GM Keuangan & Administrasi Tanggal"),
                 ("GM Operasional & Pemeliharaan Instruksi", "GM Operasional & Pemeliharaan", "GM Operasional & Pemeliharaan Tanggal"),
-                ("Manager Instruksi", "Manager", "Manager Tanggal")
+                ("Manager Pemeliharaan Instruksi", "Manager Pemeliharaan", "Manager Pemeliharaan Tanggal"),
+                ("Manager Operasional Instruksi", "Manager Operasional", "Manager Operasional Tanggal"),
+                ("Manager Administrasi Instruksi", "Manager Administrasi", "Manager Administrasi Tanggal"),
+                ("Manager Keuangan Instruksi", "Manager Keuangan", "Manager Keuangan Tanggal")
             ]
             instruksi_from_log = []
             for instr_col, posisi_label, tgl_col in instruksi_jabatan_map:
