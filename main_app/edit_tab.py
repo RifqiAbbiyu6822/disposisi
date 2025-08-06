@@ -698,86 +698,91 @@ class EditTab(ttk.Frame):
 
     def _on_save(self):
         import threading
+        from disposisi_app.views.components.loading_screen import loading_manager, LoadingMessageBox
+        
         def do_save():
-            print("[EditTab] Mulai proses simpan edit.")
-            
-            # Collect form data safely using the improved function
-            from disposisi_app.views.components.export_utils import collect_form_data_safely
             try:
-                data_baru = collect_form_data_safely(self)
-            except Exception as e:
-                print(f"[EditTab][ERROR] Error collecting form data: {e}")
-                messagebox.showerror("Error", f"Gagal mengumpulkan data form: {e}")
-                return
-            
-            # Enhanced validation with null handling
-            def safe_get_value(data, key, default=""):
-                """Safely get value from data dict"""
+                # Show loading screen
+                loading_manager.show_loading(self, "Saving Changes...", True)
+                
+                print("[EditTab] Mulai proses simpan edit.")
+                
+                # Collect form data safely using the improved function
+                from disposisi_app.views.components.export_utils import collect_form_data_safely
                 try:
-                    value = data.get(key, default)
-                    if value is None:
+                    data_baru = collect_form_data_safely(self)
+                except Exception as e:
+                    print(f"[EditTab][ERROR] Error collecting form data: {e}")
+                    LoadingMessageBox.showerror("Error", f"Gagal mengumpulkan data form: {e}", parent=self)
+                    loading_manager.hide_loading()
+                    return
+                
+                # Enhanced validation with null handling
+                def safe_get_value(data, key, default=""):
+                    """Safely get value from data dict"""
+                    try:
+                        value = data.get(key, default)
+                        if value is None:
+                            return default
+                        return str(value).strip() if value != default else default
+                    except:
                         return default
-                    return str(value).strip() if value != default else default
-                except:
-                    return default
-            
-            # FIX: Allow null values for all fields except no_surat
-            # Convert None values to appropriate defaults
-            nullable_fields = [
-                "no_agenda", "perihal", "asal_surat", "ditujukan",
-                "kode_klasifikasi", "indeks", "bicarakan_dengan", 
-                "teruskan_kepada", "tgl_surat", "tgl_terima", "harap_selesai_tgl"
-            ]
-            
-            # Ensure null safety for all fields
-            for field in nullable_fields:
-                if field in data_baru:
-                    if data_baru[field] is None:
-                        data_baru[field] = ""  # Convert None to empty string
-                    else:
-                        data_baru[field] = str(data_baru[field]).strip()
-            
-            print("[EditTab] Data baru yang akan diupdate:", {k: v for k, v in data_baru.items() if k != "isi_instruksi"})
-            if "isi_instruksi" in data_baru:
-                print("[EditTab] Instruksi data:", data_baru["isi_instruksi"])
-
-            # VALIDASI: Hanya No. Surat yang wajib diisi
-            no_surat_baru = safe_get_value(data_baru, "no_surat")
-            if not no_surat_baru:
-                print(f"[EditTab][ERROR] Field 'No. Surat' kosong!")
-                messagebox.showerror("Error", "Field 'No. Surat' tidak boleh kosong!")
-                return
-            
-            # Cek duplikasi No. Surat (kecuali data yang sedang diedit)
-            try:
-                from google_sheets_connect import get_sheets_service, SHEET_ID
-                service = get_sheets_service()
-                range_name = 'Sheet1!A6:B'
-                result = service.spreadsheets().values().get(
-                    spreadsheetId=SHEET_ID,
-                    range=range_name
-                ).execute()
-                values = result.get('values', [])
-                no_surat_lama = safe_get_value(self.data_log, "No. Surat")
                 
-                for row in values:
-                    if len(row) > 1:
-                        no_surat = str(row[1]).strip()
-                        if no_surat and no_surat == no_surat_baru and no_surat != no_surat_lama:
-                            messagebox.showerror("Error", f"No. Surat '{no_surat_baru}' sudah ada di data lain!")
-                            return
-            except Exception as e:
-                print(f"[EditTab][WARNING] Tidak bisa cek duplikasi No. Surat: {e}")
-                # Continue even if duplicate check fails to avoid data loss
-
-            try:
-                from disposisi_app.views.components.loading_screen import LoadingScreen
-                loading = LoadingScreen(self)
+                # FIX: Allow null values for all fields except no_surat
+                # Convert None values to appropriate defaults
+                nullable_fields = [
+                    "no_agenda", "perihal", "asal_surat", "ditujukan",
+                    "kode_klasifikasi", "indeks", "bicarakan_dengan", 
+                    "teruskan_kepada", "tgl_surat", "tgl_terima", "harap_selesai_tgl"
+                ]
                 
+                # Ensure null safety for all fields
+                for field in nullable_fields:
+                    if field in data_baru:
+                        if data_baru[field] is None:
+                            data_baru[field] = ""  # Convert None to empty string
+                        else:
+                            data_baru[field] = str(data_baru[field]).strip()
+                
+                print("[EditTab] Data baru yang akan diupdate:", {k: v for k, v in data_baru.items() if k != "isi_instruksi"})
+                if "isi_instruksi" in data_baru:
+                    print("[EditTab] Instruksi data:", data_baru["isi_instruksi"])
+
+                # VALIDASI: Hanya No. Surat yang wajib diisi
+                no_surat_baru = safe_get_value(data_baru, "no_surat")
+                if not no_surat_baru:
+                    print(f"[EditTab][ERROR] Field 'No. Surat' kosong!")
+                    LoadingMessageBox.showerror("Error", "Field 'No. Surat' tidak boleh kosong!", parent=self)
+                    loading_manager.hide_loading()
+                    return
+                
+                # Cek duplikasi No. Surat (kecuali data yang sedang diedit)
+                try:
+                    from google_sheets_connect import get_sheets_service, SHEET_ID
+                    service = get_sheets_service()
+                    range_name = 'Sheet1!A6:B'
+                    result = service.spreadsheets().values().get(
+                        spreadsheetId=SHEET_ID,
+                        range=range_name
+                    ).execute()
+                    values = result.get('values', [])
+                    no_surat_lama = safe_get_value(self.data_log, "No. Surat")
+                    
+                    for row in values:
+                        if len(row) > 1:
+                            no_surat = str(row[1]).strip()
+                            if no_surat and no_surat == no_surat_baru and no_surat != no_surat_lama:
+                                LoadingMessageBox.showerror("Error", f"No. Surat '{no_surat_baru}' sudah ada di data lain!", parent=self)
+                                loading_manager.hide_loading()
+                                return
+                except Exception as e:
+                    print(f"[EditTab][WARNING] Tidak bisa cek duplikasi No. Surat: {e}")
+                    # Continue even if duplicate check fails to avoid data loss
+
                 # Progress simulation
                 for i in range(1, 101):
                     import time; time.sleep(0.01)
-                    loading.update_progress(i)
+                    loading_manager.update_progress(i)
                 
                 print("[EditTab] Memanggil update_log_entry...")
                 
@@ -787,7 +792,7 @@ class EditTab(ttk.Frame):
                 
                 if success:
                     print("[EditTab] Update berhasil.")
-                    messagebox.showinfo("Sukses", "Data berhasil diupdate.")
+                    LoadingMessageBox.showinfo("Sukses", "Data berhasil diupdate.", parent=self)
                     
                     # Call callback if available
                     if self.on_save_callback:
@@ -795,16 +800,14 @@ class EditTab(ttk.Frame):
                         self.on_save_callback()
                 else:
                     print("[EditTab] Update gagal.")
-                    messagebox.showerror("Error", "Gagal update data ke Google Sheets.")
-                
-                loading.destroy()
+                    LoadingMessageBox.showerror("Error", "Gagal update data ke Google Sheets.", parent=self)
                 
             except Exception as e:
                 import traceback; traceback.print_exc()
                 print(f"[EditTab][ERROR] Gagal update data: {e}")
-                messagebox.showerror("Error", f"Gagal update data: {e}")
-                if 'loading' in locals():
-                    loading.destroy()
+                LoadingMessageBox.showerror("Error", f"Gagal update data: {e}", parent=self)
+            finally:
+                loading_manager.hide_loading()
                     
         # Run in separate thread to avoid blocking UI
         threading.Thread(target=do_save, daemon=True).start()
@@ -822,15 +825,27 @@ class EditTab(ttk.Frame):
         from tkinter import filedialog
         from pdf_output import save_form_to_pdf, merge_pdfs
         import tempfile, os, traceback
+        from disposisi_app.views.components.loading_screen import loading_manager, LoadingMessageBox
+        
         def do_export():
             try:
+                # Show loading screen
+                loading_manager.show_loading(self, "Exporting to PDF...", True)
+                
                 filepath = filedialog.asksaveasfilename(
                     defaultextension=".pdf",
                     filetypes=[("PDF Documents", "*.pdf"), ("All Files", "*.*")],
                     title="Export Edit ke PDF"
                 )
                 if not filepath:
+                    loading_manager.hide_loading()
                     return
+                
+                # Progress simulation
+                for i in range(1, 101):
+                    import time; time.sleep(0.01)
+                    loading_manager.update_progress(i)
+                
                 # Ambil data dari form menggunakan collect_form_data_safely
                 data_baru = collect_form_data_safely(self)
                 
@@ -847,12 +862,14 @@ class EditTab(ttk.Frame):
                     update_log_entry(self.data_log, data_baru)
                 except Exception as e:
                     import traceback; traceback.print_exc()
-                    messagebox.showerror("Google Sheets", f"Gagal upload ke Google Sheets: {e}")
-                messagebox.showinfo("Sukses", f"Data edit berhasil diekspor ke PDF:\n{filepath}")
+                    LoadingMessageBox.showerror("Google Sheets", f"Gagal upload ke Google Sheets: {e}", parent=self)
+                LoadingMessageBox.showinfo("Sukses", f"Data edit berhasil diekspor ke PDF:\n{filepath}", parent=self)
             except Exception as e:
                 traceback.print_exc()
-                messagebox.showerror("Export PDF", f"Gagal ekspor ke PDF: {e}")
-        threading.Thread(target=do_export).start() 
+                LoadingMessageBox.showerror("Export PDF", f"Gagal ekspor ke PDF: {e}", parent=self)
+            finally:
+                loading_manager.hide_loading()
+        threading.Thread(target=do_export, daemon=True).start() 
 
     def _on_tambah_baris(self):
         self.instruksi_table.add_row()

@@ -144,27 +144,28 @@ def collect_form_data_safely(self):
 
 def save_to_pdf(self):
     import threading
-    from tkinter import filedialog, messagebox
+    from tkinter import filedialog
     import time, traceback, os, tempfile
     from pdf_output import save_form_to_pdf, merge_pdfs
     from sheet_logic import upload_to_sheet
-    from disposisi_app.views.components.loading_screen import LoadingScreen
+    from disposisi_app.views.components.loading_screen import loading_manager, LoadingMessageBox
     
     def do_save():
-        loading = None
         try:
-            loading = LoadingScreen(self)
+            # Show loading screen
+            loading_manager.show_loading(self, "Saving to PDF...", True)
+            
+            # Progress simulation
             for i in range(1, 101):
                 time.sleep(0.02)
-                loading.update_progress(i)
+                loading_manager.update_progress(i)
             
             filepath = filedialog.asksaveasfilename(
                 defaultextension=".pdf",
                 filetypes=[("PDF Documents", "*.pdf"), ("All Files", "*.*")]
             )
             if not filepath:
-                if loading and loading.winfo_exists():
-                    loading.destroy()
+                loading_manager.hide_loading()
                 return
             
             # Safely collect form data
@@ -172,9 +173,8 @@ def save_to_pdf(self):
             
             # Validate required fields
             if not str(data.get("no_surat", "")).strip():
-                messagebox.showerror("Validasi", "No. Surat tidak boleh kosong!")
-                if loading and loading.winfo_exists():
-                    loading.destroy()
+                LoadingMessageBox.showerror("Validasi", "No. Surat tidak boleh kosong!", parent=self)
+                loading_manager.hide_loading()
                 return
             
             # Check uniqueness
@@ -182,9 +182,8 @@ def save_to_pdf(self):
                 from disposisi_app.views.components.validation import is_no_surat_unique
                 from google_sheets_connect import get_sheets_service, SHEET_ID
                 if not is_no_surat_unique(data.get("no_surat", ""), get_sheets_service, SHEET_ID):
-                    messagebox.showerror("Validasi", "No. Surat sudah ada di sheet, harus unik!")
-                    if loading and loading.winfo_exists():
-                        loading.destroy()
+                    LoadingMessageBox.showerror("Validasi", "No. Surat sudah ada di sheet, harus unik!", parent=self)
+                    loading_manager.hide_loading()
                     return
             except Exception as e:
                 print(f"[WARNING] Error checking uniqueness: {e}")
@@ -214,12 +213,11 @@ def save_to_pdf(self):
                 upload_to_sheet(self, call_from_pdf=True, data_override=data)
             except Exception as e:
                 traceback.print_exc()
-                messagebox.showerror("Google Sheets", f"Gagal upload ke Google Sheets: {e}")
+                LoadingMessageBox.showerror("Google Sheets", f"Gagal upload ke Google Sheets: {e}", parent=self)
             
             # Clean up and show success
-            if loading and loading.winfo_exists():
-                loading.destroy()
-            messagebox.showinfo("Sukses", f"Formulir disposisi dan lampiran telah disimpan di:\n{filepath}")
+            loading_manager.hide_loading()
+            LoadingMessageBox.showinfo("Sukses", f"Formulir disposisi dan lampiran telah disimpan di:\n{filepath}", parent=self)
             
             # Reset form state
             self.edit_mode = False
@@ -233,35 +231,35 @@ def save_to_pdf(self):
             
         except Exception as e:
             traceback.print_exc()
-            messagebox.showerror("Error", f"Terjadi error: {e}")
-            if loading and loading.winfo_exists():
-                loading.destroy()
+            LoadingMessageBox.showerror("Error", f"Terjadi error: {e}", parent=self)
+        finally:
+            loading_manager.hide_loading()
     
     threading.Thread(target=do_save, daemon=True).start()
 
 def save_to_sheet(self):
     import threading
-    from tkinter import messagebox
     import time, traceback
     from sheet_logic import upload_to_sheet
-    from disposisi_app.views.components.loading_screen import LoadingScreen
+    from disposisi_app.views.components.loading_screen import loading_manager, LoadingMessageBox
     
     def do_save():
-        loading = None
         try:
-            loading = LoadingScreen(self)
+            # Show loading screen
+            loading_manager.show_loading(self, "Saving to Sheet...", True)
+            
+            # Progress simulation
             for i in range(1, 101):
                 time.sleep(0.01)
-                loading.update_progress(i)
+                loading_manager.update_progress(i)
             
             # Safely collect form data
             data = collect_form_data_safely(self)
             
             # Validate required fields
             if not str(data.get("no_surat", "")).strip():
-                messagebox.showerror("Validasi", "No. Surat tidak boleh kosong!")
-                if loading and loading.winfo_exists():
-                    loading.destroy()
+                LoadingMessageBox.showerror("Validasi", "No. Surat tidak boleh kosong!", parent=self)
+                loading_manager.hide_loading()
                 return
             
             # Check uniqueness
@@ -269,28 +267,25 @@ def save_to_sheet(self):
                 from disposisi_app.views.components.validation import is_no_surat_unique
                 from google_sheets_connect import get_sheets_service, SHEET_ID
                 if not is_no_surat_unique(data.get("no_surat", ""), get_sheets_service, SHEET_ID):
-                    messagebox.showerror("Validasi", "No. Surat sudah ada di sheet, harus unik!")
-                    if loading and loading.winfo_exists():
-                        loading.destroy()
+                    LoadingMessageBox.showerror("Validasi", "No. Surat sudah ada di sheet, harus unik!", parent=self)
+                    loading_manager.hide_loading()
                     return
             except Exception as e:
                 print(f"[WARNING] Error checking uniqueness: {e}")
-                messagebox.showerror("Error", f"Error validasi: {e}")
-                if loading and loading.winfo_exists():
-                    loading.destroy()
+                LoadingMessageBox.showerror("Error", f"Error validasi: {e}", parent=self)
+                loading_manager.hide_loading()
                 return
             
             # Upload to sheet
             upload_to_sheet(self, call_from_pdf=False)
             
-            if loading and loading.winfo_exists():
-                loading.destroy()
+            loading_manager.hide_loading()
                 
         except Exception as e:
             traceback.print_exc()
-            messagebox.showerror("Error", f"Terjadi error: {e}")
-            if loading and loading.winfo_exists():
-                loading.destroy()
+            LoadingMessageBox.showerror("Error", f"Terjadi error: {e}", parent=self)
+        finally:
+            loading_manager.hide_loading()
     
     threading.Thread(target=do_save, daemon=True).start()
 

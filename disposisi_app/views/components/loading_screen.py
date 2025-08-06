@@ -1,12 +1,15 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import math
+import threading
+import time
+from functools import wraps
 
 class LoadingScreen(tk.Toplevel):
-    def __init__(self, parent):
+    def __init__(self, parent, title="Processing...", show_progress=True):
         super().__init__(parent)
         self._destroyed = False
-        self.title("Processing...")
+        self.title(title)
         self.geometry("320x180")
         self.resizable(False, False)
         self.transient(parent)
@@ -23,7 +26,7 @@ class LoadingScreen(tk.Toplevel):
         self.grab_set()
         self.update_idletasks()
         self.center_window()
-        self.create_ui()
+        self.create_ui(show_progress)
         self.animate()
 
     def center_window(self):
@@ -32,7 +35,7 @@ class LoadingScreen(tk.Toplevel):
         y = (self.winfo_screenheight() // 2) - (self.winfo_height() // 2)
         self.geometry(f"+{x}+{y}")
 
-    def create_ui(self):
+    def create_ui(self, show_progress=True):
         # Main container with subtle shadow effect
         main_frame = tk.Frame(self, bg="#FFFFFF", relief="flat", bd=0)
         main_frame.pack(fill="both", expand=True, padx=8, pady=8)
@@ -61,20 +64,24 @@ class LoadingScreen(tk.Toplevel):
                                    fg="#374151")
         self.status_label.pack(pady=(0, 16))
         
-        # Minimal progress bar
-        progress_bg = tk.Frame(content, bg="#F3F4F6", height=2)
-        progress_bg.pack(fill="x")
-        
-        self.progress_fill = tk.Frame(progress_bg, bg="#3B82F6", height=2)
-        self.progress_fill.place(x=0, y=0, relheight=1, width=0)
-        
-        # Optional percentage (hidden by default for minimal look)
-        self.percent_label = tk.Label(content,
-                                    text="",
-                                    font=("Segoe UI", 9),
-                                    bg="#FFFFFF",
-                                    fg="#9CA3AF")
-        self.percent_label.pack(pady=(8, 0))
+        if show_progress:
+            # Minimal progress bar
+            progress_bg = tk.Frame(content, bg="#F3F4F6", height=2)
+            progress_bg.pack(fill="x")
+            
+            self.progress_fill = tk.Frame(progress_bg, bg="#3B82F6", height=2)
+            self.progress_fill.place(x=0, y=0, relheight=1, width=0)
+            
+            # Optional percentage (hidden by default for minimal look)
+            self.percent_label = tk.Label(content,
+                                        text="",
+                                        font=("Segoe UI", 9),
+                                        bg="#FFFFFF",
+                                        fg="#9CA3AF")
+            self.percent_label.pack(pady=(8, 0))
+        else:
+            self.progress_fill = None
+            self.percent_label = None
 
     def draw_spinner(self):
         """Draw minimal rotating dots"""
@@ -128,18 +135,19 @@ class LoadingScreen(tk.Toplevel):
             return
             
         # Update progress bar
-        container_width = self.progress_fill.master.winfo_width()
-        if container_width > 1:
-            target_width = int((value / 100) * container_width)
-            self.progress_fill.place(width=target_width)
+        if self.progress_fill:
+            container_width = self.progress_fill.master.winfo_width()
+            if container_width > 1:
+                target_width = int((value / 100) * container_width)
+                self.progress_fill.place(width=target_width)
+            
+            # Show percentage only if needed
+            if value > 0 and self.percent_label:
+                self.percent_label.config(text=f"{value}%")
         
         # Update status
         if status_text:
             self.status_label.config(text=status_text)
-        
-        # Show percentage only if needed
-        if value > 0:
-            self.percent_label.config(text=f"{value}%")
         
         self.update_idletasks()
 
@@ -150,6 +158,227 @@ class LoadingScreen(tk.Toplevel):
             super().destroy()
         except:
             pass
+
+class LoadingManager:
+    """Global loading screen manager"""
+    _instance = None
+    _current_loading = None
+    _loading_count = 0
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(LoadingManager, cls).__new__(cls)
+        return cls._instance
+    
+    def show_loading(self, parent, title="Processing...", show_progress=True):
+        """Show loading screen"""
+        if self._current_loading and self._current_loading.winfo_exists():
+            self._current_loading.destroy()
+        
+        self._current_loading = LoadingScreen(parent, title, show_progress)
+        self._loading_count += 1
+        return self._current_loading
+    
+    def hide_loading(self):
+        """Hide current loading screen"""
+        if self._current_loading and self._current_loading.winfo_exists():
+            self._current_loading.destroy()
+        self._current_loading = None
+    
+    def update_progress(self, value, status_text=None):
+        """Update progress of current loading screen"""
+        if self._current_loading and self._current_loading.winfo_exists():
+            self._current_loading.update_progress(value, status_text)
+
+def with_loading_screen(title="Processing...", show_progress=True):
+    """Decorator to automatically show loading screen during threading operations"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Find parent widget from args
+            parent = None
+            for arg in args:
+                if hasattr(arg, 'winfo_toplevel'):
+                    parent = arg
+                    break
+            
+            if not parent:
+                # Try to find from kwargs
+                for key, value in kwargs.items():
+                    if hasattr(value, 'winfo_toplevel'):
+                        parent = value
+                        break
+            
+            if not parent:
+                return func(*args, **kwargs)
+            
+            loading_manager = LoadingManager()
+            loading = loading_manager.show_loading(parent, title, show_progress)
+            
+            try:
+                result = func(*args, **kwargs)
+                return result
+            finally:
+                loading_manager.hide_loading()
+        
+        return wrapper
+    return decorator
+
+def threaded_with_loading(title="Processing...", show_progress=True):
+    """Decorator to run function in thread with loading screen"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Find parent widget from args
+            parent = None
+            for arg in args:
+                if hasattr(arg, 'winfo_toplevel'):
+                    parent = arg
+                    break
+            
+            if not parent:
+                # Try to find from kwargs
+                for key, value in kwargs.items():
+                    if hasattr(value, 'winfo_toplevel'):
+                        parent = value
+                        break
+            
+            if not parent:
+                # Run without loading screen
+                threading.Thread(target=func, args=args, kwargs=kwargs, daemon=True).start()
+                return
+            
+            loading_manager = LoadingManager()
+            loading = loading_manager.show_loading(parent, title, show_progress)
+            
+            def threaded_func():
+                try:
+                    func(*args, **kwargs)
+                finally:
+                    loading.after(0, loading_manager.hide_loading)
+            
+            threading.Thread(target=threaded_func, daemon=True).start()
+        
+        return wrapper
+    return decorator
+
+# Enhanced messagebox with loading icon
+class LoadingMessageBox:
+    @staticmethod
+    def showinfo(title, message, parent=None, **kwargs):
+        if parent:
+            try:
+                parent.iconbitmap('JapekELEVATED.ico')
+            except:
+                pass
+        return messagebox.showinfo(title, message, parent=parent, **kwargs)
+    
+    @staticmethod
+    def showwarning(title, message, parent=None, **kwargs):
+        if parent:
+            try:
+                parent.iconbitmap('JapekELEVATED.ico')
+            except:
+                pass
+        return messagebox.showwarning(title, message, parent=parent, **kwargs)
+    
+    @staticmethod
+    def showerror(title, message, parent=None, **kwargs):
+        if parent:
+            try:
+                parent.iconbitmap('JapekELEVATED.ico')
+            except:
+                pass
+        return messagebox.showerror(title, message, parent=parent, **kwargs)
+    
+    @staticmethod
+    def askyesno(title, message, parent=None, **kwargs):
+        if parent:
+            try:
+                parent.iconbitmap('JapekELEVATED.ico')
+            except:
+                pass
+        return messagebox.askyesno(title, message, parent=parent, **kwargs)
+    
+    @staticmethod
+    def askokcancel(title, message, parent=None, **kwargs):
+        if parent:
+            try:
+                parent.iconbitmap('JapekELEVATED.ico')
+            except:
+                pass
+        return messagebox.askokcancel(title, message, parent=parent, **kwargs)
+
+# Global loading manager instance
+loading_manager = LoadingManager()
+
+# Utility function to replace messagebox calls
+def replace_messagebox_calls():
+    """Replace all messagebox calls with LoadingMessageBox calls"""
+    import re
+    
+    # Files to update
+    files_to_update = [
+        'disposisi_app/views/components/email_manager.py',
+        'disposisi_app/views/components/email_error_handler.py',
+        'disposisi_app/views/components/finish_dialog.py',
+        'disposisi_app/views/components/form_utils.py',
+        'disposisi_app/views/components/dialogs.py',
+        'disposisi_app/views/components/button_frame.py',
+        'admin/main.py',
+        'coba.py',
+        'pdf_output.py'
+    ]
+    
+    for file_path in files_to_update:
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Replace messagebox imports
+            content = re.sub(
+                r'from tkinter import messagebox',
+                'from disposisi_app.views.components.loading_screen import LoadingMessageBox',
+                content
+            )
+            content = re.sub(
+                r'import messagebox',
+                'from disposisi_app.views.components.loading_screen import LoadingMessageBox',
+                content
+            )
+            
+            # Replace messagebox calls
+            content = re.sub(
+                r'messagebox\.showinfo\(([^)]+)\)',
+                r'LoadingMessageBox.showinfo(\1, parent=self)',
+                content
+            )
+            content = re.sub(
+                r'messagebox\.showwarning\(([^)]+)\)',
+                r'LoadingMessageBox.showwarning(\1, parent=self)',
+                content
+            )
+            content = re.sub(
+                r'messagebox\.showerror\(([^)]+)\)',
+                r'LoadingMessageBox.showerror(\1, parent=self)',
+                content
+            )
+            content = re.sub(
+                r'messagebox\.askyesno\(([^)]+)\)',
+                r'LoadingMessageBox.askyesno(\1, parent=self)',
+                content
+            )
+            content = re.sub(
+                r'messagebox\.askokcancel\(([^)]+)\)',
+                r'LoadingMessageBox.askokcancel(\1, parent=self)',
+                content
+            )
+            
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+                
+        except Exception as e:
+            print(f"Error updating {file_path}: {e}")
 
 # Example usage
 if __name__ == "__main__":

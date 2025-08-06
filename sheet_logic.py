@@ -400,14 +400,15 @@ def upload_to_sheet(self, call_from_pdf=False, data_override=None):
         # VALIDASI: Hanya No. Surat yang wajib diisi
         no_surat = safe_get_value(data, "no_surat")
         if not no_surat:
-            messagebox.showerror("Validasi", "No. Surat wajib diisi!")
+            from disposisi_app.views.components.loading_screen import LoadingMessageBox
+            LoadingMessageBox.showerror("Validasi", "No. Surat wajib diisi!", parent=self)
             return False
         
         # Cek duplikasi No. Surat dengan error handling
         try:
             from disposisi_app.views.components.validation import is_no_surat_unique
             if not is_no_surat_unique(no_surat, get_sheets_service, SHEET_ID):
-                messagebox.showerror("Validasi", f"No. Surat '{no_surat}' sudah ada di database!")
+                LoadingMessageBox.showerror("Validasi", f"No. Surat '{no_surat}' sudah ada di database!", parent=self)
                 return False
         except Exception as e:
             print(f"[WARNING] Error checking uniqueness: {e}")
@@ -441,7 +442,8 @@ def upload_to_sheet(self, call_from_pdf=False, data_override=None):
         append_row_to_sheet(row_data, range_name=f'{sheet_name}!A6')
         
         if not call_from_pdf:
-            messagebox.showinfo("Sukses", "Data berhasil diupload ke Google Sheets.")
+            from disposisi_app.views.components.loading_screen import LoadingMessageBox
+            LoadingMessageBox.showinfo("Sukses", "Data berhasil diupload ke Google Sheets.", parent=self)
         
         return True
             
@@ -449,7 +451,8 @@ def upload_to_sheet(self, call_from_pdf=False, data_override=None):
         traceback.print_exc()
         error_msg = f"Gagal upload ke Google Sheets: {e}"
         print(f"[ERROR] {error_msg}")
-        messagebox.showerror("Google Sheets", error_msg)
+        from disposisi_app.views.components.loading_screen import LoadingMessageBox
+        LoadingMessageBox.showerror("Google Sheets", error_msg, parent=self)
         return False
 
 def update_log_entry(data_lama, data_baru):

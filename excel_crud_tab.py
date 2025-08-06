@@ -411,8 +411,8 @@ class LogTab(ttk.Frame):
 
     def load_sheet_data(self, force_refresh=False):
         import threading
-        from disposisi_app.views.components.loading_screen import LoadingScreen
-        def do_load(loading):
+        from disposisi_app.views.components.loading_screen import loading_manager, LoadingMessageBox
+        def do_load():
             try:
                 update_status(self.status_label, "Loading data...")
                 use_cache = (not force_refresh and LogTab._log_cache is not None and (time.time() - LogTab._last_cache_time) < LogTab._cache_ttl)
@@ -513,18 +513,19 @@ class LogTab(ttk.Frame):
                 self.month_combo['values'] = [''] + bulan_list
                 if truncated:
                     update_status(self.status_label, f"Loaded {len(self.data)} records (truncated)")
-                    messagebox.showwarning("Load Log", f"Data log terlalu besar, hanya {MAX_ROWS} baris pertama yang dimuat.")
+                    LoadingMessageBox.showwarning("Load Log", f"Data log terlalu besar, hanya {MAX_ROWS} baris pertama yang dimuat.", parent=self)
                 else:
                     update_status(self.status_label, f"Loaded {len(self.data)} records")
-                    messagebox.showinfo("Load Log", f"Berhasil memuat {len(self.data)} data dari Google Sheets.")
+                    LoadingMessageBox.showinfo("Load Log", f"Berhasil memuat {len(self.data)} data dari Google Sheets.", parent=self)
             except Exception as e:
                 import traceback; traceback.print_exc()
                 update_status(self.status_label, "Error loading data")
-                messagebox.showerror("Load Log", f"Gagal memuat data: {e}")
+                LoadingMessageBox.showerror("Load Log", f"Gagal memuat data: {e}", parent=self)
             finally:
-                loading.after(0, loading.destroy)
-        loading = LoadingScreen(self)
-        threading.Thread(target=lambda: do_load(loading)).start()
+                loading_manager.hide_loading()
+        
+        loading_manager.show_loading(self, "Loading Data...", True)
+        threading.Thread(target=do_load, daemon=True).start()
 
     def refresh_log_data(self, force_refresh=False):
         """Refresh hanya data log, tanpa me-refresh sheet lain."""
@@ -716,12 +717,13 @@ class LogTab(ttk.Frame):
             self.on_edit_log(data)
 
     def edit_selected(self):
+        from disposisi_app.views.components.loading_screen import LoadingMessageBox
         selected = self.tree.selection()
         if not selected or len(selected) == 0:
-            messagebox.showwarning("Edit Log", "Pilih data yang ingin diedit.")
+            LoadingMessageBox.showwarning("Edit Log", "Pilih data yang ingin diedit.", parent=self)
             return
         if len(selected) > 1:
-            messagebox.showwarning("Edit Log", "Pilih salah satu data saja untuk edit.")
+            LoadingMessageBox.showwarning("Edit Log", "Pilih salah satu data saja untuk edit.", parent=self)
             return
         values = self.tree.item(selected[0], "values")
         data = {col: values[i] for i, col in enumerate(ENHANCED_HEADER)}
@@ -729,12 +731,13 @@ class LogTab(ttk.Frame):
             self.on_edit_log(data)
 
     def delete_selected(self):
+        from disposisi_app.views.components.loading_screen import LoadingMessageBox
         selected = self.tree.selection()
         if not selected:
-            messagebox.showwarning("Hapus Log", "Pilih data yang ingin dihapus.")
+            LoadingMessageBox.showwarning("Hapus Log", "Pilih data yang ingin dihapus.", parent=self)
             return
         # Confirm deletion
-        if not messagebox.askyesno("Confirm Delete", f"Yakin ingin menghapus {len(selected)} data terpilih?"):
+        if not LoadingMessageBox.askyesno("Confirm Delete", f"Yakin ingin menghapus {len(selected)} data terpilih?", parent=self):
             return
         # Ambil semua index baris yang dipilih (urutan dari bawah agar tidak bergeser saat hapus)
         idxs = sorted([self.tree.index(item) for item in selected], reverse=True)
@@ -760,12 +763,12 @@ class LogTab(ttk.Frame):
                 body={'requests': requests}
             ).execute()
             update_status(self.status_label, "Record(s) deleted successfully", self)
-            messagebox.showinfo("Hapus Log", f"{len(selected)} data berhasil dihapus dari Google Sheets.")
+            LoadingMessageBox.showinfo("Hapus Log", f"{len(selected)} data berhasil dihapus dari Google Sheets.", parent=self)
             self.refresh_log_data(force_refresh=True)  # Selalu refresh tanpa cache
         except Exception as e:
             import traceback; traceback.print_exc()
             update_status(self.status_label, "Error deleting record(s)", self)
-            messagebox.showerror("Hapus Log", f"Gagal menghapus data: {e}")
+            LoadingMessageBox.showerror("Hapus Log", f"Gagal menghapus data: {e}", parent=self)
 
     def export_excel(self):
         """Export filtered data to Excel with multi-layer header and filter info (centered)."""
