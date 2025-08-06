@@ -752,7 +752,7 @@ class FormApp(tk.Tk):
             if not email_sender.sheets_service:
                 error_msg = ("Google Sheets tidak dapat diakses.\n\n"
                             "Pastikan:\n"
-                            "1. File admin/credentials.json tersedia\n"
+                            "1. File credentials/credentials.json tersedia\n"
                             "2. Sheet admin dengan email sudah dibuat\n"
                             "3. ID sheet admin benar di config.py")
                 messagebox.showerror("Email Configuration Error", error_msg)
@@ -1015,7 +1015,7 @@ def test_admin_sheet_connection():
         if not email_sender.sheets_service:
             print("❌ ERROR: Google Sheets service not initialized")
             print("Check:")
-            print("1. admin/credentials.json file exists")
+            print("1. credentials/credentials.json file exists")
             print("2. Credentials have proper permissions")
             print("3. Internet connection available")
             return False

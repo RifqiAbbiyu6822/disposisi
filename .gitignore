@@ -4,6 +4,6 @@ Test.rar
 dist/
 build/
 Test.rar
-admin/credentials.json
+credentials/credentials.json
 dist/credentials.json
 credentials.json

@@ -45,7 +45,7 @@ class InstruksiTable:
         for widget in self.frame.winfo_children():
             widget.destroy()
         root = self.frame.winfo_toplevel()
-        header_font = getattr(root, 'header_font', ("Segoe UI", 12, "bold"))
+        header_font = ("Segoe UI", 12, "bold")
         ttk.Label(self.frame, text="Hapus", font=header_font).grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
         ttk.Label(self.frame, text="Posisi", font=header_font).grid(row=0, column=1, padx=2, pady=2, sticky="nsew")
         ttk.Label(self.frame, text="Isi Instruksi", font=header_font).grid(row=0, column=2, padx=2, pady=2, sticky="nsew")
@@ -56,7 +56,7 @@ class InstruksiTable:
             delete_cb.grid(row=i+1, column=0, padx=2, pady=2, sticky="nsew")
             other_selected = set(r.get("posisi", "") for j, r in enumerate(self.data) if j != i and r.get("posisi", ""))
             available_options = [p for p in self.posisi_options if p not in other_selected or p == row.get("posisi", "")]
-            posisi_cb = ttk.Combobox(self.frame, values=available_options, font=getattr(root, 'combobox_font', ("Segoe UI", 11)))
+            posisi_cb = ttk.Combobox(self.frame, values=available_options, font=("Segoe UI", 11))
             posisi_cb.set(row.get("posisi", available_options[0] if available_options else ""))
             posisi_cb.grid(row=i+1, column=1, padx=2, pady=2, sticky="nsew")
             posisi_cb['state'] = 'normal'
@@ -70,7 +70,7 @@ class InstruksiTable:
                 self.data[idx]["posisi"] = cb.get()
                 self.render_table()
             posisi_cb.bind('<<ComboboxSelected>>', on_posisi_change)
-            instruksi_text = Text(self.frame, height=2, width=35, wrap="word", font=getattr(root, 'text_font', ("Segoe UI", 13)), borderwidth=1, relief="solid", highlightthickness=0, bg=getattr(root, 'text_bg', '#ffffff'), fg=getattr(root, 'text_fg', '#1e293b'))
+            instruksi_text = Text(self.frame, height=2, width=35, wrap="word", font=("Segoe UI", 13), borderwidth=1, relief="solid", highlightthickness=0, bg='#ffffff', fg='#1e293b')
             instruksi_text.grid(row=i+1, column=2, padx=2, pady=2, sticky="new")
             if row.get("instruksi", ""): instruksi_text.insert("1.0", row["instruksi"])
             self.attach_tooltip(instruksi_text, "Isi instruksi maksimal 200 karakter")
@@ -80,7 +80,7 @@ class InstruksiTable:
                     txt.delete("1.0", tk.END)
                     txt.insert("1.0", val[:200])
             instruksi_text.bind('<KeyRelease>', limit_instruksi)
-            tanggal_entry = DateEntry(self.frame, width=18, date_pattern="dd-mm-yyyy", font=getattr(root, 'dateentry_font', ("Segoe UI", 13)))
+            tanggal_entry = DateEntry(self.frame, width=18, date_pattern="dd-mm-yyyy", font=("Segoe UI", 13))
             tanggal_entry.grid(row=i+1, column=3, padx=2, pady=2, sticky="new")
             self.attach_tooltip(tanggal_entry, "Tanggal instruksi diberikan atau deadline")
             # Improved date handling
@@ -110,7 +110,7 @@ class InstruksiTable:
             # Highlight baris aktif
             def on_focus_in(event, row_idx=i):
                 for j, wdict in enumerate(self.row_widgets):
-                    bg = getattr(root, 'active_row_bg', '#e0f7fa') if j == row_idx else getattr(root, 'inactive_row_bg', '#ffffff')
+                    bg = '#e0f7fa' if j == row_idx else '#ffffff'
                     wdict["posisi_cb"].configure(background=bg)
                     wdict["instruksi_text"].configure(bg=bg)
                     wdict["tanggal_entry"].configure(background=bg)
@@ -181,7 +181,7 @@ class InstruksiTable:
             self.tooltip = tk.Toplevel(widget)
             self.tooltip.wm_overrideredirect(True)
             self.tooltip.wm_geometry(f"+{x}+{y}")
-            label = tk.Label(self.tooltip, text=text, background=getattr(root, 'tooltip_bg', '#ffffe0'), relief="solid", borderwidth=1, font=getattr(root, 'tooltip_font', ("Segoe UI", 9)))
+            label = tk.Label(self.tooltip, text=text, background='#ffffe0', relief="solid", borderwidth=1, font=("Segoe UI", 9))
             label.pack(ipadx=4, ipady=2)
         def on_leave(event):
             if hasattr(self, 'tooltip') and self.tooltip:

@@ -17,7 +17,7 @@ def test_email_reading():
     if not email_sender.sheets_service:
         print("ERROR: Could not initialize Google Sheets service!")
         print("Please check:")
-        print("1. credentials.json file exists in admin/ directory")
+        print("1. credentials.json file exists in credentials/ directory")
         print("2. The file has proper permissions")
         return
     

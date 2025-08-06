@@ -47,13 +47,13 @@ class EmailSender:
         try:
             # FIX: Use absolute path for credentials
             current_dir = Path(__file__).parent.parent
-            credentials_path = current_dir / 'admin' / 'credentials.json'
+            credentials_path = current_dir / 'credentials' / 'credentials.json'
             
             if not credentials_path.exists():
                 # Try alternative paths
                 alt_paths = [
                     current_dir / 'credentials.json',
-                    Path('admin/credentials.json'),
+                    Path('credentials/credentials.json'),
                     Path('credentials.json')
                 ]
                 
@@ -63,7 +63,7 @@ class EmailSender:
                         break
                 else:
                     print(f"Error: No credentials.json found. Tried paths:")
-                    print(f"  - {current_dir / 'admin' / 'credentials.json'}")
+                    print(f"  - {current_dir / 'credentials' / 'credentials.json'}")
                     for alt_path in alt_paths:
                         print(f"  - {alt_path}")
                     return None
@@ -99,7 +99,7 @@ class EmailSender:
     def get_recipient_email(self, position):
         """Fetch email address from admin spreadsheet based on position"""
         if not self.sheets_service:
-            return None, "Google Sheets service not available. Check credentials.json file."
+            return None, "Google Sheets service not available. Check credentials/credentials.json file."
         
         # Get the cell reference for this position
         cell_ref = self.position_cell_mapping.get(position)

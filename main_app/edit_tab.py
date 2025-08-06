@@ -64,7 +64,7 @@ class EditTab(ttk.Frame):
         root = self.winfo_toplevel()
         
         # Main scrollable container
-        self.canvas = tk.Canvas(self, borderwidth=0, highlightthickness=0, bg=getattr(root, 'canvas_bg', '#f8fafc'))
+        self.canvas = tk.Canvas(self, borderwidth=0, highlightthickness=0, bg='#f8fafc')
         self.v_scroll = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
         self.h_scroll = ttk.Scrollbar(self, orient="horizontal", command=self.canvas.xview)
         

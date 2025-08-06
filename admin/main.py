@@ -311,7 +311,7 @@ class EmailManagerApp:
             self.logged_in = True
             self.sheet = self.init_google_sheets()
             if self.sheet is None:
-                messagebox.showerror("Error", "Tidak dapat terhubung ke Google Sheets.\nPastikan credentials.json tersedia dan valid.")
+                messagebox.showerror("Error", "Tidak dapat terhubung ke Google Sheets.\nPastikan credentials/credentials.json tersedia dan valid.")
                 return
             self.show_dashboard()
         else:
@@ -1226,12 +1226,12 @@ class EmailManagerApp:
     def init_google_sheets(self):
         """Initialize Google Sheets connection"""
         try:
-            gc = gspread.service_account(filename='credentials.json')
+            gc = gspread.service_account(filename='credentials/credentials.json')
             sheet_url = "https://docs.google.com/spreadsheets/d/1LoAzVPBMJo08uPHR7MdzGEXmaoFXMrTSKS0vl099qrU/edit?gid=0#gid=0"
             sheet = gc.open_by_url(sheet_url).sheet1
             return sheet
         except FileNotFoundError:
-            print("Error: credentials.json not found")
+            print("Error: credentials/credentials.json not found")
             return None
         except Exception as e:
             print(f"Error connecting to Google Sheets: {str(e)}")

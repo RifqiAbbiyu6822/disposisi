@@ -6,7 +6,7 @@ from googleapiclient.discovery import build
 
 logging.basicConfig(level=logging.WARNING)
 # Path ke credentials.json
-CREDENTIALS_FILE = 'credentials.json'
+CREDENTIALS_FILE = 'credentials/credentials.json'
 # Sheet ID yang diberikan
 SHEET_ID = '13-EgGz8JYYQ7FLQeCcVyPEXwYFruSGyz8KxPXrJlB7c'
 
