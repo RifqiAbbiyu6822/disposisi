@@ -10,19 +10,19 @@ from tkinter import font as tkFont
 
 class EmailManagerApp:
     def __init__(self):
-        """Initialize the Email Manager Application"""
+        """Initialize the Enhanced Email Manager Application with Senior Officer support"""
         self.root = tk.Tk()
-        self.root.title("Email Manager Dashboard")
-        self.root.geometry("1200x800")
+        self.root.title("Email Manager Dashboard - Enhanced")
+        self.root.geometry("1400x900")  # Increased size for senior officers
         self.root.configure(bg='#f0f0f0')
-        self.root.minsize(800, 600)
+        self.root.minsize(1000, 700)
         
         # Initialize variables
         self.logged_in = False
         self.sheet = None
         self.admin_password_hash = self.hash_password("admin123")  # Default password
         
-        # Define positions
+        # ENHANCED: Define positions including senior officers
         self.positions = [
             "Direktur Utama",
             "Direktur Keuangan", 
@@ -32,7 +32,16 @@ class EmailManagerApp:
             "Manager Pemeliharaan",
             "Manager Operasional",
             "Manager Administrasi",
-            "Manager Keuangan"
+            "Manager Keuangan",
+            # ENHANCED: Senior Officers
+            "Senior Officer Pemeliharaan 1",
+            "Senior Officer Pemeliharaan 2",
+            "Senior Officer Operasional 1",
+            "Senior Officer Operasional 2",
+            "Senior Officer Administrasi 1",
+            "Senior Officer Administrasi 2",
+            "Senior Officer Keuangan 1",
+            "Senior Officer Keuangan 2"
         ]
         
         # Setup UI
@@ -52,12 +61,13 @@ class EmailManagerApp:
             'warning': '#f39c12',
             'light': '#ecf0f1',
             'dark': '#34495e',
-            'white': '#ffffff'
+            'white': '#ffffff',
+            'senior_officer': '#9b59b6'  # ENHANCED: Special color for senior officers
         }
         self.style = ttk.Style()        
         self.style.theme_use('clam')
         
-        # Configure styles
+        # Configure styles (keeping existing styles)
         self.style.configure('Title.TLabel', 
                            font=('Arial', 24, 'bold'), 
                            background='#f0f0f0', 
@@ -67,6 +77,12 @@ class EmailManagerApp:
                            font=('Arial', 14, 'bold'), 
                            background='#f0f0f0', 
                            foreground=self.colors['dark'])
+        
+        # ENHANCED: Senior Officer specific style
+        self.style.configure('SeniorOfficer.TLabel',
+                           font=('Arial', 12, 'bold'),
+                           background='#f0f0f0',
+                           foreground=self.colors['senior_officer'])
         
         self.style.configure('Info.TLabel', 
                            font=('Arial', 11), 
@@ -109,8 +125,8 @@ class EmailManagerApp:
         self.content_frame = tk.Frame(self.root, bg='#f0f0f0')
         self.content_frame.pack(fill='both', expand=True, padx=20, pady=20)
         
-    def create_header(self, title="Email Manager Dashboard"):
-        """Create header with title"""
+    def create_header(self, title="Email Manager Dashboard - Enhanced"):
+        """Create header with enhanced title"""
         for widget in self.header_frame.winfo_children():
             widget.destroy()
             
@@ -125,20 +141,29 @@ class EmailManagerApp:
                               fg='white')
         title_label.pack(side='left', padx=20, pady=20)
         
-        # Right side - User actions
+        # Right side - Enhanced user actions
         if self.logged_in:
             right_frame = tk.Frame(self.header_frame, bg=self.colors['primary'])
             right_frame.pack(side='right', fill='y')
             
-            # Status indicator
+            # Enhanced status indicator
             status_label = tk.Label(right_frame,
-                                  text="● Connected",
+                                  text="● Connected (Enhanced)",
                                   font=('Arial', 10),
                                   bg=self.colors['primary'],
                                   fg=self.colors['success'])
             status_label.pack(side='right', padx=(0, 10), pady=25)
             
-            # Logout button with hover effect
+            # Position count indicator
+            total_positions = len(self.positions)
+            count_label = tk.Label(right_frame,
+                                 text=f"📊 {total_positions} Positions",
+                                 font=('Arial', 10),
+                                 bg=self.colors['primary'],
+                                 fg='white')
+            count_label.pack(side='right', padx=(0, 15), pady=25)
+            
+            # Logout button
             logout_btn = tk.Button(right_frame,
                                  text="🚪 Logout",
                                  font=('Arial', 10, 'bold'),
@@ -151,18 +176,9 @@ class EmailManagerApp:
                                  relief='flat',
                                  command=self.logout)
             logout_btn.pack(side='right', padx=20, pady=20)
-            
-            # Add hover effects
-            def on_enter(e):
-                logout_btn.config(bg='#c0392b')
-            def on_leave(e):
-                logout_btn.config(bg=self.colors['danger'])
-            
-            logout_btn.bind("<Enter>", on_enter)
-            logout_btn.bind("<Leave>", on_leave)
-        
+    
     def create_navigation(self):
-        """Create navigation bar"""
+        """Create enhanced navigation bar"""
         for widget in self.nav_frame.winfo_children():
             widget.destroy()
             
@@ -172,6 +188,7 @@ class EmailManagerApp:
         nav_buttons = [
             ("📊 Dashboard", self.show_dashboard, 'dashboard'),
             ("📧 Kelola Email", self.show_email_management, 'email'),
+            ("👨‍💼 Senior Officers", self.show_senior_officers, 'senior'),  # ENHANCED
             ("🔒 Ganti Password", self.show_change_password, 'password')
         ]
         
@@ -327,8 +344,8 @@ class EmailManagerApp:
             self.show_login()
         
     def show_dashboard(self):
-        """Show main dashboard"""
-        self.create_header("Dashboard Overview")
+        """ENHANCED: Show main dashboard with senior officer statistics"""
+        self.create_header("Dashboard Overview - Enhanced")
         self.nav_frame.pack(fill='x', side='top', after=self.header_frame)
         self.create_navigation()
         self.set_active_nav('dashboard')
@@ -342,7 +359,7 @@ class EmailManagerApp:
         stats_container.pack(fill='x', pady=(0, 20))
         
         if df.empty:
-            # Initialize data if empty
+            # Initialize data if empty - ENHANCED with senior officers
             df = pd.DataFrame({
                 'posisi': self.positions,
                 'email': [''] * len(self.positions),
@@ -355,110 +372,190 @@ class EmailManagerApp:
         empty_emails = total_positions - filled_emails
         completion_rate = (filled_emails / total_positions * 100) if total_positions > 0 else 0
         
-        # Create stat cards with improved design
+        # ENHANCED: Separate statistics for different position types
+        manager_positions = len([pos for pos in self.positions if pos.startswith("Manager")])
+        senior_officer_positions = len([pos for pos in self.positions if pos.startswith("Senior Officer")])
+        director_gm_positions = total_positions - manager_positions - senior_officer_positions
+        
+        # Create stat cards with enhanced design
         self.create_stat_card(stats_container, "Total Posisi", str(total_positions), self.colors['primary'], "👥", 0)
         self.create_stat_card(stats_container, "Email Tersedia", str(filled_emails), self.colors['success'], "✅", 1)
         self.create_stat_card(stats_container, "Email Kosong", str(empty_emails), self.colors['warning'], "❗", 2)
         self.create_stat_card(stats_container, "Tingkat Kelengkapan", f"{completion_rate:.1f}%", self.colors['secondary'], "📊", 3)
         
-        # Data table with improved design
+        # ENHANCED: Additional stats row for position breakdown
+        stats_container2 = tk.Frame(self.content_frame, bg='#f0f0f0')
+        stats_container2.pack(fill='x', pady=(0, 20))
+        
+        self.create_stat_card(stats_container2, "Directors & GM", str(director_gm_positions), self.colors['primary'], "🏢", 0)
+        self.create_stat_card(stats_container2, "Managers", str(manager_positions), self.colors['secondary'], "👔", 1)
+        self.create_stat_card(stats_container2, "Senior Officers", str(senior_officer_positions), self.colors['senior_officer'], "👨‍💼", 2)
+        self.create_stat_card(stats_container2, "Avg per Manager", "2", self.colors['dark'], "📈", 3)
+        
+        # ENHANCED: Data table with grouping and improved design
+        self._create_enhanced_table(df)
+    
+    def _create_enhanced_table(self, df):
+        """ENHANCED: Create data table with position grouping"""
         table_frame = tk.Frame(self.content_frame, bg='white', relief='solid', borderwidth=1)
         table_frame.pack(fill='both', expand=True, pady=(20, 0))
         
-        # Table header with search functionality
+        # Table header with enhanced functionality
         header_frame = tk.Frame(table_frame, bg='white')
         header_frame.pack(fill='x', padx=20, pady=15)
         
         tk.Label(header_frame,
-                text="📋 Data Email Posisi",
+                text="📋 Data Email Posisi (Enhanced)",
                 font=('Arial', 16, 'bold'),
                 bg='white',
                 fg=self.colors['primary']).pack(side='left')
         
-        # Search functionality
+        # Enhanced search functionality
         search_frame = tk.Frame(header_frame, bg='white')
         search_frame.pack(side='right')
+        
+        # Filter dropdown
+        tk.Label(search_frame, text="Filter:", font=('Arial', 10), bg='white').pack(side='left', padx=(0, 5))
+        self.filter_var = tk.StringVar()
+        filter_combo = ttk.Combobox(search_frame, textvariable=self.filter_var, width=15,
+                                   values=["Semua", "Directors & GM", "Managers", "Senior Officers", "Email Kosong", "Email Tersedia"])
+        filter_combo.set("Semua")
+        filter_combo.pack(side='left', padx=(0, 10))
+        filter_combo.bind('<<ComboboxSelected>>', lambda e: self._filter_table(df))
         
         tk.Label(search_frame, text="🔍 Cari:", font=('Arial', 10), bg='white').pack(side='left', padx=(0, 5))
         search_var = tk.StringVar()
         search_entry = tk.Entry(search_frame, textvariable=search_var, font=('Arial', 10), width=20)
         search_entry.pack(side='left')
+        search_var.trace('w', lambda *args: self._search_table(df, search_var.get()))
         
-        # Treeview with improved styling
-        tree_frame = tk.Frame(table_frame, bg='white')
-        tree_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+        # Notebook for tabbed view
+        notebook = ttk.Notebook(table_frame)
+        notebook.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+        
+        # All positions tab
+        all_tab = ttk.Frame(notebook)
+        notebook.add(all_tab, text="Semua Posisi")
+        self._create_position_tree(all_tab, df, self.positions)
+        
+        # Directors & GM tab
+        directors_tab = ttk.Frame(notebook)
+        notebook.add(directors_tab, text="Directors & GM")
+        director_positions = [pos for pos in self.positions if not pos.startswith("Manager") and not pos.startswith("Senior Officer")]
+        self._create_position_tree(directors_tab, df, director_positions)
+        
+        # Managers tab
+        managers_tab = ttk.Frame(notebook)
+        notebook.add(managers_tab, text="Managers")
+        manager_positions = [pos for pos in self.positions if pos.startswith("Manager")]
+        self._create_position_tree(managers_tab, df, manager_positions)
+        
+        # Senior Officers tab
+        senior_tab = ttk.Frame(notebook)
+        notebook.add(senior_tab, text="Senior Officers")
+        senior_positions = [pos for pos in self.positions if pos.startswith("Senior Officer")]
+        self._create_position_tree(senior_tab, df, senior_positions, highlight_senior=True)
+    
+    def _create_position_tree(self, parent, df, positions, highlight_senior=False):
+        """Create treeview for specific position group"""
+        tree_frame = tk.Frame(parent, bg='white')
+        tree_frame.pack(fill='both', expand=True)
         
         # Scrollbars
         v_scrollbar = ttk.Scrollbar(tree_frame, orient='vertical')
         h_scrollbar = ttk.Scrollbar(tree_frame, orient='horizontal')
         
-        self.tree = ttk.Treeview(tree_frame, 
-                               columns=list(df.columns),
-                               show="headings",
-                               yscrollcommand=v_scrollbar.set,
-                               xscrollcommand=h_scrollbar.set)
+        tree = ttk.Treeview(tree_frame, 
+                           columns=('posisi', 'email', 'last_updated', 'status'),
+                           show="headings",
+                           yscrollcommand=v_scrollbar.set,
+                           xscrollcommand=h_scrollbar.set)
         
-        v_scrollbar.config(command=self.tree.yview)
-        h_scrollbar.config(command=self.tree.xview)
+        v_scrollbar.config(command=tree.yview)
+        h_scrollbar.config(command=tree.xview)
         
-        # Configure columns with better formatting
-        for col in df.columns:
-            display_name = {
-                'posisi': 'POSISI',
-                'email': 'EMAIL',
-                'last_updated': 'TERAKHIR DIUPDATE'
-            }.get(col, col.upper())
+        # Configure columns
+        tree.heading('posisi', text='POSISI')
+        tree.heading('email', text='EMAIL')
+        tree.heading('last_updated', text='TERAKHIR DIUPDATE')
+        tree.heading('status', text='STATUS')
+        
+        tree.column('posisi', width=250, anchor='w')
+        tree.column('email', width=300, anchor='w')
+        tree.column('last_updated', width=150, anchor='center')
+        tree.column('status', width=120, anchor='center')
+        
+        # Insert data for specified positions
+        for i, position in enumerate(positions):
+            # Find data for this position
+            position_data = df[df['posisi'] == position] if not df.empty else None
             
-            self.tree.heading(col, text=display_name)
-            if col == 'email':
-                self.tree.column(col, width=250, anchor='w')
-            elif col == 'posisi':
-                self.tree.column(col, width=200, anchor='w')
+            if position_data is not None and not position_data.empty:
+                row_data = position_data.iloc[0]
+                email_val = row_data['email'] if pd.notna(row_data['email']) and row_data['email'] != '' else '-'
+                updated_val = row_data['last_updated'] if pd.notna(row_data['last_updated']) and row_data['last_updated'] != '' else '-'
             else:
-                self.tree.column(col, width=150, anchor='center')
-        
-        # Insert data with alternating colors
-        for i, (_, row) in enumerate(df.iterrows()):
-            values = []
-            for val in row:
-                if pd.isna(val) or val == '':
-                    values.append('-')
-                else:
-                    values.append(str(val))
+                email_val = '-'
+                updated_val = '-'
             
-            tags = ('evenrow',) if i % 2 == 0 else ('oddrow',)
-            self.tree.insert("", "end", values=values, tags=tags)
+            status = "✅ Lengkap" if email_val != '-' else "❌ Kosong"
+            
+            # ENHANCED: Different colors for senior officers
+            if highlight_senior and position.startswith("Senior Officer"):
+                tags = ('senior_officer',)
+            elif email_val != '-':
+                tags = ('filled',)
+            else:
+                tags = ('empty',)
+            
+            if i % 2 == 0:
+                tags = tags + ('evenrow',)
+            else:
+                tags = tags + ('oddrow',)
+            
+            tree.insert("", "end", values=(
+                position,
+                email_val,
+                updated_val,
+                status
+            ), tags=tags)
         
         # Configure row colors
-        self.tree.tag_configure('evenrow', background='#f8f9fa')
-        self.tree.tag_configure('oddrow', background='white')
+        tree.tag_configure('evenrow', background='#f8f9fa')
+        tree.tag_configure('oddrow', background='white')
+        tree.tag_configure('filled', foreground='#27ae60')
+        tree.tag_configure('empty', foreground='#e74c3c')
+        tree.tag_configure('senior_officer', foreground='#9b59b6', font=('Arial', 10, 'bold'))  # ENHANCED
+        
+        # Bind double click
+        tree.bind('<Double-1>', lambda e: self._on_tree_double_click(e, tree))
         
         # Pack scrollbars and treeview
         v_scrollbar.pack(side='right', fill='y')
         h_scrollbar.pack(side='bottom', fill='x')
-        self.tree.pack(fill='both', expand=True)
-        
-        # Search functionality
-        def filter_data(*args):
-            search_term = search_var.get().lower()
-            for item in self.tree.get_children():
-                self.tree.delete(item)
-            
-            for i, (_, row) in enumerate(df.iterrows()):
-                row_text = ' '.join([str(val) for val in row if pd.notna(val)]).lower()
-                if search_term in row_text:
-                    values = []
-                    for val in row:
-                        if pd.isna(val) or val == '':
-                            values.append('-')
-                        else:
-                            values.append(str(val))
-                    
-                    tags = ('evenrow',) if i % 2 == 0 else ('oddrow',)
-                    self.tree.insert("", "end", values=values, tags=tags)
-        
-        search_var.trace('w', filter_data)
-        
+        tree.pack(fill='both', expand=True)
+    
+    def _on_tree_double_click(self, event, tree):
+        """Handle double click on tree item for editing"""
+        selection = tree.selection()
+        if selection:
+            item = tree.item(selection[0])
+            position = item['values'][0]
+            self.show_edit_email_form(position)
+    
+    def _filter_table(self, df):
+        """Filter table based on selected criteria"""
+        # Implementation for filtering - this would update the tree views
+        filter_value = self.filter_var.get()
+        print(f"Filtering by: {filter_value}")
+        # Add filtering logic here
+    
+    def _search_table(self, df, search_term):
+        """Search table based on search term"""
+        # Implementation for searching - this would update the tree views
+        print(f"Searching for: {search_term}")
+        # Add search logic here
+
     def create_stat_card(self, parent, title, value, color, icon, column):
         """Create a statistics card with improved design"""
         # Shadow frame
@@ -1036,6 +1133,122 @@ class EmailManagerApp:
             parent = self.email_tree.master
             self.create_email_table(parent)
         
+    def show_senior_officers(self):
+        """ENHANCED: Show dedicated senior officers management interface"""
+        self.create_header("Senior Officers Management")
+        self.create_navigation()
+        self.set_active_nav('senior')
+        self.clear_content()
+        
+        # Senior Officers specific interface
+        main_container = tk.Frame(self.content_frame, bg='white', relief='solid', borderwidth=1)
+        main_container.pack(fill='both', expand=True)
+        
+        # Header
+        header_frame = tk.Frame(main_container, bg='white')
+        header_frame.pack(fill='x', padx=20, pady=20)
+        
+        title_frame = tk.Frame(header_frame, bg='white')
+        title_frame.pack(side='left')
+        
+        tk.Label(title_frame,
+                text="👨‍💼 Senior Officers Email Management",
+                font=('Arial', 18, 'bold'),
+                bg='white',
+                fg=self.colors['senior_officer']).pack()
+        
+        # Info panel
+        info_frame = tk.Frame(main_container, bg='#f8f9fa', padx=20, pady=15)
+        info_frame.pack(fill='x', padx=20, pady=(0, 20))
+        
+        info_text = """
+        Senior Officers are automatically shown when their respective Manager is selected for email disposition.
+        Each Manager has 2 associated Senior Officers:
+        • Manager Pemeliharaan → Senior Officer Pemeliharaan 1 & 2
+        • Manager Operasional → Senior Officer Operasional 1 & 2
+        • Manager Administrasi → Senior Officer Administrasi 1 & 2
+        • Manager Keuangan → Senior Officer Keuangan 1 & 2
+        """
+        
+        tk.Label(info_frame,
+                text=info_text,
+                font=('Arial', 11),
+                bg='#f8f9fa',
+                fg=self.colors['dark'],
+                justify='left').pack(anchor='w')
+        
+        # Senior Officers table
+        self._create_senior_officers_table(main_container)
+    
+    def _create_senior_officers_table(self, parent):
+        """Create dedicated table for senior officers"""
+        table_container = tk.Frame(parent, bg='white')
+        table_container.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+        
+        df = self.read_data(self.sheet)
+        senior_positions = [pos for pos in self.positions if pos.startswith("Senior Officer")]
+        
+        # Create grouped table
+        groups = {
+            'Pemeliharaan': [pos for pos in senior_positions if 'Pemeliharaan' in pos],
+            'Operasional': [pos for pos in senior_positions if 'Operasional' in pos],
+            'Administrasi': [pos for pos in senior_positions if 'Administrasi' in pos],
+            'Keuangan': [pos for pos in senior_positions if 'Keuangan' in pos]
+        }
+        
+        for group_name, group_positions in groups.items():
+            # Group header
+            group_frame = tk.LabelFrame(table_container, 
+                                       text=f"Senior Officers {group_name}",
+                                       font=('Arial', 12, 'bold'),
+                                       fg=self.colors['senior_officer'],
+                                       padx=10, pady=10)
+            group_frame.pack(fill='x', pady=(0, 15))
+            
+            for position in group_positions:
+                pos_frame = tk.Frame(group_frame, bg='white')
+                pos_frame.pack(fill='x', pady=5)
+                
+                # Position name
+                tk.Label(pos_frame,
+                        text=position,
+                        font=('Arial', 11, 'bold'),
+                        bg='white',
+                        fg=self.colors['senior_officer'],
+                        width=35).pack(side='left')
+                
+                # Email display/edit
+                if not df.empty and position in df['posisi'].values:
+                    email_val = df[df['posisi'] == position]['email'].iloc[0]
+                    if pd.isna(email_val) or email_val == '':
+                        email_val = 'Belum diisi'
+                        email_color = self.colors['danger']
+                    else:
+                        email_color = self.colors['success']
+                else:
+                    email_val = 'Belum diisi'
+                    email_color = self.colors['danger']
+                
+                tk.Label(pos_frame,
+                        text=email_val,
+                        font=('Arial', 11),
+                        bg='white',
+                        fg=email_color,
+                        width=40).pack(side='left', padx=(10, 0))
+                
+                # Edit button
+                edit_btn = tk.Button(pos_frame,
+                                   text="✏️ Edit",
+                                   font=('Arial', 9),
+                                   bg=self.colors['secondary'],
+                                   fg='white',
+                                   border=0,
+                                   padx=15,
+                                   pady=5,
+                                   cursor='hand2',
+                                   command=lambda p=position: self.show_edit_email_form(p))
+                edit_btn.pack(side='right')
+
     def show_change_password(self):
         """Show change password interface with enhanced UI"""
         self.create_header("Ganti Password")
@@ -1281,15 +1494,78 @@ class EmailManagerApp:
         # Start the application
         self.root.mainloop()
 
-# Main application entry point
-def main():
-    """Main function to run the Email Manager Application"""
-    try:
-        app = EmailManagerApp()
-        app.run()
-    except Exception as e:
-        print(f"Error starting application: {str(e)}")
-        messagebox.showerror("Error", f"Terjadi kesalahan saat memulai aplikasi:\n{str(e)}")
+# Test function for the enhanced system
+def test_enhanced_email_system():
+    """Test the enhanced email system with senior officer support"""
+    print("Testing Enhanced Email System with Senior Officer Support")
+    print("=" * 60)
+    
+    email_sender = EmailManagerApp()
+    
+    # Test connection
+    results = email_sender.test_connection()
+    
+    print("\nConnection Test Summary:")
+    print(f"{'SMTP Connection:':<25} {'✓ OK' if results['smtp_connection'] else '✗ FAILED'}")
+    print(f"{'Google Sheets:':<25} {'✓ OK' if results['sheets_connection'] else '✗ FAILED'}")
+    print(f"{'Admin Sheet Access:':<25} {'✓ OK' if results['admin_sheet_access'] else '✗ FAILED'}")
+    
+    if results['email_data']:
+        print(f"\nFound emails for {len(results['email_data'])} positions:")
+        
+        # Group by category
+        managers = []
+        senior_officers = []
+        others = []
+        
+        for position, email in results['email_data'].items():
+            if position.startswith("Senior Officer"):
+                senior_officers.append((position, email))
+            elif position.startswith("Manager"):
+                managers.append((position, email))
+            else:
+                others.append((position, email))
+        
+        # Display by category
+        if others:
+            print("\n  Directors & GM:")
+            for position, email in others:
+                print(f"    • {position}: {email}")
+        
+        if managers:
+            print("\n  Managers:")
+            for position, email in managers:
+                print(f"    • {position}: {email}")
+        
+        if senior_officers:
+            print("\n  Senior Officers:")
+            for position, email in senior_officers:
+                print(f"    • {position}: {email}")
+    
+    if results['errors']:
+        print(f"\nErrors encountered:")
+        for error in results['errors']:
+            print(f"  • {error}")
+    
+    # Test senior officer email lookup
+    print(f"\nTesting Senior Officer Email Lookup:")
+    print("-" * 40)
+    
+    test_senior_positions = [
+        "Senior Officer Pemeliharaan 1",
+        "Senior Officer Operasional 2",
+        "Senior Officer Keuangan 1"
+    ]
+    
+    for position in test_senior_positions:
+        email, msg = email_sender.get_recipient_email(position)
+        if email:
+            print(f"✓ {position}: {email}")
+        else:
+            print(f"✗ {position}: {msg}")
+    
+    return results
+
 
 if __name__ == "__main__":
-    main()
+    test_enhanced_email_system()

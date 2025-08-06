@@ -1,4 +1,4 @@
-# email_sender/send_email.py - FIXED VERSION
+# email_sender/send_email.py - ENHANCED VERSION with Senior Officer Support
 
 import smtplib
 from email.mime.text import MIMEText
@@ -23,14 +23,15 @@ class EmailSender:
         self.sender_email = config.EMAIL_HOST_USER
         self.sender_password = config.EMAIL_HOST_PASSWORD
         
-        # FIX: Initialize admin_sheet_id BEFORE using it
+        # Initialize admin_sheet_id BEFORE using it
         self.admin_sheet_id = config.ADMIN_SHEET_ID
         
         # Initialize sheets service
         self.sheets_service = self._get_sheets_service()
         
-        # Position to cell mapping in admin sheet
+        # ENHANCED: Position to cell mapping including senior officers
         self.position_cell_mapping = {
+            # Original positions
             "Direktur Utama": "B2",
             "Direktur Keuangan": "B3", 
             "Direktur Teknik": "B4",
@@ -39,13 +40,23 @@ class EmailSender:
             "Manager Pemeliharaan": "B7",
             "Manager Operasional": "B8",
             "Manager Administrasi": "B9",
-            "Manager Keuangan": "B10"
+            "Manager Keuangan": "B10",
+            
+            # ENHANCED: Senior Officers - Add new rows in the admin sheet
+            "Senior Officer Pemeliharaan 1": "B11",
+            "Senior Officer Pemeliharaan 2": "B12",
+            "Senior Officer Operasional 1": "B13",
+            "Senior Officer Operasional 2": "B14",
+            "Senior Officer Administrasi 1": "B15",
+            "Senior Officer Administrasi 2": "B16",
+            "Senior Officer Keuangan 1": "B17",
+            "Senior Officer Keuangan 2": "B18"
         }
 
     def _get_sheets_service(self):
         """Initialize Google Sheets service with admin credentials"""
         try:
-            # FIX: Use absolute path for credentials
+            # Use absolute path for credentials
             current_dir = Path(__file__).parent.parent
             credentials_path = current_dir / 'credentials' / 'credentials.json'
             
@@ -97,7 +108,7 @@ class EmailSender:
             return None
 
     def get_recipient_email(self, position):
-        """Fetch email address from admin spreadsheet based on position"""
+        """ENHANCED: Fetch email address from admin spreadsheet based on position (including senior officers)"""
         if not self.sheets_service:
             return None, "Google Sheets service not available. Check credentials/credentials.json file."
         
@@ -133,7 +144,7 @@ class EmailSender:
             return None, error_msg
 
     def get_all_position_emails(self):
-        """Fetch all position emails from the admin sheet"""
+        """ENHANCED: Fetch all position emails including senior officers from the admin sheet"""
         if not self.sheets_service:
             return {}, ["Google Sheets service not available"]
         
@@ -151,7 +162,7 @@ class EmailSender:
 
     def send_disposisi_email(self, recipients, subject, html_body, pdf_attachment=None):
         """
-        Sends a disposition email with an embedded logo to a list of recipients.
+        ENHANCED: Sends a disposition email with an embedded logo to a list of recipients (including senior officers).
         
         Args:
             recipients: List of email addresses or single email address
@@ -249,10 +260,10 @@ class EmailSender:
 
     def send_disposisi_to_positions(self, positions, subject, html_body, pdf_attachment=None):
         """
-        Send disposisi email to specific positions by looking up their emails
+        ENHANCED: Send disposisi email to specific positions including senior officers by looking up their emails
         
         Args:
-            positions: List of position names (e.g., ["Direktur Utama", "Manager"])
+            positions: List of position names (e.g., ["Direktur Utama", "Manager", "Senior Officer Pemeliharaan 1"])
             subject: Email subject
             html_body: HTML content
             pdf_attachment: Path to PDF file to attach (optional)
@@ -301,7 +312,7 @@ class EmailSender:
         if success:
             message = f"Email sent to {len(recipient_emails)} recipient(s): {', '.join(recipient_emails)}"
             if failed_lookups:
-                # Gunakan singkatan untuk manager dalam message
+                # Use abbreviation for manager in message
                 abbreviation_map = {
                     "Manager Pemeliharaan": "pml",
                     "Manager Operasional": "ops",
@@ -309,7 +320,7 @@ class EmailSender:
                     "Manager Keuangan": "keu"
                 }
                 
-                # Konversi failed lookups ke singkatan untuk display
+                # Convert failed lookups to abbreviation for display
                 display_failed_positions = []
                 for f in failed_lookups:
                     position = f.split(' - ')[0]
@@ -326,7 +337,7 @@ class EmailSender:
         return success, message, details
 
     def test_connection(self):
-        """Test the email connection and admin sheet access"""
+        """ENHANCED: Test the email connection and admin sheet access including senior officers"""
         results = {
             'smtp_connection': False,
             'sheets_connection': False,
@@ -361,7 +372,7 @@ class EmailSender:
                 if emails:
                     results['admin_sheet_access'] = True
                     results['email_data'] = emails
-                    print(f"✓ Found {len(emails)} email addresses in admin sheet")
+                    print(f"✓ Found {len(emails)} email addresses in admin sheet (including senior officers)")
                 if errors:
                     results['errors'].extend(errors)
             except Exception as e:
@@ -374,11 +385,11 @@ class EmailSender:
         return results
 
 
-# Test function
-def test_email_system():
-    """Test the fixed email system"""
-    print("Testing Fixed Email System")
-    print("=" * 50)
+# Test function for the enhanced system
+def test_enhanced_email_system():
+    """Test the enhanced email system with senior officer support"""
+    print("Testing Enhanced Email System with Senior Officer Support")
+    print("=" * 60)
     
     email_sender = EmailSender()
     
@@ -392,27 +403,60 @@ def test_email_system():
     
     if results['email_data']:
         print(f"\nFound emails for {len(results['email_data'])} positions:")
-        # Gunakan singkatan untuk manager dalam output
-        abbreviation_map = {
-            "Manager Pemeliharaan": "pml",
-            "Manager Operasional": "ops",
-            "Manager Administrasi": "adm",
-            "Manager Keuangan": "keu"
-        }
+        
+        # Group by category
+        managers = []
+        senior_officers = []
+        others = []
         
         for position, email in results['email_data'].items():
-            # Konversi posisi ke singkatan untuk display
-            display_position = abbreviation_map.get(position, position)
-            if display_position in ["pml", "ops", "adm", "keu"]:
-                display_position = f"Manager {display_position}"
-            print(f"  • {display_position}: {email}")
+            if position.startswith("Senior Officer"):
+                senior_officers.append((position, email))
+            elif position.startswith("Manager"):
+                managers.append((position, email))
+            else:
+                others.append((position, email))
+        
+        # Display by category
+        if others:
+            print("\n  Directors & GM:")
+            for position, email in others:
+                print(f"    • {position}: {email}")
+        
+        if managers:
+            print("\n  Managers:")
+            for position, email in managers:
+                print(f"    • {position}: {email}")
+        
+        if senior_officers:
+            print("\n  Senior Officers:")
+            for position, email in senior_officers:
+                print(f"    • {position}: {email}")
     
     if results['errors']:
         print(f"\nErrors encountered:")
         for error in results['errors']:
             print(f"  • {error}")
     
+    # Test senior officer email lookup
+    print(f"\nTesting Senior Officer Email Lookup:")
+    print("-" * 40)
+    
+    test_senior_positions = [
+        "Senior Officer Pemeliharaan 1",
+        "Senior Officer Operasional 2",
+        "Senior Officer Keuangan 1"
+    ]
+    
+    for position in test_senior_positions:
+        email, msg = email_sender.get_recipient_email(position)
+        if email:
+            print(f"✓ {position}: {email}")
+        else:
+            print(f"✗ {position}: {msg}")
+    
     return results
 
+
 if __name__ == "__main__":
-    test_email_system()
+    test_enhanced_email_system()

@@ -465,31 +465,37 @@ def export_excel_advanced(self, filepath):
         messagebox.showerror("Export Excel", f"Gagal ekspor: {e}")
 def send_email_with_disposisi(self, selected_positions):
     """
-    Mengirimkan email disposisi ke posisi yang dipilih dengan mengambil alamat email dari spreadsheet.
-    
-    Args:
-        selected_positions (list): Daftar posisi yang akan menerima email
+    ENHANCED VERSION: Mengirimkan email disposisi ke posisi yang dipilih dengan dukungan Senior Officer.
+    Ketika Manager dipilih, otomatis akan muncul pilihan 2 Senior Officer terkait.
     """
-    from tkinter import messagebox
-    import tempfile
     import os
+    import tempfile
     import traceback
-    from email_sender.send_email import EmailSender
-    from email_sender.template_handler import render_email_template
-    from pdf_output import save_form_to_pdf, merge_pdfs
+    from tkinter import messagebox
     from datetime import datetime
-    from disposisi_app.views.components.email_error_handler import handle_email_error
-
-    # Menampilkan status sedang memproses
-    self.update_status("Menyiapkan pengiriman email...")
     
-    # Kumpulkan data formulir
-    data = collect_form_data_safely(self)
-    if not data.get("no_surat", "").strip():
-        messagebox.showerror("Validasi Error", "No. Surat tidak boleh kosong untuk mengirim email.")
+    # Import modul email yang sudah diperbaiki
+    try:
+        from email_sender.send_email import EmailSender
+        from email_sender.template_handler import render_email_template
+        from pdf_output import save_form_to_pdf, merge_pdfs
+    except ImportError as e:
+        messagebox.showerror("Import Error", f"Gagal import modul email: {e}")
         return
 
-    # Buat PDF disposisi terlebih dahulu
+    print(f"[DEBUG] Selected positions: {selected_positions}")
+    self.update_status("Menyiapkan pengiriman email...")
+    
+    # Collect form data
+    data = collect_form_data_safely(self)
+    if not data.get("no_surat", "").strip():
+        messagebox.showerror("Validation Error", "No. Surat tidak boleh kosong untuk mengirim email.")
+        return
+
+    # Generate PDF attachment
+    temp_pdf_path = None
+    final_pdf_path = None
+    
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
             temp_pdf_path = temp_pdf.name
@@ -508,117 +514,146 @@ def send_email_with_disposisi(self, selected_positions):
         traceback.print_exc()
         return
     
-    # Inisialisasi EmailSender
+    # Initialize EmailSender
     try:
         email_sender = EmailSender()
+        
+        if not email_sender.sheets_service:
+            error_msg = ("Google Sheets tidak dapat diakses.\n\n"
+                        "Pastikan:\n"
+                        "1. File credentials/credentials.json tersedia\n"
+                        "2. Sheet admin dengan email sudah dibuat\n"
+                        "3. ID sheet admin benar di config.py")
+            messagebox.showerror("Email Configuration Error", error_msg)
+            return
+                
     except Exception as e:
         error_msg = f"Gagal menginisialisasi email sender: {str(e)}"
-        handle_email_error(self, error_msg)
+        messagebox.showerror("Email Sender Error", error_msg)
+        traceback.print_exc()
         return
     
-    # Cari email untuk posisi yang dipilih
+    # ENHANCED: Ambil email untuk posisi yang dipilih (termasuk senior officers)
+    self.update_status("Mencari alamat email dari database admin...")
+    
     recipient_emails = []
     failed_lookups = []
+    successful_lookups = []
+    
+    print(f"[DEBUG] Looking up emails for positions: {selected_positions}")
     
     for position in selected_positions:
+        print(f"[DEBUG] Looking up email for: {position}")
         email, msg = email_sender.get_recipient_email(position)
-        if email:
-            recipient_emails.append(email)
+        print(f"[DEBUG] Result for {position}: email={email}, msg={msg}")
+        
+        if email and email != position:
+            # Validasi format email
+            if '@' in email and '.' in email.split('@')[-1]:
+                recipient_emails.append(email)
+                successful_lookups.append(f"{position}: {email}")
+                print(f"[DEBUG] ✓ Valid email found: {position} -> {email}")
+            else:
+                failed_lookups.append(f"{position} (invalid email format: {email})")
+                print(f"[DEBUG] ✗ Invalid email format: {position} -> {email}")
         else:
             failed_lookups.append(f"{position} ({msg})")
+            print(f"[DEBUG] ✗ No email found: {position} -> {msg}")
     
-    # Tampilkan peringatan jika ada posisi yang tidak memiliki email
+    print(f"[DEBUG] Final recipient emails: {recipient_emails}")
+    print(f"[DEBUG] Failed lookups: {failed_lookups}")
+    
+    # Show warnings for failed lookups
     if failed_lookups:
-        warning_msg = "Tidak dapat menemukan alamat email untuk posisi berikut:\n- " + "\n- ".join(failed_lookups)
+        # Gunakan singkatan untuk manager dalam warning message
+        abbreviation_map = {
+            "Manager Pemeliharaan": "pml",
+            "Manager Operasional": "ops",
+            "Manager Administrasi": "adm",
+            "Manager Keuangan": "keu"
+        }
         
-        # Jika semua posisi tidak ditemukan, tampilkan dialog konfigurasi
+        # Konversi failed lookups ke singkatan untuk display
+        display_failed_lookups = []
+        for lookup in failed_lookups:
+            for full_name, abbrev in abbreviation_map.items():
+                if full_name in lookup:
+                    lookup = lookup.replace(full_name, f"Manager {abbrev}")
+                    break
+            display_failed_lookups.append(lookup)
+        
+        warning_msg = ("Tidak dapat menemukan alamat email yang valid untuk posisi berikut:\n" + 
+                      "\n".join([f"• {lookup}" for lookup in display_failed_lookups]))
+        
         if len(failed_lookups) == len(selected_positions):
-            handle_email_error(self, warning_msg)
+            # All positions failed
+            full_error = (warning_msg + 
+                         "\n\nPastikan admin sudah mengisi email yang valid untuk posisi-posisi tersebut "
+                         "di spreadsheet admin.\n\n"
+                         "Format email harus: user@domain.com")
+            messagebox.showerror("No Valid Emails Found", full_error)
             return
         else:
-            # Jika hanya sebagian yang tidak ditemukan, tampilkan warning biasa
-            messagebox.showwarning("Email Tidak Ditemukan", warning_msg, parent=self)
+            # Some positions failed - show warning but continue
+            result = messagebox.askyesno(
+                "Some Emails Missing", 
+                warning_msg + "\n\nLanjutkan mengirim ke email yang valid?", 
+                parent=self
+            )
+            if not result:
+                return
     
-    # Jika tidak ada email yang valid, batalkan pengiriman
     if not recipient_emails:
-        messagebox.showerror("Gagal", "Tidak ada alamat email yang valid untuk dikirimi.", parent=self)
+        messagebox.showerror("No Recipients", "Tidak ada alamat email yang valid untuk dikirimi.")
         return
     
-    # Persiapkan data untuk template email
+    # ENHANCED: Prepare email template data with senior officer support
     template_data = {
         'nomor_surat': data.get('no_surat', 'N/A'),
         'nama_pengirim': data.get('asal_surat', 'N/A'),
         'perihal': data.get('perihal', 'N/A'),
         'tanggal': datetime.now().strftime('%d %B %Y'),
+        'klasifikasi': [],
+        'instruksi_list': [],
+        'tahun': datetime.now().year
     }
     
     # Tambahkan informasi disposisi kepada dengan format abbreviation
     try:
-        if hasattr(self, 'get_disposisi_labels_with_abbreviation'):
-            disposisi_labels = self.get_disposisi_labels_with_abbreviation()
-        else:
-            # Fallback jika fungsi tidak tersedia
-            disposisi_labels = []
-            mapping = [
-                ("dir_utama", "Direktur Utama"),
-                ("dir_keu", "Direktur Keuangan"),
-                ("dir_teknik", "Direktur Teknik"),
-                ("gm_keu", "GM Keuangan & Administrasi"),
-                ("gm_ops", "GM Operasional & Pemeliharaan"),
-                ("manager_pemeliharaan", "Manager Pemeliharaan"),
-                ("manager_operasional", "Manager Operasional"),
-                ("manager_administrasi", "Manager Administrasi"),
-                ("manager_keuangan", "Manager Keuangan"),
-            ]
-            
-            labels = []
-            manager_labels = []
-            
-            for var, label in mapping:
-                if data.get(var, 0):
-                    if label.startswith("Manager"):
-                        manager_labels.append(label)
-                    else:
-                        labels.append(label)
-            
-            # Gabungkan manager dengan singkatan
-            if manager_labels:
-                manager_abbreviations = []
-                for manager in manager_labels:
-                    if "Pemeliharaan" in manager:
-                        manager_abbreviations.append("pml")
-                    elif "Operasional" in manager:
-                        manager_abbreviations.append("ops")
-                    elif "Administrasi" in manager:
-                        manager_abbreviations.append("adm")
-                    elif "Keuangan" in manager:
-                        manager_abbreviations.append("keu")
-                
-                if manager_abbreviations:
-                    labels.append(f"Manager {', '.join(manager_abbreviations)}")
-            
-            disposisi_labels = labels
-        
+        disposisi_labels = self.get_disposisi_labels_with_abbreviation()
         template_data['disposisi_kepada'] = disposisi_labels
     except Exception as e:
         print(f"[WARNING] Error getting disposisi labels: {e}")
         template_data['disposisi_kepada'] = []
     
-    # Tambahkan instruksi jika ada
-    instruksi_text = []
+    # ENHANCED: Add selected recipients info to template
+    recipient_list = []
+    for position in selected_positions:
+        # Use abbreviation for display in email
+        abbreviation_map = {
+            "Manager Pemeliharaan": "pml",
+            "Manager Operasional": "ops", 
+            "Manager Administrasi": "adm",
+            "Manager Keuangan": "keu"
+        }
+        
+        display_position = abbreviation_map.get(position, position)
+        if display_position in ["pml", "ops", "adm", "keu"]:
+            display_position = f"Manager {display_position}"
+        
+        recipient_list.append(display_position)
     
-    # Tambahkan klasifikasi jika ada
-    klasifikasi = []
+    template_data['selected_recipients'] = recipient_list
+    
+    # Add classification
     if data.get('rahasia', 0):
-        klasifikasi.append("RAHASIA")
+        template_data['klasifikasi'].append("RAHASIA")
     if data.get('penting', 0):
-        klasifikasi.append("PENTING")
+        template_data['klasifikasi'].append("PENTING")
     if data.get('segera', 0):
-        klasifikasi.append("SEGERA")
+        template_data['klasifikasi'].append("SEGERA")
     
-    template_data['klasifikasi'] = klasifikasi
-    
-    # Tambahkan instruksi dari checkbox
+    # Add instructions from checkboxes
     instruksi_mapping = [
         ("ketahui_file", "Ketahui & File"),
         ("proses_selesai", "Proses Selesai"),
@@ -631,14 +666,15 @@ def send_email_with_disposisi(self, selected_positions):
     
     for key, label in instruksi_mapping:
         if data.get(key, 0):
-            instruksi_text.append(label)
+            template_data['instruksi_list'].append(label)
     
-    # Tambahkan isi instruksi dari tabel
+    # Add detailed instructions from table
     if 'isi_instruksi' in data and data['isi_instruksi']:
         for instr in data['isi_instruksi']:
-            if instr.get('instruksi'):
+            if instr.get('instruksi', '').strip():
                 posisi = instr.get('posisi', '')
-                instruksi_text_content = instr.get('instruksi', '')
+                instruksi_text = instr.get('instruksi', '')
+                tanggal = instr.get('tanggal', '')
                 
                 # Gunakan singkatan untuk manager dalam instruksi
                 abbreviation_map = {
@@ -653,44 +689,98 @@ def send_email_with_disposisi(self, selected_positions):
                 if display_posisi in ["pml", "ops", "adm", "keu"]:
                     display_posisi = f"Manager {display_posisi}"
                 
-                if display_posisi:
-                    instruksi_text_content = f"{display_posisi}: {instruksi_text_content}"
-                
-                instruksi_text.append(instruksi_text_content)
+                instr_line = f"{display_posisi}: {instruksi_text}"
+                if tanggal:
+                    instr_line += f" (Tanggal: {tanggal})"
+                template_data['instruksi_list'].append(instr_line)
     
-    # Tambahkan instruksi ke template data
-    template_data['instruksi_list'] = instruksi_text
+    # Add additional instructions
+    if data.get("bicarakan_dengan", "").strip():
+        template_data['instruksi_list'].append(f"Bicarakan dengan: {data['bicarakan_dengan']}")
     
-    # Render template HTML
-    html_content = render_email_template(template_data)
-    subject = f"Disposisi Surat: {data.get('perihal', 'N/A')}"
+    if data.get("teruskan_kepada", "").strip():
+        template_data['instruksi_list'].append(f"Teruskan kepada: {data['teruskan_kepada']}")
     
-    # Hapus duplikat email (jika ada)
-    unique_recipients = list(set(recipient_emails))
+    if data.get("harap_selesai_tgl", "").strip():
+        template_data['instruksi_list'].append(f"Harap diselesaikan tanggal: {data['harap_selesai_tgl']}")
     
-    # Kirim email
-    self.update_status(f"Mengirim email ke {', '.join(unique_recipients)}...")
-    success, message = email_sender.send_disposisi_email(
-        unique_recipients, 
-        subject, 
-        html_content,
-        pdf_attachment=final_pdf_path
-    )
-    
-    # Tampilkan hasil
-    if success:
-        self.update_status("Email berhasil dikirim!")
-        messagebox.showinfo("Email Terkirim", message, parent=self)
-    else:
-        self.update_status("Gagal mengirim email.")
-        # Jika error, tampilkan dialog konfigurasi email
-        handle_email_error(self, f"Gagal mengirim email: {message}")
-    
-    # Bersihkan file sementara
+    # Render email template and send
     try:
-        if 'temp_pdf_path' in locals() and os.path.exists(temp_pdf_path):
-            os.remove(temp_pdf_path)
-        if 'final_pdf_path' in locals() and final_pdf_path != temp_pdf_path and os.path.exists(final_pdf_path):
-            os.remove(final_pdf_path)
+        html_content = render_email_template(template_data)
+        subject = f"Disposisi Surat: {data.get('perihal', 'N/A')}"
+        
+        self.update_status(f"Mengirim email ke {len(recipient_emails)} penerima...")
+        print(f"[DEBUG] Sending email to: {recipient_emails}")
+        print(f"[DEBUG] Subject: {subject}")
+        print(f"[DEBUG] PDF attachment: {final_pdf_path}")
+        
+        # ENHANCED: Use method with PDF attachment
+        success, message = email_sender.send_disposisi_email(
+            recipient_emails, 
+            subject, 
+            html_content,
+            pdf_attachment=final_pdf_path
+        )
+        
+        print(f"[DEBUG] Email send result: success={success}, message={message}")
+        
+        # Show results
+        if success:
+            self.update_status("Email berhasil dikirim!")
+            success_msg = f"Email berhasil dikirim ke:\n{chr(10).join([f'• {email}' for email in recipient_emails])}"
+            
+            if successful_lookups:
+                # Gunakan singkatan untuk manager dalam successful lookups
+                abbreviation_map = {
+                    "Manager Pemeliharaan": "pml",
+                    "Manager Operasional": "ops",
+                    "Manager Administrasi": "adm",
+                    "Manager Keuangan": "keu"
+                }
+                
+                # Konversi successful lookups ke singkatan untuk display
+                display_successful_lookups = []
+                for lookup in successful_lookups:
+                    for full_name, abbrev in abbreviation_map.items():
+                        if full_name in lookup:
+                            lookup = lookup.replace(full_name, f"Manager {abbrev}")
+                            break
+                    display_successful_lookups.append(lookup)
+                
+                success_msg += f"\n\nDetail penerima:\n{chr(10).join([f'• {lookup}' for lookup in display_successful_lookups])}"
+                
+                # ENHANCED: Show breakdown of recipient types
+                managers = [p for p in selected_positions if p.startswith("Manager")]
+                senior_officers = [p for p in selected_positions if p.startswith("Senior Officer")]
+                others = [p for p in selected_positions if not p.startswith("Manager") and not p.startswith("Senior Officer")]
+                
+                if managers or senior_officers or others:
+                    success_msg += "\n\nBreakdown penerima:"
+                    if others:
+                        success_msg += f"\n• Directors & GM: {len(others)}"
+                    if managers:
+                        success_msg += f"\n• Managers: {len(managers)}"
+                    if senior_officers:
+                        success_msg += f"\n• Senior Officers: {len(senior_officers)}"
+            
+            messagebox.showinfo("Email Sent Successfully", success_msg, parent=self)
+        else:
+            self.update_status("Gagal mengirim email.")
+            messagebox.showerror("Email Send Failed", f"Gagal mengirim email:\n{message}", parent=self)
+            
     except Exception as e:
-        print(f"Warning: Could not remove temporary files: {e}")
+        self.update_status("Error saat mengirim email.")
+        messagebox.showerror("Email Error", f"Terjadi kesalahan saat mengirim email: {e}")
+        traceback.print_exc()
+    
+    finally:
+        # Clean up temporary files
+        try:
+            if temp_pdf_path and os.path.exists(temp_pdf_path):
+                os.remove(temp_pdf_path)
+                print(f"[DEBUG] Cleaned up temp PDF: {temp_pdf_path}")
+            if final_pdf_path and final_pdf_path != temp_pdf_path and os.path.exists(final_pdf_path):
+                os.remove(final_pdf_path)
+                print(f"[DEBUG] Cleaned up final PDF: {final_pdf_path}")
+        except Exception as e:
+            print(f"[WARNING] Could not remove temporary files: {e}")
