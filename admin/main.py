@@ -10,19 +10,19 @@ from tkinter import font as tkFont
 
 class EmailManagerApp:
     def __init__(self):
-        """Initialize the Enhanced Email Manager Application with Senior Officer support"""
+        """Initialize the Enhanced Email Manager Application with complete position support"""
         self.root = tk.Tk()
-        self.root.title("Email Manager Dashboard - Enhanced")
-        self.root.geometry("1400x900")  # Increased size for senior officers
-        self.root.configure(bg='#f0f0f0')
-        self.root.minsize(1000, 700)
+        self.root.title("Email Manager Dashboard - Complete Edition")
+        self.root.geometry("1600x1000")  # Increased size for more positions
+        self.root.configure(bg='#f8fafc')
+        self.root.minsize(1200, 800)
         
         # Initialize variables
         self.logged_in = False
         self.sheet = None
         self.admin_password_hash = self.hash_password("admin123")  # Default password
         
-        # ENHANCED: Define positions including senior officers
+        # ENHANCED: Complete positions with Senior Officers
         self.positions = [
             "Direktur Utama",
             "Direktur Keuangan", 
@@ -33,7 +33,7 @@ class EmailManagerApp:
             "Manager Operasional",
             "Manager Administrasi",
             "Manager Keuangan",
-            # ENHANCED: Senior Officers
+            # Senior Officers
             "Senior Officer Pemeliharaan 1",
             "Senior Officer Pemeliharaan 2",
             "Senior Officer Operasional 1",
@@ -44,322 +44,515 @@ class EmailManagerApp:
             "Senior Officer Keuangan 2"
         ]
         
-        # Setup UI
-        self.setup_styles()
+        # Position grouping for better organization
+        self.position_groups = {
+            "Directors & GM": [
+                "Direktur Utama",
+                "Direktur Keuangan", 
+                "Direktur Teknik",
+                "GM Keuangan & Administrasi",
+                "GM Operasional & Pemeliharaan"
+            ],
+            "Managers": [
+                "Manager Pemeliharaan",
+                "Manager Operasional",
+                "Manager Administrasi",
+                "Manager Keuangan"
+            ],
+            "Senior Officers": [
+                "Senior Officer Pemeliharaan 1",
+                "Senior Officer Pemeliharaan 2",
+                "Senior Officer Operasional 1",
+                "Senior Officer Operasional 2",
+                "Senior Officer Administrasi 1",
+                "Senior Officer Administrasi 2",
+                "Senior Officer Keuangan 1",
+                "Senior Officer Keuangan 2"
+            ]
+        }
+        
+        # Abbreviation mapping for display
+        self.abbreviation_map = {
+            "Manager Pemeliharaan": "Manager pml",
+            "Manager Operasional": "Manager ops",
+            "Manager Administrasi": "Manager adm",
+            "Manager Keuangan": "Manager keu"
+        }
+        
+        # Setup modern UI
+        self.setup_modern_styles()
         self.create_main_container()
         
         # Show login initially
         self.show_login()
     
-    def setup_styles(self):
-        """Setup custom styles for the application"""
+    def setup_modern_styles(self):
+        """Setup modern dark/light theme styles"""
         self.colors = {
-            'primary': '#2c3e50',
-            'secondary': '#3498db',
-            'success': '#27ae60',
-            'danger': '#e74c3c',
-            'warning': '#f39c12',
-            'light': '#ecf0f1',
-            'dark': '#34495e',
+            'primary': '#1e293b',
+            'secondary': '#475569',
+            'accent': '#3b82f6',
+            'accent_hover': '#2563eb',
+            'success': '#10b981',
+            'success_hover': '#059669',
+            'warning': '#f59e0b',
+            'danger': '#ef4444',
+            'danger_hover': '#dc2626',
+            'info': '#06b6d4',
+            'light': '#f8fafc',
             'white': '#ffffff',
-            'senior_officer': '#9b59b6'  # ENHANCED: Special color for senior officers
+            'gray_50': '#f9fafb',
+            'gray_100': '#f3f4f6',
+            'gray_200': '#e5e7eb',
+            'gray_300': '#d1d5db',
+            'gray_400': '#9ca3af',
+            'gray_500': '#6b7280',
+            'gray_600': '#4b5563',
+            'gray_700': '#374151',
+            'gray_800': '#1f2937',
+            'gray_900': '#111827',
+            'blue_50': '#eff6ff',
+            'blue_100': '#dbeafe',
+            'blue_500': '#3b82f6',
+            'blue_600': '#2563eb',
+            'green_50': '#f0fdf4',
+            'green_100': '#dcfce7',
+            'green_500': '#22c55e',
+            'purple_50': '#faf5ff',
+            'purple_100': '#f3e8ff',
+            'purple_500': '#a855f7',
+            'purple_600': '#9333ea'
         }
+        
         self.style = ttk.Style()        
         self.style.theme_use('clam')
         
-        # Configure styles (keeping existing styles)
+        # Configure modern styles
         self.style.configure('Title.TLabel', 
-                           font=('Arial', 24, 'bold'), 
-                           background='#f0f0f0', 
+                           font=('Inter', 24, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 24, 'bold'), 
+                           background=self.colors['light'], 
                            foreground=self.colors['primary'])
         
         self.style.configure('Heading.TLabel', 
-                           font=('Arial', 14, 'bold'), 
-                           background='#f0f0f0', 
-                           foreground=self.colors['dark'])
+                           font=('Inter', 16, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 16, 'bold'), 
+                           background=self.colors['white'], 
+                           foreground=self.colors['gray_800'])
         
-        # ENHANCED: Senior Officer specific style
-        self.style.configure('SeniorOfficer.TLabel',
-                           font=('Arial', 12, 'bold'),
-                           background='#f0f0f0',
-                           foreground=self.colors['senior_officer'])
+        self.style.configure('Card.TFrame',
+                           background=self.colors['white'],
+                           relief='solid',
+                           borderwidth=1)
         
-        self.style.configure('Info.TLabel', 
-                           font=('Arial', 11), 
-                           background='#f0f0f0', 
-                           foreground=self.colors['dark'])
-        
+        # Enhanced button styles
         self.style.configure('Primary.TButton', 
-                           font=('Arial', 10, 'bold'), 
-                           padding=(20, 10))
+                           font=('Inter', 11, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 11, 'bold'),
+                           foreground='white',
+                           background=self.colors['accent'],
+                           borderwidth=0,
+                           relief='flat',
+                           padding=(20, 12))
         
-        self.style.configure('Secondary.TButton', 
-                           font=('Arial', 9), 
-                           padding=(15, 8))
+        self.style.map('Primary.TButton',
+                      background=[('active', self.colors['accent_hover']),
+                                ('pressed', self.colors['accent_hover'])])
         
-        # Configure Treeview styles
-        self.style.configure("Treeview", 
-                           background="white",
-                           foreground="black",
-                           rowheight=30,
-                           fieldbackground="white")
+        self.style.configure('Success.TButton', 
+                           font=('Inter', 11, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 11, 'bold'),
+                           foreground='white',
+                           background=self.colors['success'],
+                           borderwidth=0,
+                           relief='flat',
+                           padding=(20, 12))
         
-        self.style.configure("Treeview.Heading", 
-                           font=('Arial', 11, 'bold'),
-                           background=self.colors['light'],
-                           foreground=self.colors['dark'])
+        self.style.map('Success.TButton',
+                      background=[('active', self.colors['success_hover']),
+                                ('pressed', self.colors['success_hover'])])
+        
+        self.style.configure('Danger.TButton', 
+                           font=('Inter', 11, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 11, 'bold'),
+                           foreground='white',
+                           background=self.colors['danger'],
+                           borderwidth=0,
+                           relief='flat',
+                           padding=(20, 12))
+        
+        self.style.map('Danger.TButton',
+                      background=[('active', self.colors['danger_hover']),
+                                ('pressed', self.colors['danger_hover'])])
+        
+        # Enhanced entry styles
+        self.style.configure('Modern.TEntry',
+                           font=('Inter', 11) if 'Inter' in tk.font.families() else ('Segoe UI', 11),
+                           fieldbackground=self.colors['white'],
+                           bordercolor=self.colors['gray_300'],
+                           lightcolor=self.colors['gray_300'],
+                           darkcolor=self.colors['gray_300'],
+                           insertcolor=self.colors['accent'],
+                           padding=(12, 10),
+                           relief='solid',
+                           borderwidth=2)
+        
+        self.style.map('Modern.TEntry',
+                      bordercolor=[('focus', self.colors['accent'])],
+                      lightcolor=[('focus', self.colors['accent'])],
+                      darkcolor=[('focus', self.colors['accent'])])
+        
+        # Modern treeview
+        self.style.configure("Modern.Treeview",
+                           background=self.colors['white'],
+                           foreground=self.colors['gray_900'],
+                           rowheight=40,
+                           fieldbackground=self.colors['white'],
+                           borderwidth=1,
+                           relief='solid',
+                           font=('Inter', 10) if 'Inter' in tk.font.families() else ('Segoe UI', 10))
+        
+        self.style.configure("Modern.Treeview.Heading",
+                           background=self.colors['gray_50'],
+                           foreground=self.colors['gray_700'],
+                           relief='flat',
+                           borderwidth=0,
+                           font=('Inter', 11, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 11, 'bold'),
+                           padding=(12, 8))
+        
+        self.style.map("Modern.Treeview",
+                      background=[('selected', self.colors['accent'])],
+                      foreground=[('selected', 'white')])
+        
+        self.style.map("Modern.Treeview.Heading",
+                      background=[('active', self.colors['gray_100'])])
     
     def create_main_container(self):
-        """Create the main application container"""
-        # Header
-        self.header_frame = tk.Frame(self.root, bg=self.colors['primary'], height=80)
+        """Create the main application container with modern design"""
+        # Modern header with gradient effect
+        self.header_frame = tk.Frame(self.root, bg=self.colors['primary'], height=100)
         self.header_frame.pack(fill='x', side='top')
         self.header_frame.pack_propagate(False)
         
-        # Navigation
-        self.nav_frame = tk.Frame(self.root, bg=self.colors['dark'], height=50)
+        # Navigation bar
+        self.nav_frame = tk.Frame(self.root, bg=self.colors['gray_800'], height=60)
         self.nav_frame.pack(fill='x', side='top')
         self.nav_frame.pack_propagate(False)
         
-        # Main content area
-        self.content_frame = tk.Frame(self.root, bg='#f0f0f0')
-        self.content_frame.pack(fill='both', expand=True, padx=20, pady=20)
+        # Main content area with modern styling
+        self.content_frame = tk.Frame(self.root, bg=self.colors['light'])
+        self.content_frame.pack(fill='both', expand=True, padx=0, pady=0)
         
-    def create_header(self, title="Email Manager Dashboard - Enhanced"):
-        """Create header with enhanced title"""
+    def create_header(self, title="Email Manager Dashboard - Complete Edition"):
+        """Create modern header with enhanced design"""
         for widget in self.header_frame.winfo_children():
             widget.destroy()
             
-        # Left side - Title
-        left_frame = tk.Frame(self.header_frame, bg=self.colors['primary'])
+        # Header content container
+        header_content = tk.Frame(self.header_frame, bg=self.colors['primary'])
+        header_content.pack(fill='both', expand=True, padx=30, pady=20)
+        
+        # Left side - Title and subtitle
+        left_frame = tk.Frame(header_content, bg=self.colors['primary'])
         left_frame.pack(side='left', fill='y')
         
+        # Main title
         title_label = tk.Label(left_frame, 
-                              text=title,
-                              font=('Arial', 20, 'bold'),
+                              text="📧 Email Manager",
+                              font=('Inter', 24, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 24, 'bold'),
                               bg=self.colors['primary'],
                               fg='white')
-        title_label.pack(side='left', padx=20, pady=20)
+        title_label.pack(anchor='w')
         
-        # Right side - Enhanced user actions
+        # Subtitle
+        subtitle_label = tk.Label(left_frame,
+                                 text="Complete Edition - All Positions Supported",
+                                 font=('Inter', 12) if 'Inter' in tk.font.families() else ('Segoe UI', 12),
+                                 bg=self.colors['primary'],
+                                 fg=self.colors['gray_300'])
+        subtitle_label.pack(anchor='w', pady=(5, 0))
+        
+        # Right side - Enhanced status and actions
         if self.logged_in:
-            right_frame = tk.Frame(self.header_frame, bg=self.colors['primary'])
+            right_frame = tk.Frame(header_content, bg=self.colors['primary'])
             right_frame.pack(side='right', fill='y')
             
-            # Enhanced status indicator
-            status_label = tk.Label(right_frame,
-                                  text="● Connected (Enhanced)",
-                                  font=('Arial', 10),
-                                  bg=self.colors['primary'],
-                                  fg=self.colors['success'])
-            status_label.pack(side='right', padx=(0, 10), pady=25)
+            # Status indicators container
+            status_container = tk.Frame(right_frame, bg=self.colors['primary'])
+            status_container.pack(anchor='e')
             
-            # Position count indicator
+            # Connection status with icon
+            status_frame = tk.Frame(status_container, bg=self.colors['primary'])
+            status_frame.pack(anchor='e', pady=(0, 5))
+            
+            tk.Label(status_frame,
+                    text="🟢",
+                    font=('Arial', 16),
+                    bg=self.colors['primary']).pack(side='left')
+            
+            tk.Label(status_frame,
+                    text="Connected & Active",
+                    font=('Inter', 11, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 11, 'bold'),
+                    bg=self.colors['primary'],
+                    fg=self.colors['success']).pack(side='left', padx=(5, 0))
+            
+            # Position count with enhanced display
             total_positions = len(self.positions)
-            count_label = tk.Label(right_frame,
-                                 text=f"📊 {total_positions} Positions",
-                                 font=('Arial', 10),
-                                 bg=self.colors['primary'],
-                                 fg='white')
-            count_label.pack(side='right', padx=(0, 15), pady=25)
+            positions_frame = tk.Frame(status_container, bg=self.colors['primary'])
+            positions_frame.pack(anchor='e', pady=(0, 5))
             
-            # Logout button
+            tk.Label(positions_frame,
+                    text="👥",
+                    font=('Arial', 14),
+                    bg=self.colors['primary']).pack(side='left')
+            
+            tk.Label(positions_frame,
+                    text=f"{total_positions} Total Positions",
+                    font=('Inter', 10) if 'Inter' in tk.font.families() else ('Segoe UI', 10),
+                    bg=self.colors['primary'],
+                    fg='white').pack(side='left', padx=(5, 0))
+            
+            # Enhanced logout button
             logout_btn = tk.Button(right_frame,
-                                 text="🚪 Logout",
-                                 font=('Arial', 10, 'bold'),
+                                 text="🚪 Sign Out",
+                                 font=('Inter', 11, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 11, 'bold'),
                                  bg=self.colors['danger'],
                                  fg='white',
                                  border=0,
-                                 padx=20,
-                                 pady=8,
+                                 padx=25,
+                                 pady=12,
                                  cursor='hand2',
                                  relief='flat',
                                  command=self.logout)
-            logout_btn.pack(side='right', padx=20, pady=20)
+            logout_btn.pack(anchor='e', pady=(10, 0))
+            
+            # Hover effects
+            def on_logout_enter(e):
+                logout_btn.config(bg=self.colors['danger_hover'])
+            def on_logout_leave(e):
+                logout_btn.config(bg=self.colors['danger'])
+            
+            logout_btn.bind("<Enter>", on_logout_enter)
+            logout_btn.bind("<Leave>", on_logout_leave)
     
     def create_navigation(self):
-        """Create enhanced navigation bar"""
+        """Create enhanced navigation bar with modern design"""
         for widget in self.nav_frame.winfo_children():
             widget.destroy()
             
         if not self.logged_in:
             return
-            
+        
+        # Navigation content
+        nav_content = tk.Frame(self.nav_frame, bg=self.colors['gray_800'])
+        nav_content.pack(fill='both', expand=True, padx=30, pady=0)
+        
         nav_buttons = [
-            ("📊 Dashboard", self.show_dashboard, 'dashboard'),
-            ("📧 Kelola Email", self.show_email_management, 'email'),
-            ("👨‍💼 Senior Officers", self.show_senior_officers, 'senior'),  # ENHANCED
-            ("🔒 Ganti Password", self.show_change_password, 'password')
+            ("📊 Dashboard", self.show_dashboard, 'dashboard', self.colors['accent']),
+            ("📧 Email Management", self.show_email_management, 'email', self.colors['success']),
+            ("👨‍💼 All Positions", self.show_all_positions, 'positions', self.colors['purple_500']),
+            ("🏢 By Department", self.show_by_department, 'department', self.colors['info']),
+            ("🔒 Security", self.show_change_password, 'password', self.colors['warning'])
         ]
         
         self.nav_buttons = {}
-        for text, command, key in nav_buttons:
-            btn = tk.Button(self.nav_frame,
+        for text, command, key, color in nav_buttons:
+            btn_frame = tk.Frame(nav_content, bg=self.colors['gray_800'])
+            btn_frame.pack(side='left', padx=2)
+            
+            btn = tk.Button(btn_frame,
                           text=text,
-                          font=('Arial', 10, 'bold'),
-                          bg=self.colors['dark'],
+                          font=('Inter', 11, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 11, 'bold'),
+                          bg=self.colors['gray_800'],
                           fg='white',
                           border=0,
-                          padx=20,
-                          pady=10,
+                          padx=25,
+                          pady=15,
                           cursor='hand2',
                           relief='flat',
                           command=command)
-            btn.pack(side='left', padx=2)
+            btn.pack()
             self.nav_buttons[key] = btn
             
-            # Add hover effects
-            def make_hover_handler(button):
+            # Enhanced hover effects with color coding
+            def make_hover_handler(button, accent_color):
                 def on_enter(e):
-                    button.config(bg=self.colors['secondary'])
+                    button.config(bg=accent_color)
                 def on_leave(e):
-                    button.config(bg=self.colors['dark'])
+                    if getattr(button, 'active', False):
+                        button.config(bg=accent_color)
+                    else:
+                        button.config(bg=self.colors['gray_800'])
                 return on_enter, on_leave
             
-            enter_handler, leave_handler = make_hover_handler(btn)
+            enter_handler, leave_handler = make_hover_handler(btn, color)
             btn.bind("<Enter>", enter_handler)
             btn.bind("<Leave>", leave_handler)
     
     def set_active_nav(self, active_key):
-        """Set active navigation button"""
+        """Set active navigation button with color coding"""
         if hasattr(self, 'nav_buttons'):
+            nav_colors = {
+                'dashboard': self.colors['accent'],
+                'email': self.colors['success'],
+                'positions': self.colors['purple_500'],
+                'department': self.colors['info'],
+                'password': self.colors['warning']
+            }
+            
             for key, btn in self.nav_buttons.items():
                 if key == active_key:
-                    btn.config(bg=self.colors['secondary'])
+                    btn.config(bg=nav_colors.get(key, self.colors['accent']))
+                    btn.active = True
                 else:
-                    btn.config(bg=self.colors['dark'])
-            
+                    btn.config(bg=self.colors['gray_800'])
+                    btn.active = False
+    
     def clear_content(self):
         """Clear current content frame"""
         for widget in self.content_frame.winfo_children():
             widget.destroy()
             
     def show_login(self):
-        """Show login screen"""
-        self.create_header("Login - Email Manager")
+        """Show enhanced login screen"""
+        self.create_header("Login - Email Manager Complete Edition")
         self.clear_content()
         
         # Hide navigation
         self.nav_frame.pack_forget()
         
-        # Login container with shadow effect
-        login_outer = tk.Frame(self.content_frame, bg='#f0f0f0')
+        # Login container with modern design
+        login_outer = tk.Frame(self.content_frame, bg=self.colors['light'])
         login_outer.pack(expand=True)
         
-        # Shadow frame
-        shadow_frame = tk.Frame(login_outer, bg='#d0d0d0', height=302, width=402)
-        shadow_frame.pack(padx=(3, 0), pady=(3, 0))
-        shadow_frame.pack_propagate(False)
+        # Card container with shadow effect
+        card_container = tk.Frame(login_outer, bg=self.colors['gray_200'])
+        card_container.pack()
         
-        # Main login container
-        login_container = tk.Frame(login_outer, bg='white', height=300, width=400, relief='solid', borderwidth=1)
-        login_container.place(in_=shadow_frame, x=-3, y=-3)
-        login_container.pack_propagate(False)
+        # Main login card
+        login_card = tk.Frame(card_container, bg=self.colors['white'], width=450, height=400)
+        login_card.pack(padx=3, pady=3)
+        login_card.pack_propagate(False)
         
-        # Login form
-        form_frame = tk.Frame(login_container, bg='white')
-        form_frame.pack(expand=True, fill='both', padx=40, pady=40)
+        # Header section
+        header_section = tk.Frame(login_card, bg=self.colors['accent'], height=120)
+        header_section.pack(fill='x')
+        header_section.pack_propagate(False)
         
-        # Logo/Icon
-        tk.Label(form_frame, 
+        # Login icon and title
+        icon_frame = tk.Frame(header_section, bg=self.colors['accent'])
+        icon_frame.pack(expand=True)
+        
+        tk.Label(icon_frame, 
                 text="🔐",
                 font=('Arial', 48),
-                bg='white',
-                fg=self.colors['primary']).pack(pady=(0, 10))
+                bg=self.colors['accent'],
+                fg='white').pack(pady=(20, 10))
         
-        tk.Label(form_frame, 
-                text="Admin Login",
-                font=('Arial', 18, 'bold'),
-                bg='white',
-                fg=self.colors['primary']).pack(pady=(0, 30))
+        tk.Label(icon_frame, 
+                text="Admin Access",
+                font=('Inter', 18, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 18, 'bold'),
+                bg=self.colors['accent'],
+                fg='white').pack()
         
-        # Password field with improved styling
-        tk.Label(form_frame,
-                text="Password:",
-                font=('Arial', 12, 'bold'),
-                bg='white',
-                fg=self.colors['dark']).pack(anchor='w', pady=(0, 5))
+        # Form section
+        form_section = tk.Frame(login_card, bg=self.colors['white'])
+        form_section.pack(fill='both', expand=True, padx=40, pady=30)
         
-        password_frame = tk.Frame(form_frame, bg='white')
-        password_frame.pack(fill='x', pady=(0, 20))
+        # Password field with modern styling
+        tk.Label(form_section,
+                text="Password",
+                font=('Inter', 12, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 12, 'bold'),
+                bg=self.colors['white'],
+                fg=self.colors['gray_700']).pack(anchor='w', pady=(0, 8))
         
-        self.password_entry = tk.Entry(password_frame,
-                                     font=('Arial', 12),
+        # Password input with border
+        password_container = tk.Frame(form_section, bg=self.colors['gray_300'], height=50)
+        password_container.pack(fill='x', pady=(0, 20))
+        password_container.pack_propagate(False)
+        
+        self.password_entry = tk.Entry(password_container,
+                                     font=('Inter', 12) if 'Inter' in tk.font.families() else ('Segoe UI', 12),
                                      show="*",
-                                     relief='solid',
-                                     borderwidth=2,
-                                     highlightthickness=0,
-                                     bd=0)
-        self.password_entry.pack(fill='x', ipady=8)
+                                     relief='flat',
+                                     borderwidth=0,
+                                     bg=self.colors['white'],
+                                     fg=self.colors['gray_900'])
+        self.password_entry.pack(fill='both', padx=2, pady=2)
         self.password_entry.bind('<Return>', lambda e: self.try_login())
-        self.password_entry.bind('<FocusIn>', lambda e: self.password_entry.config(relief='solid', borderwidth=2))
-        self.password_entry.bind('<FocusOut>', lambda e: self.password_entry.config(relief='solid', borderwidth=1))
         
-        # Login button with improved styling
-        login_btn = tk.Button(form_frame,
-                            text="🔓 Login",
-                            font=('Arial', 12, 'bold'),
-                            bg=self.colors['secondary'],
+        # Focus effects for password field
+        def on_focus_in(e):
+            password_container.config(bg=self.colors['accent'])
+        def on_focus_out(e):
+            password_container.config(bg=self.colors['gray_300'])
+        
+        self.password_entry.bind('<FocusIn>', on_focus_in)
+        self.password_entry.bind('<FocusOut>', on_focus_out)
+        
+        # Login button with gradient effect
+        login_btn = tk.Button(form_section,
+                            text="🔓 Sign In",
+                            font=('Inter', 12, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 12, 'bold'),
+                            bg=self.colors['accent'],
                             fg='white',
                             border=0,
                             relief='flat',
-                            padx=30,
-                            pady=12,
+                            padx=40,
+                            pady=15,
                             cursor='hand2',
                             command=self.try_login)
         login_btn.pack(pady=(10, 0))
         
         # Hover effect for login button
         def on_enter(e):
-            login_btn.config(bg='#2980b9')
+            login_btn.config(bg=self.colors['accent_hover'])
         def on_leave(e):
-            login_btn.config(bg=self.colors['secondary'])
+            login_btn.config(bg=self.colors['accent'])
         
         login_btn.bind("<Enter>", on_enter)
         login_btn.bind("<Leave>", on_leave)
         
+        # Info text
+        info_label = tk.Label(form_section,
+                             text="Complete Email Management System\nwith 18 Position Support",
+                             font=('Inter', 9) if 'Inter' in tk.font.families() else ('Segoe UI', 9),
+                             bg=self.colors['white'],
+                             fg=self.colors['gray_500'],
+                             justify='center')
+        info_label.pack(pady=(20, 0))
+        
         # Focus on password entry
         self.password_entry.focus()
-        
+    
     def try_login(self):
-        """Attempt to login"""
+        """Try to login with password verification"""
         password = self.password_entry.get()
         if self.verify_password(password, self.admin_password_hash):
             self.logged_in = True
-            self.sheet = self.init_google_sheets()
-            if self.sheet is None:
-                messagebox.showerror("Error", "Tidak dapat terhubung ke Google Sheets.\nPastikan credentials/credentials.json tersedia dan valid.")
-                return
+            self.init_google_sheets()
             self.show_dashboard()
         else:
-            messagebox.showerror("Login Gagal", "Password yang Anda masukkan salah!")
-            self.password_entry.delete(0, 'end')
-            self.password_entry.focus()
-            
+            messagebox.showerror("Login Error", "Password salah!")
+    
     def logout(self):
-        """Logout user"""
-        if messagebox.askyesno("Konfirmasi Logout", "Apakah Anda yakin ingin keluar?"):
-            self.logged_in = False
-            self.sheet = None
-            self.show_login()
+        """Logout and return to login screen"""
+        self.logged_in = False
+        self.sheet = None
+        self.show_login()
         
     def show_dashboard(self):
-        """ENHANCED: Show main dashboard with senior officer statistics"""
-        self.create_header("Dashboard Overview - Enhanced")
+        """ENHANCED: Show comprehensive dashboard with all position statistics"""
+        self.create_header("Complete Dashboard - All Positions Overview")
         self.nav_frame.pack(fill='x', side='top', after=self.header_frame)
         self.create_navigation()
         self.set_active_nav('dashboard')
         self.clear_content()
         
-        # Dashboard content
+        # Main dashboard container
+        dashboard_container = tk.Frame(self.content_frame, bg=self.colors['light'])
+        dashboard_container.pack(fill='both', expand=True, padx=30, pady=20)
+        
+        # Read data from sheet
         df = self.read_data(self.sheet)
         
-        # Stats cards container
-        stats_container = tk.Frame(self.content_frame, bg='#f0f0f0')
-        stats_container.pack(fill='x', pady=(0, 20))
-        
         if df.empty:
-            # Initialize data if empty - ENHANCED with senior officers
+            # Initialize data if empty
             df = pd.DataFrame({
                 'posisi': self.positions,
                 'email': [''] * len(self.positions),
@@ -367,240 +560,349 @@ class EmailManagerApp:
             })
             self.write_data(self.sheet, df)
         
+        # Calculate statistics
         total_positions = len(df)
         filled_emails = df['email'].apply(lambda x: x != '' and pd.notna(x)).sum() if 'email' in df.columns else 0
         empty_emails = total_positions - filled_emails
         completion_rate = (filled_emails / total_positions * 100) if total_positions > 0 else 0
         
-        # ENHANCED: Separate statistics for different position types
-        manager_positions = len([pos for pos in self.positions if pos.startswith("Manager")])
-        senior_officer_positions = len([pos for pos in self.positions if pos.startswith("Senior Officer")])
-        director_gm_positions = total_positions - manager_positions - senior_officer_positions
+        # Position breakdown
+        directors_gm = len([pos for pos in self.positions if pos.startswith(("Direktur", "GM"))])
+        managers = len([pos for pos in self.positions if pos.startswith("Manager")])
+        senior_officers = len([pos for pos in self.positions if pos.startswith("Senior Officer")])
         
-        # Create stat cards with enhanced design
-        self.create_stat_card(stats_container, "Total Posisi", str(total_positions), self.colors['primary'], "👥", 0)
-        self.create_stat_card(stats_container, "Email Tersedia", str(filled_emails), self.colors['success'], "✅", 1)
-        self.create_stat_card(stats_container, "Email Kosong", str(empty_emails), self.colors['warning'], "❗", 2)
-        self.create_stat_card(stats_container, "Tingkat Kelengkapan", f"{completion_rate:.1f}%", self.colors['secondary'], "📊", 3)
+        # Stats cards container
+        stats_container = tk.Frame(dashboard_container, bg=self.colors['light'])
+        stats_container.pack(fill='x', pady=(0, 30))
         
-        # ENHANCED: Additional stats row for position breakdown
-        stats_container2 = tk.Frame(self.content_frame, bg='#f0f0f0')
-        stats_container2.pack(fill='x', pady=(0, 20))
+        # Main statistics row
+        self.create_modern_stat_card(stats_container, "Total Positions", str(total_positions), self.colors['primary'], "👥", 0, 0)
+        self.create_modern_stat_card(stats_container, "Email Configured", str(filled_emails), self.colors['success'], "✅", 0, 1)
+        self.create_modern_stat_card(stats_container, "Pending Setup", str(empty_emails), self.colors['warning'], "⚠️", 0, 2)
+        self.create_modern_stat_card(stats_container, "Completion Rate", f"{completion_rate:.1f}%", self.colors['info'], "📊", 0, 3)
         
-        self.create_stat_card(stats_container2, "Directors & GM", str(director_gm_positions), self.colors['primary'], "🏢", 0)
-        self.create_stat_card(stats_container2, "Managers", str(manager_positions), self.colors['secondary'], "👔", 1)
-        self.create_stat_card(stats_container2, "Senior Officers", str(senior_officer_positions), self.colors['senior_officer'], "👨‍💼", 2)
-        self.create_stat_card(stats_container2, "Avg per Manager", "2", self.colors['dark'], "📈", 3)
+        # Position breakdown row
+        stats_container.grid_rowconfigure(1, weight=0, pady=(20, 0))
+        self.create_modern_stat_card(stats_container, "Directors & GM", str(directors_gm), self.colors['accent'], "🏢", 1, 0)
+        self.create_modern_stat_card(stats_container, "Managers", str(managers), self.colors['purple_500'], "👔", 1, 1)
+        self.create_modern_stat_card(stats_container, "Senior Officers", str(senior_officers), self.colors['purple_600'], "👨‍💼", 1, 2)
+        self.create_modern_stat_card(stats_container, "Avg per Dept", "2-3", self.colors['gray_600'], "📈", 1, 3)
         
-        # ENHANCED: Data table with grouping and improved design
-        self._create_enhanced_table(df)
+        # Configure grid weights
+        for i in range(4):
+            stats_container.grid_columnconfigure(i, weight=1)
+        
+        # Enhanced data table
+        self.create_enhanced_dashboard_table(dashboard_container, df)
     
-    def _create_enhanced_table(self, df):
-        """ENHANCED: Create data table with position grouping"""
-        table_frame = tk.Frame(self.content_frame, bg='white', relief='solid', borderwidth=1)
-        table_frame.pack(fill='both', expand=True, pady=(20, 0))
-        
-        # Table header with enhanced functionality
-        header_frame = tk.Frame(table_frame, bg='white')
-        header_frame.pack(fill='x', padx=20, pady=15)
-        
-        tk.Label(header_frame,
-                text="📋 Data Email Posisi (Enhanced)",
-                font=('Arial', 16, 'bold'),
-                bg='white',
-                fg=self.colors['primary']).pack(side='left')
-        
-        # Enhanced search functionality
-        search_frame = tk.Frame(header_frame, bg='white')
-        search_frame.pack(side='right')
-        
-        # Filter dropdown
-        tk.Label(search_frame, text="Filter:", font=('Arial', 10), bg='white').pack(side='left', padx=(0, 5))
-        self.filter_var = tk.StringVar()
-        filter_combo = ttk.Combobox(search_frame, textvariable=self.filter_var, width=15,
-                                   values=["Semua", "Directors & GM", "Managers", "Senior Officers", "Email Kosong", "Email Tersedia"])
-        filter_combo.set("Semua")
-        filter_combo.pack(side='left', padx=(0, 10))
-        filter_combo.bind('<<ComboboxSelected>>', lambda e: self._filter_table(df))
-        
-        tk.Label(search_frame, text="🔍 Cari:", font=('Arial', 10), bg='white').pack(side='left', padx=(0, 5))
-        search_var = tk.StringVar()
-        search_entry = tk.Entry(search_frame, textvariable=search_var, font=('Arial', 10), width=20)
-        search_entry.pack(side='left')
-        search_var.trace('w', lambda *args: self._search_table(df, search_var.get()))
-        
-        # Notebook for tabbed view
-        notebook = ttk.Notebook(table_frame)
-        notebook.pack(fill='both', expand=True, padx=20, pady=(0, 20))
-        
-        # All positions tab
-        all_tab = ttk.Frame(notebook)
-        notebook.add(all_tab, text="Semua Posisi")
-        self._create_position_tree(all_tab, df, self.positions)
-        
-        # Directors & GM tab
-        directors_tab = ttk.Frame(notebook)
-        notebook.add(directors_tab, text="Directors & GM")
-        director_positions = [pos for pos in self.positions if not pos.startswith("Manager") and not pos.startswith("Senior Officer")]
-        self._create_position_tree(directors_tab, df, director_positions)
-        
-        # Managers tab
-        managers_tab = ttk.Frame(notebook)
-        notebook.add(managers_tab, text="Managers")
-        manager_positions = [pos for pos in self.positions if pos.startswith("Manager")]
-        self._create_position_tree(managers_tab, df, manager_positions)
-        
-        # Senior Officers tab
-        senior_tab = ttk.Frame(notebook)
-        notebook.add(senior_tab, text="Senior Officers")
-        senior_positions = [pos for pos in self.positions if pos.startswith("Senior Officer")]
-        self._create_position_tree(senior_tab, df, senior_positions, highlight_senior=True)
-    
-    def _create_position_tree(self, parent, df, positions, highlight_senior=False):
-        """Create treeview for specific position group"""
-        tree_frame = tk.Frame(parent, bg='white')
-        tree_frame.pack(fill='both', expand=True)
-        
-        # Scrollbars
-        v_scrollbar = ttk.Scrollbar(tree_frame, orient='vertical')
-        h_scrollbar = ttk.Scrollbar(tree_frame, orient='horizontal')
-        
-        tree = ttk.Treeview(tree_frame, 
-                           columns=('posisi', 'email', 'last_updated', 'status'),
-                           show="headings",
-                           yscrollcommand=v_scrollbar.set,
-                           xscrollcommand=h_scrollbar.set)
-        
-        v_scrollbar.config(command=tree.yview)
-        h_scrollbar.config(command=tree.xview)
-        
-        # Configure columns
-        tree.heading('posisi', text='POSISI')
-        tree.heading('email', text='EMAIL')
-        tree.heading('last_updated', text='TERAKHIR DIUPDATE')
-        tree.heading('status', text='STATUS')
-        
-        tree.column('posisi', width=250, anchor='w')
-        tree.column('email', width=300, anchor='w')
-        tree.column('last_updated', width=150, anchor='center')
-        tree.column('status', width=120, anchor='center')
-        
-        # Insert data for specified positions
-        for i, position in enumerate(positions):
-            # Find data for this position
-            position_data = df[df['posisi'] == position] if not df.empty else None
-            
-            if position_data is not None and not position_data.empty:
-                row_data = position_data.iloc[0]
-                email_val = row_data['email'] if pd.notna(row_data['email']) and row_data['email'] != '' else '-'
-                updated_val = row_data['last_updated'] if pd.notna(row_data['last_updated']) and row_data['last_updated'] != '' else '-'
-            else:
-                email_val = '-'
-                updated_val = '-'
-            
-            status = "✅ Lengkap" if email_val != '-' else "❌ Kosong"
-            
-            # ENHANCED: Different colors for senior officers
-            if highlight_senior and position.startswith("Senior Officer"):
-                tags = ('senior_officer',)
-            elif email_val != '-':
-                tags = ('filled',)
-            else:
-                tags = ('empty',)
-            
-            if i % 2 == 0:
-                tags = tags + ('evenrow',)
-            else:
-                tags = tags + ('oddrow',)
-            
-            tree.insert("", "end", values=(
-                position,
-                email_val,
-                updated_val,
-                status
-            ), tags=tags)
-        
-        # Configure row colors
-        tree.tag_configure('evenrow', background='#f8f9fa')
-        tree.tag_configure('oddrow', background='white')
-        tree.tag_configure('filled', foreground='#27ae60')
-        tree.tag_configure('empty', foreground='#e74c3c')
-        tree.tag_configure('senior_officer', foreground='#9b59b6', font=('Arial', 10, 'bold'))  # ENHANCED
-        
-        # Bind double click
-        tree.bind('<Double-1>', lambda e: self._on_tree_double_click(e, tree))
-        
-        # Pack scrollbars and treeview
-        v_scrollbar.pack(side='right', fill='y')
-        h_scrollbar.pack(side='bottom', fill='x')
-        tree.pack(fill='both', expand=True)
-    
-    def _on_tree_double_click(self, event, tree):
-        """Handle double click on tree item for editing"""
-        selection = tree.selection()
-        if selection:
-            item = tree.item(selection[0])
-            position = item['values'][0]
-            self.show_edit_email_form(position)
-    
-    def _filter_table(self, df):
-        """Filter table based on selected criteria"""
-        # Implementation for filtering - this would update the tree views
-        filter_value = self.filter_var.get()
-        print(f"Filtering by: {filter_value}")
-        # Add filtering logic here
-    
-    def _search_table(self, df, search_term):
-        """Search table based on search term"""
-        # Implementation for searching - this would update the tree views
-        print(f"Searching for: {search_term}")
-        # Add search logic here
-
-    def create_stat_card(self, parent, title, value, color, icon, column):
-        """Create a statistics card with improved design"""
-        # Shadow frame
-        shadow_frame = tk.Frame(parent, bg='#d0d0d0', height=102, width=202)
-        shadow_frame.grid(row=0, column=column, padx=(10, 8), pady=(3, 0), sticky='ew')
-        parent.grid_columnconfigure(column, weight=1)
+    def create_modern_stat_card(self, parent, title, value, color, icon, row, col):
+        """Create a modern statistics card with enhanced design"""
+        # Card container with shadow
+        card_shadow = tk.Frame(parent, bg=self.colors['gray_300'])
+        card_shadow.grid(row=row, column=col, sticky='ew', padx=15, pady=10)
         
         # Main card
-        card = tk.Frame(shadow_frame, bg='white', relief='solid', borderwidth=1, height=100, width=200)
-        card.place(x=-3, y=-3)
+        card = tk.Frame(card_shadow, bg=self.colors['white'], height=120)
+        card.pack(fill='both', expand=True, padx=2, pady=2)
         card.pack_propagate(False)
         
-        # Color bar
-        color_bar = tk.Frame(card, bg=color, height=4)
-        color_bar.pack(fill='x')
+        # Color accent bar
+        accent_bar = tk.Frame(card, bg=color, height=4)
+        accent_bar.pack(fill='x')
         
-        # Content frame
-        content_frame = tk.Frame(card, bg='white')
-        content_frame.pack(fill='both', expand=True, padx=15, pady=12)
+        # Card content
+        content = tk.Frame(card, bg=self.colors['white'])
+        content.pack(fill='both', expand=True, padx=20, pady=15)
         
-        # Icon and value container
-        top_frame = tk.Frame(content_frame, bg='white')
-        top_frame.pack(fill='x')
+        # Top row - icon and value
+        top_row = tk.Frame(content, bg=self.colors['white'])
+        top_row.pack(fill='x')
         
-        # Icon
-        tk.Label(top_frame,
-                text=icon,
-                font=('Arial', 20),
-                bg='white',
-                fg=color).pack(side='right')
+        # Icon on the right
+        icon_label = tk.Label(top_row,
+                             text=icon,
+                             font=('Arial', 24),
+                             bg=self.colors['white'],
+                             fg=color)
+        icon_label.pack(side='right')
         
-        # Value
-        tk.Label(top_frame,
-                text=value,
-                font=('Arial', 22, 'bold'),
-                bg='white',
-                fg=color).pack(side='left', anchor='w')
+        # Value on the left
+        value_label = tk.Label(top_row,
+                              text=value,
+                              font=('Inter', 28, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 28, 'bold'),
+                              bg=self.colors['white'],
+                              fg=color)
+        value_label.pack(side='left', anchor='w')
         
         # Title
-        tk.Label(content_frame,
-                text=title,
-                font=('Arial', 11),
-                bg='white',
-                fg=self.colors['dark']).pack(anchor='w', pady=(5, 0))
+        title_label = tk.Label(content,
+                              text=title,
+                              font=('Inter', 11) if 'Inter' in tk.font.families() else ('Segoe UI', 11),
+                              bg=self.colors['white'],
+                              fg=self.colors['gray_600'])
+        title_label.pack(anchor='w', pady=(8, 0))
+    
+    def create_enhanced_dashboard_table(self, parent, df):
+        """Create enhanced table with modern design and position grouping"""
+        # Table container
+        table_container = tk.Frame(parent, bg=self.colors['white'])
+        table_container.pack(fill='both', expand=True, pady=(20, 0))
         
+        # Table header
+        header_frame = tk.Frame(table_container, bg=self.colors['white'])
+        header_frame.pack(fill='x', padx=30, pady=20)
+        
+        tk.Label(header_frame,
+                text="📋 Email Configuration Status - All Positions",
+                font=('Inter', 18, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 18, 'bold'),
+                bg=self.colors['white'],
+                fg=self.colors['gray_800']).pack(side='left')
+        
+        # Quick actions
+        actions_frame = tk.Frame(header_frame, bg=self.colors['white'])
+        actions_frame.pack(side='right')
+        
+        refresh_btn = tk.Button(actions_frame,
+                               text="🔄 Refresh",
+                               font=('Inter', 10, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 10, 'bold'),
+                               bg=self.colors['accent'],
+                               fg='white',
+                               border=0,
+                               relief='flat',
+                               padx=20,
+                               pady=8,
+                               cursor='hand2',
+                               command=lambda: self.show_dashboard())
+        refresh_btn.pack(side='left', padx=(0, 10))
+        
+        export_btn = tk.Button(actions_frame,
+                              text="📤 Export Data",
+                              font=('Inter', 10, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 10, 'bold'),
+                              bg=self.colors['success'],
+                              fg='white',
+                              border=0,
+                              relief='flat',
+                              padx=20,
+                              pady=8,
+                              cursor='hand2',
+                              command=self.export_dashboard_data)
+        export_btn.pack(side='left')
+        
+        # Create modern treeview
+        tree_frame = tk.Frame(table_container, bg=self.colors['white'])
+        tree_frame.pack(fill='both', expand=True, padx=30, pady=(0, 30))
+        
+        # Create treeview with modern styling
+        columns = ('Position', 'Email', 'Status', 'Last Updated')
+        tree = ttk.Treeview(tree_frame, columns=columns, show='headings', style='Modern.Treeview')
+        
+        # Configure columns
+        tree.heading('Position', text='Position')
+        tree.heading('Email', text='Email Address')
+        tree.heading('Status', text='Status')
+        tree.heading('Last Updated', text='Last Updated')
+        
+        tree.column('Position', width=300, anchor='w')
+        tree.column('Email', width=250, anchor='w')
+        tree.column('Status', width=120, anchor='center')
+        tree.column('Last Updated', width=150, anchor='center')
+        
+        # Add scrollbar
+        scrollbar = ttk.Scrollbar(tree_frame, orient='vertical', command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        
+        # Pack treeview and scrollbar
+        tree.pack(side='left', fill='both', expand=True)
+        scrollbar.pack(side='right', fill='y')
+        
+        # Populate treeview with grouped data
+        for group_name, positions in self.position_groups.items():
+            # Add group header
+            tree.insert('', 'end', values=(f"📁 {group_name}", "", "", ""), tags=('group',))
+            
+            for position in positions:
+                # Find position data
+                pos_data = df[df['posisi'] == position]
+                email = pos_data['email'].iloc[0] if not pos_data.empty else ""
+                last_updated = pos_data['last_updated'].iloc[0] if not pos_data.empty else ""
+                
+                # Determine status
+                if email and email.strip():
+                    status = "✅ Configured"
+                    status_color = self.colors['success']
+                else:
+                    status = "⚠️ Pending"
+                    status_color = self.colors['warning']
+                
+                # Insert position row
+                item = tree.insert('', 'end', values=(f"  {position}", email, status, last_updated))
+                
+                # Apply color coding based on position type
+                if position.startswith("Senior Officer"):
+                    tree.tag_configure(item, background=self.colors['purple_50'])
+                elif position.startswith("Manager"):
+                    tree.tag_configure(item, background=self.colors['blue_50'])
+                elif position.startswith(("Direktur", "GM")):
+                    tree.tag_configure(item, background=self.colors['green_50'])
+        
+        # Configure group header styling
+        tree.tag_configure('group', font=('Inter', 12, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 12, 'bold'),
+                          background=self.colors['gray_100'])
+    
+    def export_dashboard_data(self):
+        """Export dashboard data to CSV"""
+        try:
+            df = self.read_data(self.sheet)
+            if not df.empty:
+                filename = f"email_manager_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                df.to_csv(filename, index=False)
+                messagebox.showinfo("Export Success", f"Data berhasil diekspor ke {filename}")
+            else:
+                messagebox.showwarning("No Data", "Tidak ada data untuk diekspor")
+        except Exception as e:
+            messagebox.showerror("Export Error", f"Gagal mengekspor data: {str(e)}")
+    
+    def show_all_positions(self):
+        """Show all positions management view"""
+        self.create_header("All Positions Management")
+        self.create_navigation()
+        self.set_active_nav('positions')
+        self.clear_content()
+        
+        # Implementation for all positions view
+        container = tk.Frame(self.content_frame, bg=self.colors['light'])
+        container.pack(fill='both', expand=True, padx=30, pady=20)
+        
+        tk.Label(container,
+                text="👨‍💼 All Positions Management",
+                font=('Inter', 20, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 20, 'bold'),
+                bg=self.colors['light'],
+                fg=self.colors['gray_800']).pack(pady=(0, 20))
+        
+        # Show position groups
+        for group_name, positions in self.position_groups.items():
+            self.create_position_group_card(container, group_name, positions)
+    
+    def show_by_department(self):
+        """Show positions grouped by department"""
+        self.create_header("Positions by Department")
+        self.create_navigation()
+        self.set_active_nav('department')
+        self.clear_content()
+        
+        # Implementation for department view
+        container = tk.Frame(self.content_frame, bg=self.colors['light'])
+        container.pack(fill='both', expand=True, padx=30, pady=20)
+        
+        tk.Label(container,
+                text="🏢 Department Overview",
+                font=('Inter', 20, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 20, 'bold'),
+                bg=self.colors['light'],
+                fg=self.colors['gray_800']).pack(pady=(0, 20))
+        
+        # Department statistics
+        departments = {
+            "Pemeliharaan": ["Manager Pemeliharaan", "Senior Officer Pemeliharaan 1", "Senior Officer Pemeliharaan 2"],
+            "Operasional": ["Manager Operasional", "Senior Officer Operasional 1", "Senior Officer Operasional 2"],
+            "Administrasi": ["Manager Administrasi", "Senior Officer Administrasi 1", "Senior Officer Administrasi 2"],
+            "Keuangan": ["Manager Keuangan", "Senior Officer Keuangan 1", "Senior Officer Keuangan 2"]
+        }
+        
+        for dept_name, positions in departments.items():
+            self.create_department_card(container, dept_name, positions)
+    
+    def create_position_group_card(self, parent, group_name, positions):
+        """Create a card for position group"""
+        card_frame = tk.Frame(parent, bg=self.colors['white'], relief='solid', borderwidth=1)
+        card_frame.pack(fill='x', pady=10, padx=20)
+        
+        # Header
+        header = tk.Frame(card_frame, bg=self.colors['gray_50'], height=50)
+        header.pack(fill='x')
+        header.pack_propagate(False)
+        
+        tk.Label(header,
+                text=f"📁 {group_name} ({len(positions)} positions)",
+                font=('Inter', 14, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 14, 'bold'),
+                bg=self.colors['gray_50'],
+                fg=self.colors['gray_800']).pack(side='left', padx=20, pady=15)
+        
+        # Positions list
+        for i, position in enumerate(positions):
+            pos_frame = tk.Frame(card_frame, bg=self.colors['white'])
+            pos_frame.pack(fill='x', padx=20, pady=5)
+            
+            # Position name with icon
+            icon = "👔" if position.startswith("Manager") else "👨‍💼" if position.startswith("Senior") else "🏢"
+            tk.Label(pos_frame,
+                    text=f"{icon} {position}",
+                    font=('Inter', 11) if 'Inter' in tk.font.families() else ('Segoe UI', 11),
+                    bg=self.colors['white'],
+                    fg=self.colors['gray_700']).pack(side='left')
+            
+            # Action buttons
+            edit_btn = tk.Button(pos_frame,
+                               text="✏️ Edit",
+                               font=('Inter', 9) if 'Inter' in tk.font.families() else ('Segoe UI', 9),
+                               bg=self.colors['accent'],
+                               fg='white',
+                               border=0,
+                               relief='flat',
+                               padx=15,
+                               pady=5,
+                               cursor='hand2',
+                               command=lambda p=position: self.show_edit_email_form(p))
+            edit_btn.pack(side='right')
+    
+    def create_department_card(self, parent, dept_name, positions):
+        """Create a card for department"""
+        card_frame = tk.Frame(parent, bg=self.colors['white'], relief='solid', borderwidth=1)
+        card_frame.pack(fill='x', pady=10, padx=20)
+        
+        # Header with department icon
+        header = tk.Frame(card_frame, bg=self.colors['blue_50'], height=60)
+        header.pack(fill='x')
+        header.pack_propagate(False)
+        
+        tk.Label(header,
+                text=f"🏢 {dept_name} Department",
+                font=('Inter', 16, 'bold') if 'Inter' in tk.font.families() else ('Segoe UI', 16, 'bold'),
+                bg=self.colors['blue_50'],
+                fg=self.colors['blue_600']).pack(side='left', padx=20, pady=20)
+        
+        tk.Label(header,
+                text=f"{len(positions)} Positions",
+                font=('Inter', 12) if 'Inter' in tk.font.families() else ('Segoe UI', 12),
+                bg=self.colors['blue_50'],
+                fg=self.colors['blue_600']).pack(side='right', padx=20, pady=20)
+        
+        # Department positions
+        for position in positions:
+            pos_frame = tk.Frame(card_frame, bg=self.colors['white'])
+            pos_frame.pack(fill='x', padx=20, pady=8)
+            
+            # Position with role icon
+            role_icon = "👔" if position.startswith("Manager") else "👨‍💼"
+            tk.Label(pos_frame,
+                    text=f"{role_icon} {position}",
+                    font=('Inter', 11) if 'Inter' in tk.font.families() else ('Segoe UI', 11),
+                    bg=self.colors['white'],
+                    fg=self.colors['gray_700']).pack(side='left')
+            
+            # Status indicator
+            status_btn = tk.Button(pos_frame,
+                                 text="📧 Configure",
+                                 font=('Inter', 9) if 'Inter' in tk.font.families() else ('Segoe UI', 9),
+                                 bg=self.colors['success'],
+                                 fg='white',
+                                 border=0,
+                                 relief='flat',
+                                 padx=15,
+                                 pady=5,
+                                 cursor='hand2',
+                                 command=lambda p=position: self.show_edit_email_form(p))
+            status_btn.pack(side='right')
+    
     def show_email_management(self):
         """Show email management interface"""
         self.create_header("Kelola Email")

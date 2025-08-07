@@ -15,8 +15,17 @@ class FinishDialog(tk.Toplevel):
         self.disposisi_labels = disposisi_labels
         self.callbacks = callbacks
         self.title("Finalisasi Disposisi")
-        self.geometry("600x600")  # Increased height for senior officers
+        self.geometry("650x700")  # Slightly wider for better proportions
         self.grab_set()
+        
+        # Center the window
+        self.update_idletasks()
+        x = (self.winfo_screenwidth() // 2) - (650 // 2)
+        y = (self.winfo_screenheight() // 2) - (700 // 2)
+        self.geometry(f"650x700+{x}+{y}")
+        
+        # Configure window style
+        self.configure(bg='#f0f0f0')
         
         # ENHANCED: Track senior officer selections
         self.senior_officer_vars = {}
@@ -25,29 +34,91 @@ class FinishDialog(tk.Toplevel):
         self._create_widgets()
 
     def _create_widgets(self):
-        main_frame = ttk.Frame(self, padding=(20, 20))
+        # Main container with better padding
+        main_container = ttk.Frame(self, style="Card.TFrame")
+        main_container.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        main_frame = ttk.Frame(main_container, padding=(25, 20))
         main_frame.pack(fill="both", expand=True)
-        title_label = ttk.Label(main_frame, text="Pilih Tindakan Selanjutnya", font=("Segoe UI", 16, "bold"))
-        title_label.pack(pady=(0, 20))
+        
+        # Title with icon-like styling
+        title_frame = ttk.Frame(main_frame)
+        title_frame.pack(fill="x", pady=(0, 25))
+        
+        title_label = ttk.Label(
+            title_frame, 
+            text="✓ Finalisasi Disposisi", 
+            font=("Segoe UI", 18, "bold"),
+            foreground="#2c3e50"
+        )
+        title_label.pack(side="left")
+        
+        # Separator line
+        ttk.Separator(main_frame, orient="horizontal").pack(fill="x", pady=(0, 20))
 
-        actions_frame = ttk.LabelFrame(main_frame, text="Opsi", padding=15)
-        actions_frame.pack(fill="x", pady=(0, 15))
+        # Actions frame with improved styling
+        actions_frame = ttk.LabelFrame(
+            main_frame, 
+            text=" Pilih Tindakan ", 
+            padding=20,
+            style="Card.TLabelframe"
+        )
+        actions_frame.pack(fill="x", pady=(0, 20))
 
         self.save_pdf_var = tk.BooleanVar(value=True)
         self.save_sheet_var = tk.BooleanVar(value=True)
         self.send_email_var = tk.BooleanVar(value=False)
 
-        ttk.Checkbutton(actions_frame, text="📄 Simpan sebagai PDF", variable=self.save_pdf_var).pack(anchor="w")
-        ttk.Checkbutton(actions_frame, text="📊 Unggah ke Google Sheets", variable=self.save_sheet_var).pack(anchor="w")
-        ttk.Checkbutton(actions_frame, text="📧 Kirim Disposisi via Email", variable=self.send_email_var, command=self._toggle_email_frame).pack(anchor="w", pady=(10,0))
+        # Action checkboxes with better spacing and icons
+        action_items = [
+            ("📄 Simpan sebagai PDF", self.save_pdf_var, None),
+            ("📊 Unggah ke Google Sheets", self.save_sheet_var, None),
+            ("📧 Kirim Disposisi via Email", self.send_email_var, self._toggle_email_frame)
+        ]
+        
+        for i, (text, var, command) in enumerate(action_items):
+            cb_frame = ttk.Frame(actions_frame)
+            cb_frame.pack(fill="x", pady=(0, 8) if i < len(action_items)-1 else 0)
+            
+            cb = ttk.Checkbutton(
+                cb_frame, 
+                text=text, 
+                variable=var,
+                command=command,
+                style="Action.TCheckbutton"
+            )
+            cb.pack(side="left", padx=(5, 0))
+            
+            # Add separator after second item
+            if i == 1:
+                ttk.Separator(actions_frame, orient="horizontal").pack(fill="x", pady=(12, 12))
         
         # ENHANCED: Email recipients frame with scrollable area
-        self.email_container = ttk.Frame(main_frame)
+        self.email_container = ttk.LabelFrame(
+            main_frame,
+            text=" Penerima Email ",
+            padding=(15, 10),
+            style="Email.TLabelframe"
+        )
+        
+        # Inner container for better organization
+        email_inner = ttk.Frame(self.email_container)
+        email_inner.pack(fill="both", expand=True)
         
         # Create scrollable frame for email recipients
-        self.email_canvas = tk.Canvas(self.email_container, height=300)
-        self.email_scrollbar = ttk.Scrollbar(self.email_container, orient="vertical", command=self.email_canvas.yview)
-        self.email_scrollable_frame = ttk.Frame(self.email_canvas)
+        self.email_canvas = tk.Canvas(
+            email_inner, 
+            height=280,
+            bg='white',
+            highlightthickness=1,
+            highlightbackground='#ddd'
+        )
+        self.email_scrollbar = ttk.Scrollbar(
+            email_inner, 
+            orient="vertical", 
+            command=self.email_canvas.yview
+        )
+        self.email_scrollable_frame = ttk.Frame(self.email_canvas, style="White.TFrame")
         
         self.email_scrollable_frame.bind(
             "<Configure>",
@@ -57,19 +128,42 @@ class FinishDialog(tk.Toplevel):
         self.email_canvas.create_window((0, 0), window=self.email_scrollable_frame, anchor="nw")
         self.email_canvas.configure(yscrollcommand=self.email_scrollbar.set)
         
+        # Enable mouse wheel scrolling
+        def _on_mousewheel(event):
+            self.email_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        self.email_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        
         self.email_canvas.pack(side="left", fill="both", expand=True)
-        self.email_scrollbar.pack(side="right", fill="y")
+        self.email_scrollbar.pack(side="right", fill="y", padx=(2, 0))
         
         # Create email recipients frame
         self._create_email_recipients_frame()
         
-        # Button frame
+        # Separator before buttons
+        ttk.Separator(main_frame, orient="horizontal").pack(fill="x", pady=(20, 15))
+        
+        # Button frame with improved styling
         button_frame = ttk.Frame(main_frame)
-        button_frame.pack(fill="x", pady=(20, 0))
+        button_frame.pack(fill="x")
         button_frame.columnconfigure(0, weight=1)
         button_frame.columnconfigure(1, weight=1)
-        ttk.Button(button_frame, text="Batal", command=self.destroy).grid(row=0, column=0, padx=5, sticky="ew")
-        ttk.Button(button_frame, text="✅ Proses", command=self._process).grid(row=0, column=1, padx=5, sticky="ew")
+        
+        cancel_btn = ttk.Button(
+            button_frame, 
+            text="✕ Batal", 
+            command=self.destroy,
+            style="Cancel.TButton"
+        )
+        cancel_btn.grid(row=0, column=0, padx=(0, 10), sticky="ew", ipady=5)
+        
+        process_btn = ttk.Button(
+            button_frame, 
+            text="✓ Proses", 
+            command=self._process,
+            style="Process.TButton"
+        )
+        process_btn.grid(row=0, column=1, padx=(10, 0), sticky="ew", ipady=5)
 
     def _create_email_recipients_frame(self):
         """Create email recipients selection with senior officer support"""
@@ -80,14 +174,22 @@ class FinishDialog(tk.Toplevel):
         self.email_vars = {}
         self.senior_officer_vars = {}
         self.senior_officer_frames = {}
+        self.dropdown_buttons = {}  # Track dropdown buttons for state management
         
         if not self.disposisi_labels:
-            ttk.Label(self.email_scrollable_frame, text="Tidak ada posisi yang dipilih.").pack()
+            no_data_frame = ttk.Frame(self.email_scrollable_frame)
+            no_data_frame.pack(expand=True, fill="both", pady=50)
+            ttk.Label(
+                no_data_frame, 
+                text="Tidak ada posisi yang dipilih.",
+                font=("Segoe UI", 10, "italic"),
+                foreground="#999"
+            ).pack()
             return
         
-        # Create header
-        header_frame = ttk.LabelFrame(self.email_scrollable_frame, text="Pilih Penerima Email", padding=15)
-        header_frame.pack(fill="x", pady=(0, 10))
+        # Create container with padding
+        container = ttk.Frame(self.email_scrollable_frame, padding=10)
+        container.pack(fill="both", expand=True)
         
         # Mapping untuk singkatan manager
         abbreviation_map = {
@@ -117,53 +219,99 @@ class FinishDialog(tk.Toplevel):
             ]
         }
         
-        row_counter = 0
-        
-        for label in self.disposisi_labels:
-            # Main position frame
-            position_frame = ttk.Frame(header_frame)
-            position_frame.grid(row=row_counter, column=0, sticky="ew", pady=5)
-            header_frame.grid_rowconfigure(row_counter, weight=0)
+        for idx, label in enumerate(self.disposisi_labels):
+            # Manager container frame with border
+            manager_container = ttk.Frame(container, relief="solid", borderwidth=1)
+            manager_container.pack(fill="x", pady=(0, 10) if idx < len(self.disposisi_labels)-1 else 0)
+            
+            # Main position frame with full width layout
+            position_frame = ttk.Frame(manager_container, padding=(12, 10))
+            position_frame.pack(fill="x")
+            position_frame.columnconfigure(1, weight=1)  # Make middle column expand
             
             var = tk.BooleanVar(value=True)
             
             # Use abbreviation for display
             display_label = abbreviation_map.get(label, label)
             if display_label in ["pml", "ops", "adm", "keu"]:
-                display_label = f"Manager {display_label}"
+                display_label = f"Manager {display_label.upper()}"
             
             self.email_vars[label] = var  # Keep original label for email lookup
             
-            # Main checkbox for the position
-            main_cb = ttk.Checkbutton(position_frame, text=display_label, variable=var)
+            # Main checkbox on the left
+            main_cb = ttk.Checkbutton(
+                position_frame, 
+                text=f"📋 {display_label}", 
+                variable=var,
+                style="Manager.TCheckbutton"
+            )
             main_cb.grid(row=0, column=0, sticky="w")
-            
-            row_counter += 1
             
             # ENHANCED: Add senior officers if this is a manager position
             if label in senior_officer_map:
+                # Empty space in middle
+                ttk.Frame(position_frame).grid(row=0, column=1, sticky="ew")
+                
+                # Dropdown button on the right
+                dropdown_btn = ttk.Button(
+                    position_frame,
+                    text="▼ Tim Senior Officers",
+                    style="Dropdown.TButton",
+                    width=20
+                )
+                dropdown_btn.grid(row=0, column=2, sticky="e", padx=(5, 0))
+                self.dropdown_buttons[label] = dropdown_btn
+                
                 # Create collapsible frame for senior officers
-                senior_frame = ttk.LabelFrame(header_frame, text=f"Senior Officers - {display_label}", padding=10)
-                senior_frame.grid(row=row_counter, column=0, sticky="ew", padx=(20, 0), pady=(0, 10))
-                header_frame.grid_rowconfigure(row_counter, weight=0)
+                senior_container = ttk.Frame(manager_container)
+                senior_container.pack(fill="x")
+                
+                senior_frame = ttk.Frame(
+                    senior_container,
+                    relief="ridge",
+                    borderwidth=1
+                )
+                senior_frame.pack(fill="x", padx=(0, 0), pady=(0, 0))
+                
+                # Inner frame with padding
+                senior_inner = ttk.Frame(senior_frame, padding=(40, 15, 15, 15))
+                senior_inner.pack(fill="x")
                 
                 # Track senior officer frame
                 self.senior_officer_frames[label] = senior_frame
                 self.senior_officer_vars[label] = {}
+                
+                # Title for senior officers section
+                title_frame = ttk.Frame(senior_inner)
+                title_frame.pack(fill="x", pady=(0, 10))
+                ttk.Label(
+                    title_frame,
+                    text="Tim Senior Officers",
+                    font=("Segoe UI", 10, "bold"),
+                    foreground="#4a90e2"
+                ).pack(anchor="w")
+                
+                # Create a grid for senior officers
+                officers_grid = ttk.Frame(senior_inner)
+                officers_grid.pack(fill="x")
                 
                 # Add senior officer checkboxes
                 for i, senior_officer in enumerate(senior_officer_map[label]):
                     senior_var = tk.BooleanVar(value=False)  # Default unchecked
                     self.senior_officer_vars[label][senior_officer] = senior_var
                     
+                    officer_frame = ttk.Frame(officers_grid)
+                    officer_frame.pack(fill="x", pady=3)
+                    
                     senior_cb = ttk.Checkbutton(
-                        senior_frame, 
-                        text=senior_officer, 
-                        variable=senior_var
+                        officer_frame, 
+                        text=f"👤 {senior_officer}", 
+                        variable=senior_var,
+                        style="Senior.TCheckbutton"
                     )
-                    senior_cb.grid(row=i, column=0, sticky="w", padx=(10, 0))
+                    senior_cb.pack(anchor="w")
                 
-                # Add "Select All" functionality for senior officers
+                # Add "Toggle All" functionality with better styling
                 def create_select_all_handler(manager_label):
                     def select_all_seniors():
                         all_selected = all(var.get() for var in self.senior_officer_vars[manager_label].values())
@@ -172,34 +320,63 @@ class FinishDialog(tk.Toplevel):
                             var.set(new_state)
                     return select_all_seniors
                 
-                select_all_btn = ttk.Button(
-                    senior_frame, 
-                    text="Toggle All", 
-                    command=create_select_all_handler(label),
-                    style="Secondary.TButton"
-                )
-                select_all_btn.grid(row=len(senior_officer_map[label]), column=0, sticky="w", padx=(10, 0), pady=(5, 0))
+                # Button container with separator
+                ttk.Separator(senior_inner, orient="horizontal").pack(fill="x", pady=(10, 10))
                 
-                row_counter += 1
+                btn_frame = ttk.Frame(senior_inner)
+                btn_frame.pack(fill="x")
+                
+                select_all_btn = ttk.Button(
+                    btn_frame, 
+                    text="☑ Toggle All", 
+                    command=create_select_all_handler(label),
+                    style="Toggle.TButton"
+                )
+                select_all_btn.pack(anchor="w")
                 
                 # Initially hide senior officer frame
-                senior_frame.grid_remove()
+                senior_frame.pack_forget()
                 
-                # Bind main checkbox to show/hide senior officers
-                def create_toggle_handler(manager_label, frame):
-                    def toggle_senior_officers():
-                        if self.email_vars[manager_label].get():
-                            frame.grid()
+                # Create dropdown toggle handler
+                def create_dropdown_handler(manager_label, frame, button):
+                    is_expanded = [False]  # Use list to maintain state in closure
+                    
+                    def toggle_dropdown():
+                        if not self.email_vars[manager_label].get():
+                            # If manager is unchecked, don't allow dropdown
+                            return
+                        
+                        is_expanded[0] = not is_expanded[0]
+                        if is_expanded[0]:
+                            frame.pack(fill="x", padx=(0, 0), pady=(0, 0))
+                            button.configure(text="▲ Tim Senior Officers")
                         else:
-                            frame.grid_remove()
+                            frame.pack_forget()
+                            button.configure(text="▼ Tim Senior Officers")
+                    
+                    return toggle_dropdown, is_expanded
+                
+                # Bind dropdown button
+                toggle_func, expanded_state = create_dropdown_handler(label, senior_frame, dropdown_btn)
+                dropdown_btn.configure(command=toggle_func)
+                
+                # Bind main checkbox to enable/disable dropdown and reset state
+                def create_checkbox_handler(manager_label, frame, button, expanded_state):
+                    def handle_checkbox_change():
+                        if self.email_vars[manager_label].get():
+                            button.configure(state="normal")
+                        else:
+                            button.configure(state="disabled")
+                            frame.pack_forget()
+                            button.configure(text="▼ Tim Senior Officers")
+                            expanded_state[0] = False
                             # Uncheck all senior officers when manager is unchecked
                             for senior_var in self.senior_officer_vars[manager_label].values():
                                 senior_var.set(False)
-                    return toggle_senior_officers
+                    return handle_checkbox_change
                 
-                var.trace('w', lambda *args, label=label, frame=senior_frame: create_toggle_handler(label, frame)())
-        
-        header_frame.grid_columnconfigure(0, weight=1)
+                var.trace('w', lambda *args, label=label, frame=senior_frame, btn=dropdown_btn, exp=expanded_state: 
+                         create_checkbox_handler(label, frame, btn, exp)())
 
     def _toggle_email_frame(self):
         if self.send_email_var.get():
