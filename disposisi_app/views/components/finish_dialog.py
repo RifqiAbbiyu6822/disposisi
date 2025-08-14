@@ -136,7 +136,15 @@ class FinishDialog(tk.Toplevel):
         
         # Enable mouse wheel scrolling
         def _on_mousewheel(event):
-            self.email_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+            try:
+                if hasattr(self, 'email_canvas') and self.email_canvas.winfo_exists():
+                    self.email_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+            except tk.TclError:
+                # Widget sudah dihancurkan, unbind event
+                try:
+                    self.unbind_all("<MouseWheel>")
+                except:
+                    pass
         
         self.email_canvas.bind_all("<MouseWheel>", _on_mousewheel)
         
@@ -170,6 +178,23 @@ class FinishDialog(tk.Toplevel):
             style="Process.TButton"
         )
         process_btn.grid(row=0, column=1, padx=(10, 0), sticky="ew", ipady=5)
+
+    def destroy(self):
+        """Clean up resources before destroying the dialog"""
+        try:
+            # Unbind mouse wheel events
+            self.unbind_all("<MouseWheel>")
+        except:
+            pass
+        
+        # Hide loading screen if it's showing
+        try:
+            if hasattr(self, 'loading_manager'):
+                self.loading_manager.hide_loading()
+        except:
+            pass
+        
+        super().destroy()
 
     def _create_email_recipients_frame(self):
         """Create email recipients selection with senior officer support"""
@@ -473,7 +498,7 @@ class FinishDialog(tk.Toplevel):
                         self.loading_manager.hide_loading()
                         
                         if not LoadingMessageBox.askyesno("Konfirmasi Email", confirm_msg, parent=self):
-                            self.destroy()
+                            self.after(100, self.destroy)  # Delay destroy
                             return
                         
                         # Show loading again for email sending
@@ -490,7 +515,7 @@ class FinishDialog(tk.Toplevel):
                     
                     # Hide loading and close dialog
                     self.loading_manager.hide_loading()
-                    self.destroy()
+                    self.after(100, self.destroy)  # Delay destroy to ensure loading is hidden
                     
                 except Exception as e:
                     self.loading_manager.hide_loading()
