@@ -9,6 +9,7 @@ from disposisi_app.views.components.form_sections import (
 )
 from disposisi_app.views.components.export_utils import collect_form_data_safely
 from datetime import datetime
+import os
 
 def bind_mousewheel_recursive(widget, func):
     widget.bind_all("<MouseWheel>", func)
@@ -91,6 +92,7 @@ class EditTab(ttk.Frame):
         # Create the three main sections with better spacing
         self._create_top_frame()
         self._create_middle_frame()
+        self._create_attachment_frame()  # NEW: Add attachment frame
         self._create_action_bar()  # Changed from button frame to action bar
         
         # Mouse wheel bindings
@@ -190,21 +192,93 @@ class EditTab(ttk.Frame):
         self.frame_instruksi_btn = ttk.Frame(self.frame_info)
         self.frame_instruksi_btn.grid(row=1, column=0, sticky="ew", pady=(5,0))
         
-        # Smaller buttons with reduced padding
+        # Simplified buttons - only essential ones
         self.btn_tambah_baris = ttk.Button(self.frame_instruksi_btn, text="+ Tambah", command=self._on_tambah_baris, style="Secondary.TButton")
-        self.btn_tambah_baris.pack(side="left", padx=(0, 3))
+        self.btn_tambah_baris.pack(side="left", padx=(0, 5))
         
         self.btn_hapus_baris = ttk.Button(self.frame_instruksi_btn, text="🗑 Hapus", command=self._on_hapus_baris, style="Secondary.TButton")
-        self.btn_hapus_baris.pack(side="left", padx=(0, 3))
+        self.btn_hapus_baris.pack(side="left")
+
+    def _create_attachment_frame(self):
+        """SEDERHANAKAN: Attachment frame yang lebih minimalis"""
+        self.attachment_frame = ttk.LabelFrame(self.main_frame, text="📎 Lampiran PDF", padding=(10, 8, 10, 8), style="TLabelframe")
+        self.attachment_frame.grid(row=3, column=0, sticky="ew", pady=(0, 10))
+        self.attachment_frame.columnconfigure(0, weight=1)
         
-        self.btn_kosongkan_baris = ttk.Button(self.frame_instruksi_btn, text="⏹ Kosong", command=self._on_kosongkan_baris, style="Secondary.TButton")
-        self.btn_kosongkan_baris.pack(side="left")
+        # Attachment controls frame - simplified
+        controls_frame = ttk.Frame(self.attachment_frame)
+        controls_frame.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        
+        # Add attachment button only
+        self.btn_add_attachment = ttk.Button(controls_frame, text="📎 Tambah PDF", command=self._add_pdf_attachment, style="Secondary.TButton")
+        self.btn_add_attachment.pack(side="left")
+        
+        # Attachment listbox with scrollbar
+        listbox_frame = ttk.Frame(self.attachment_frame)
+        listbox_frame.grid(row=1, column=0, sticky="ew")
+        listbox_frame.columnconfigure(0, weight=1)
+        
+        # Create listbox and scrollbar
+        self.attachment_listbox = tk.Listbox(listbox_frame, height=3, selectmode=tk.SINGLE, font=("Segoe UI", 9))
+        self.attachment_scrollbar = ttk.Scrollbar(listbox_frame, orient="vertical", command=self.attachment_listbox.yview)
+        self.attachment_listbox.configure(yscrollcommand=self.attachment_scrollbar.set)
+        
+        self.attachment_listbox.grid(row=0, column=0, sticky="ew")
+        self.attachment_scrollbar.grid(row=0, column=1, sticky="ns")
+
+    def _add_pdf_attachment(self):
+        """Add PDF attachment to the form"""
+        from tkinter import filedialog
+        
+        files = filedialog.askopenfilenames(
+            title="Pilih PDF lampiran",
+            filetypes=[("PDF Documents", "*.pdf"), ("All Files", "*.*")]
+        )
+        
+        for file_path in files:
+            if file_path not in self.pdf_attachments:
+                self.pdf_attachments.append(file_path)
+                filename = os.path.basename(file_path)
+                display_name = f"📄 {filename}"
+                self.attachment_listbox.insert(tk.END, display_name)
+                print(f"[DEBUG] Added PDF attachment: {filename}")
+        
+        if files:
+            self.update_status(f"✓ {len(files)} PDF ditambahkan")
+
+    def _remove_pdf_attachment(self):
+        """Remove selected PDF attachment from the form"""
+        selected = self.attachment_listbox.curselection()
+        if selected:
+            idx = selected[0]
+            if idx < len(self.pdf_attachments):
+                filename = os.path.basename(self.pdf_attachments[idx])
+                self.attachment_listbox.delete(idx)
+                del self.pdf_attachments[idx]
+                self.update_status(f"🗑️ {filename} dihapus")
+                print(f"[DEBUG] Removed PDF attachment: {filename}")
+            else:
+                print(f"[WARNING] Index {idx} out of range for pdf_attachments")
+        else:
+            messagebox.showwarning("Hapus Lampiran", "Pilih file yang akan dihapus terlebih dahulu.")
+
+    def refresh_pdf_attachments(self, parent):
+        """Refresh PDF attachments display"""
+        # Clear current listbox
+        if hasattr(self, 'attachment_listbox'):
+            self.attachment_listbox.delete(0, tk.END)
+            
+            # Repopulate with current attachments
+            for pdf_path in self.pdf_attachments:
+                filename = os.path.basename(pdf_path)
+                display_name = f"📄 {filename}"
+                self.attachment_listbox.insert(tk.END, display_name)
 
     def _create_action_bar(self):
-        """FIXED: Create a better action bar similar to main form but for edit mode"""
+        """SEDERHANAKAN: Action bar dengan hanya tombol Selesai dan Batal"""
         # Main action bar container
         action_container = tk.Frame(self.main_frame, bg="#FFFFFF", relief="flat")
-        action_container.grid(row=3, column=0, sticky="ew", pady=(10, 0))
+        action_container.grid(row=4, column=0, sticky="ew", pady=(10, 0))
         
         # Add subtle border
         border_frame = tk.Frame(action_container, bg="#E2E8F0", height=1)
@@ -216,57 +290,29 @@ class EditTab(ttk.Frame):
         action_frame.columnconfigure(0, weight=1)
         action_frame.columnconfigure(1, weight=0)
 
-        # --- Left Section: Edit Info ---
+        # --- Left Section: Cancel Button ---
         left_section = ttk.Frame(action_frame, style="Card.TFrame")
         left_section.grid(row=0, column=0, sticky="w", padx=(0, 20))
 
-        edit_info_label = ttk.Label(left_section, text="Edit Actions", 
-                                   style="Caption.TLabel")
-        edit_info_label.grid(row=0, column=0, sticky="w", pady=(0, 8))
-        
-        info_actions_frame = ttk.Frame(left_section, style="Card.TFrame")
-        info_actions_frame.grid(row=1, column=0, sticky="w")
-        
         # Cancel button
-        btn_cancel = ttk.Button(info_actions_frame, text="❌ Batal", 
+        btn_cancel = ttk.Button(left_section, text="❌ Batal", 
                                command=self._on_cancel, style="Secondary.TButton")
-        btn_cancel.pack(side="left", padx=(0, 10))
+        btn_cancel.pack(side="left")
 
-        # --- Right Section: Save Actions ---
+        # --- Right Section: Finish Button ---
         right_section = ttk.Frame(action_frame, style="Card.TFrame")
         right_section.grid(row=0, column=1, sticky="e")
-
-        save_actions_label = ttk.Label(right_section, text="Save & Export", 
-                                      style="Caption.TLabel")
-        save_actions_label.grid(row=0, column=0, sticky="e", pady=(0, 8))
         
-        # Action buttons container - horizontal layout
-        actions_container = ttk.Frame(right_section, style="Card.TFrame")
-        actions_container.grid(row=1, column=0, sticky="e")
-        
-        # Export PDF button
-        btn_pdf = ttk.Button(actions_container, text="📄 Export PDF", 
-                            command=self._on_export_pdf, style="Secondary.TButton")
-        btn_pdf.pack(side="left", padx=(0, 8))
-        
-        # Send Email button
-        btn_email = ttk.Button(actions_container, text="📧 Kirim Email", 
-                              command=self._on_send_email_simple, style="Secondary.TButton")
-        btn_email.pack(side="left", padx=(0, 8))
-        
-        # Main save button
-        btn_save = ttk.Button(actions_container, text="💾 Simpan Perubahan", 
-                             command=self._on_save, style="Primary.TButton")
-        btn_save.pack(side="left")
+        # Finish button (akan menyimpan dan menutup tab)
+        btn_finish = ttk.Button(right_section, text="✅ Selesai", 
+                               command=self._on_finish, style="Primary.TButton")
+        btn_finish.pack(side="top")
         
         # Helper text - compact
-        helper_frame = ttk.Frame(right_section, style="Card.TFrame")
-        helper_frame.grid(row=2, column=0, sticky="e", pady=(3, 0))
-        
-        helper_text = ttk.Label(helper_frame, 
-                               text="Simpan perubahan data formulir",
+        helper_text = ttk.Label(right_section, 
+                               text="Simpan dan pilih opsi finish",
                                style="Caption.TLabel")
-        helper_text.pack(side="right")
+        helper_text.pack(side="top", pady=(3, 0))
 
     def get_disposisi_labels(self):
         """Get selected disposisi labels - compatible with main app"""
@@ -462,10 +508,36 @@ class EditTab(ttk.Frame):
             
             # Initialize email sender and send
             email_sender = EmailSender()
+            
+            # Prepare PDF attachment if available
+            pdf_attachment_path = None
+            if hasattr(self, 'pdf_attachments') and self.pdf_attachments:
+                try:
+                    import tempfile
+                    # Create temporary merged PDF with attachments
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
+                        temp_pdf_path = temp_pdf.name
+                    
+                    # Create main form PDF
+                    from pdf_output import save_form_to_pdf, merge_pdfs
+                    save_form_to_pdf(temp_pdf_path, data)
+                    
+                    # Merge with attachments
+                    pdf_list = [temp_pdf_path] + list(self.pdf_attachments)
+                    merged_pdf_path = os.path.join(tempfile.gettempdir(), f"merged_disposisi_{os.getpid()}.pdf")
+                    merge_pdfs(pdf_list, merged_pdf_path)
+                    
+                    pdf_attachment_path = merged_pdf_path
+                    
+                except Exception as e:
+                    print(f"[WARNING] Failed to create PDF attachment: {e}")
+                    pdf_attachment_path = None
+            
             success, message, details = email_sender.send_disposisi_to_positions(
                 positions, 
                 subject, 
-                html_content
+                html_content,
+                pdf_attachment_path
             )
             
             # Show results
@@ -496,11 +568,31 @@ class EditTab(ttk.Frame):
                     
                     error_msg += "\n\nPosisi tanpa email:\n" + "\n".join(display_failed_lookups)
                 messagebox.showerror("Email Error", error_msg, parent=self.winfo_toplevel())
+            
+            # Clean up temporary files
+            try:
+                if 'pdf_attachment_path' in locals() and pdf_attachment_path and os.path.exists(pdf_attachment_path):
+                    os.remove(pdf_attachment_path)
+                    print(f"[DEBUG] Cleaned up temp PDF: {pdf_attachment_path}")
+                if 'temp_pdf_path' in locals() and temp_pdf_path and os.path.exists(temp_pdf_path):
+                    os.remove(temp_pdf_path)
+                    print(f"[DEBUG] Cleaned up temp PDF: {temp_pdf_path}")
+            except Exception as e:
+                print(f"[WARNING] Could not remove temporary files: {e}")
                 
         except Exception as e:
             import traceback
             traceback.print_exc()
             messagebox.showerror("Email Error", f"Terjadi kesalahan: {e}", parent=self.winfo_toplevel())
+            
+            # Clean up temporary files on error too
+            try:
+                if 'pdf_attachment_path' in locals() and pdf_attachment_path and os.path.exists(pdf_attachment_path):
+                    os.remove(pdf_attachment_path)
+                if 'temp_pdf_path' in locals() and temp_pdf_path and os.path.exists(temp_pdf_path):
+                    os.remove(temp_pdf_path)
+            except Exception as cleanup_error:
+                print(f"[WARNING] Could not remove temporary files: {cleanup_error}")
 
     def update_status(self, message):
         """Update status message - for compatibility"""
@@ -663,7 +755,19 @@ class EditTab(ttk.Frame):
                 widget = getattr(self, f'{widget_key}_entry')
             
             if widget:
-                date_value = data.get(data_key, "") or data.get(widget_key.replace("_", " ").title(), "")
+                # Get date value from multiple possible sources
+                date_value = data.get(data_key, "")
+                if not date_value:
+                    # Try alternative key names
+                    alt_keys = [
+                        widget_key.replace("_", " ").title(),
+                        widget_key.upper(),
+                        data_key.replace("_", " ").title()
+                    ]
+                    for alt_key in alt_keys:
+                        if alt_key in data and data[alt_key]:
+                            date_value = data[alt_key]
+                            break
                 
                 try:
                     # Clear widget first
@@ -694,6 +798,16 @@ class EditTab(ttk.Frame):
         if "isi_instruksi" in data:
             self.instruksi_table.data = data["isi_instruksi"]
             self.instruksi_table.render_table()
+        
+        # Load PDF attachments if available in data log
+        if "pdf_attachments" in data and data["pdf_attachments"]:
+            try:
+                self.pdf_attachments = data["pdf_attachments"]
+                self.refresh_pdf_attachments(self.main_frame)
+                print(f"[EditTab] Loaded {len(self.pdf_attachments)} PDF attachments from data log.")
+            except Exception as e:
+                print(f"[EditTab] Warning: Could not load PDF attachments: {e}")
+        
         print("[EditTab] Form berhasil diisi dari data log.")
 
     def _on_save(self):
@@ -711,6 +825,59 @@ class EditTab(ttk.Frame):
                 from disposisi_app.views.components.export_utils import collect_form_data_safely
                 try:
                     data_baru = collect_form_data_safely(self)
+                    
+                    # ENHANCED: Ensure date fields are properly collected for EditTab
+                    # Handle DateEntry widgets specifically
+                    date_fields = [
+                        ("tgl_surat", "tgl_surat"),
+                        ("tgl_terima", "tgl_terima"), 
+                        ("harap_selesai_tgl", "harap_selesai_tgl")
+                    ]
+                    
+                    for widget_key, data_key in date_fields:
+                        # Look for widget in multiple locations
+                        widget = None
+                        if widget_key in self.form_input_widgets:
+                            widget = self.form_input_widgets[widget_key]
+                        elif hasattr(self, f'{widget_key}_entry'):
+                            widget = getattr(self, f'{widget_key}_entry')
+                        
+                        if widget:
+                            try:
+                                # Try to get date from DateEntry widget
+                                if hasattr(widget, 'get_date'):
+                                    date_obj = widget.get_date()
+                                    if date_obj:
+                                        data_baru[data_key] = date_obj.strftime("%d-%m-%Y")
+                                    else:
+                                        data_baru[data_key] = ""
+                                elif hasattr(widget, 'get'):
+                                    # Fallback to regular get() method
+                                    value = widget.get()
+                                    if value and str(value).strip():
+                                        data_baru[data_key] = str(value).strip()
+                                    else:
+                                        data_baru[data_key] = ""
+                                else:
+                                    data_baru[data_key] = ""
+                            except Exception as e:
+                                print(f"[EditTab] Error getting date from {widget_key}: {e}")
+                                data_baru[data_key] = ""
+                        else:
+                            # If widget not found, keep existing value or set empty
+                            if data_key not in data_baru:
+                                data_baru[data_key] = ""
+                    
+                    # Add PDF attachments to data
+                    if hasattr(self, 'pdf_attachments') and self.pdf_attachments:
+                        data_baru["pdf_attachments"] = self.pdf_attachments
+                        print(f"[EditTab] Added {len(self.pdf_attachments)} PDF attachments to save data.")
+                    
+                    print(f"[EditTab] Collected data keys: {list(data_baru.keys())}")
+                    print(f"[EditTab] Date values - tgl_surat: {data_baru.get('tgl_surat', 'NOT_FOUND')}")
+                    print(f"[EditTab] Date values - tgl_terima: {data_baru.get('tgl_terima', 'NOT_FOUND')}")
+                    print(f"[EditTab] Date values - harap_selesai_tgl: {data_baru.get('harap_selesai_tgl', 'NOT_FOUND')}")
+                    
                 except Exception as e:
                     print(f"[EditTab][ERROR] Error collecting form data: {e}")
                     LoadingMessageBox.showerror("Error", f"Gagal mengumpulkan data form: {e}", parent=self)
@@ -760,7 +927,7 @@ class EditTab(ttk.Frame):
                 try:
                     from google_sheets_connect import get_sheets_service, SHEET_ID
                     service = get_sheets_service()
-                    range_name = 'Sheet1!A6:B'
+                    range_name = 'Sheet1!A6:AH'  # Changed to include all columns
                     result = service.spreadsheets().values().get(
                         spreadsheetId=SHEET_ID,
                         range=range_name
@@ -853,10 +1020,15 @@ class EditTab(ttk.Frame):
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
                     temp_pdf_path = temp_pdf.name
                 save_form_to_pdf(temp_pdf_path, data_baru)
+                
                 # Gabungkan PDF disposisi + lampiran jika ada
-                pdf_list = [temp_pdf_path] + list(self.pdf_attachments)
+                pdf_list = [temp_pdf_path]
+                if hasattr(self, 'pdf_attachments') and self.pdf_attachments:
+                    pdf_list.extend(list(self.pdf_attachments))
+                
                 merge_pdfs(pdf_list, filepath)
                 os.remove(temp_pdf_path)
+                
                 # Upload ke Google Sheets juga
                 try:
                     update_log_entry(self.data_log, data_baru)
@@ -879,3 +1051,68 @@ class EditTab(ttk.Frame):
 
     def _on_kosongkan_baris(self):
         self.instruksi_table.kosongkan_semua_baris()
+
+    def _on_finish_simple(self):
+        """SEDERHANAKAN: Simpan perubahan dan tutup tab edit"""
+        import threading
+        from disposisi_app.views.components.loading_screen import loading_manager, LoadingMessageBox
+        
+        def do_finish():
+            try:
+                # Show loading screen
+                loading_manager.show_loading(self, "Menyimpan perubahan...", True)
+                
+                # Progress simulation
+                for i in range(1, 101):
+                    import time; time.sleep(0.01)
+                    loading_manager.update_progress(i)
+                
+                # Ambil data dari form
+                data_baru = collect_form_data_safely(self)
+                
+                # Update ke Google Sheets
+                from edit_logic import update_log_entry
+                success = update_log_entry(self.data_log, data_baru)
+                
+                if success:
+                    # Call callback untuk refresh data dan tutup tab
+                    if self.on_save_callback:
+                        self.on_save_callback()
+                    
+                    LoadingMessageBox.showinfo("Sukses", "Perubahan berhasil disimpan dan tab ditutup.", parent=self)
+                else:
+                    LoadingMessageBox.showerror("Error", "Gagal menyimpan perubahan ke Google Sheets.", parent=self)
+                
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                LoadingMessageBox.showerror("Error", f"Gagal menyimpan perubahan: {e}", parent=self)
+            finally:
+                loading_manager.hide_loading()
+        
+        # Run in separate thread to avoid blocking UI
+        threading.Thread(target=do_finish, daemon=True).start()
+
+    def _on_finish(self):
+        """Show finish dialog for completing the edit process"""
+        try:
+            from disposisi_app.views.components.finish_dialog import FinishDialog
+            
+            # Get disposisi labels
+            disposisi_labels = self.get_disposisi_labels()
+            
+            # Create callbacks for finish dialog
+            dialog_callbacks = {
+                "save_pdf": self._on_export_pdf,
+                "save_sheet": self._on_save,
+                "send_email": self._send_email_to_positions
+            }
+            
+            # Create and show finish dialog
+            dialog = FinishDialog(self, disposisi_labels, dialog_callbacks)
+            self.wait_window(dialog)
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            messagebox.showerror("Error", f"Gagal membuka dialog selesai: {e}")

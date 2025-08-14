@@ -459,7 +459,7 @@ def update_log_entry(data_lama, data_baru):
     """Update log entry in Google Sheets with robust error handling"""
     try:
         service = get_sheets_service()
-        range_name = 'Sheet1!A6:AB'
+        range_name = 'Sheet1!A6:AH'  # Changed from AB to AH for 34 columns
         result = service.spreadsheets().values().get(
             spreadsheetId=SHEET_ID,
             range=range_name
@@ -588,16 +588,14 @@ def update_log_entry(data_lama, data_baru):
                 print(f"[WARNING] Error processing column {col}: {e}")
                 row_data.append("")  # Add empty value to maintain column structure
         
-        # Ensure we have exactly 28 columns
-        while len(row_data) < 28:
+        # Ensure we have exactly 34 columns for Google Sheets (A-AH)
+        while len(row_data) < 34:
             row_data.append("")
-        row_data = row_data[:28]  # Trim if too many
+        row_data = row_data[:34]  
         
         print(f"[update_log_entry] Akan update baris ke-{idx+6} dengan {len(row_data)} kolom")
         if missing_keys:
             print(f"[update_log_entry][INFO] Kolom kosong: {missing_keys}")
-        
-        # Update the row (idx+1 because row_number starts from 1, which corresponds to row 6 in the sheet)
         update_row_in_sheet(row_data, idx+1)
         
         return True

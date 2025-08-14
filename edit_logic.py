@@ -17,17 +17,54 @@ ENHANCED_HEADER = [
     "Manager Keuangan Instruksi", "Manager Keuangan Tanggal"
 ]
 
+# Field mapping for consistent data conversion
+FIELD_MAPPING = {
+    "Tgl. Surat": "tgl_surat",
+    "Tgl. Penerimaan": "tgl_terima", 
+    "Kode Klasifikasi": "kode_klasifikasi",
+    "Indeks": "indeks",
+    "Harap Selesai Tanggal": "harap_selesai_tgl",
+    "Selesai Tgl.": "selesai_tgl",
+    "Bicarakan dengan": "bicarakan_dengan",
+    "Teruskan kepada": "teruskan_kepada",
+    "No. Agenda": "no_agenda",
+    "No. Surat": "no_surat",
+    "Perihal": "perihal",
+    "Asal Surat": "asal_surat",
+    "Ditujukan": "ditujukan"
+}
+
+# Position mapping for instruction fields
+POSITION_MAPPING = {
+    "Direktur Utama": "dir_utama",
+    "Direktur Keuangan": "dir_keu", 
+    "Direktur Teknik": "dir_teknik",
+    "GM Keuangan & Administrasi": "gm_keu",
+    "GM Operasional & Pemeliharaan": "gm_ops",
+    "Manager Pemeliharaan": "manager_pemeliharaan",
+    "Manager Operasional": "manager_operasional", 
+    "Manager Administrasi": "manager_administrasi",
+    "Manager Keuangan": "manager_keuangan"
+}
+
+# Reverse mapping for converting back to sheet format
+REVERSE_FIELD_MAPPING = {v: k for k, v in FIELD_MAPPING.items()}
+
 def normalize_date_format(date_str):
     """Normalize date format with robust null handling"""
-    if not date_str or str(date_str).strip() == "" or str(date_str).lower() in ['none', 'null']:
+    # Handle null/empty values
+    if date_str is None:
+        return ""
+    
+    date_str = str(date_str).strip()
+    if not date_str or date_str.lower() in ['none', 'null', 'nan', '']:
         return ""
     
     try:
         from datetime import datetime
-        date_str = str(date_str).strip()
         
         # Common date formats to try
-        formats = ["%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y", "%Y/%m/%d", "%d.%m.%Y"]
+        formats = ["%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y", "%Y/%m/%d", "%d.%m.%Y", "%m/%d/%Y"]
         
         for fmt in formats:
             try:
@@ -37,26 +74,37 @@ def normalize_date_format(date_str):
                 continue
         
         # If no format matches, return as is (but cleaned)
+        print(f"[normalize_date_format] Warning: Could not parse date '{date_str}', returning as-is")
         return date_str
         
     except Exception as e:
         print(f"[normalize_date_format] Warning: Could not parse date '{date_str}': {e}")
-        return str(date_str) if date_str is not None else ""
+        return ""
 
 def safe_get_value(data, key, default=""):
     """Safely get value from data dict with null handling"""
     try:
-        value = data.get(key, default)
+        if key not in data:
+            return default
+        
+        value = data[key]
         if value is None:
             return default
-        return str(value).strip() if value != default else default
-    except:
+        
+        # Convert to string and handle empty/null-like values
+        value_str = str(value).strip()
+        if not value_str or value_str.lower() in ['none', 'null', 'nan', '']:
+            return default
+        
+        return value_str
+    except Exception as e:
+        print(f"[safe_get_value] Error getting {key}: {e}")
         return default
 
 # Ambil satu entry log dari Google Sheets berdasarkan No. Surat (bukan No. Agenda)
 def get_log_entry_by_no_surat(no_surat):
     service = get_sheets_service()
-    range_name = 'Sheet1!A6:AB'
+    range_name = 'Sheet1!A6:AH'  # Changed from AB to AH for 34 columns
     result = service.spreadsheets().values().get(
         spreadsheetId=SHEET_ID,
         range=range_name
@@ -96,7 +144,7 @@ def get_log_entry_by_no_surat(no_surat):
 def update_log_entry(data_lama, data_baru):
     try:
         service = get_sheets_service()
-        range_name = 'Sheet1!A6:AB'
+        range_name = 'Sheet1!A6:AH'  # Changed from AB to AH for 34 columns
         result = service.spreadsheets().values().get(
             spreadsheetId=SHEET_ID,
             range=range_name
@@ -123,32 +171,16 @@ def update_log_entry(data_lama, data_baru):
             if v is not None:  # Allow empty strings but not None
                 merged_data[k] = v
                 
-                # Handle field name mappings
-                field_mappings = {
-                    "no_agenda": "No. Agenda",
-                    "no_surat": "No. Surat", 
-                    "tgl_surat": "Tgl. Surat",
-                    "perihal": "Perihal",
-                    "asal_surat": "Asal Surat",
-                    "ditujukan": "Ditujukan",
-                    "kode_klasifikasi": "Kode Klasifikasi",
-                    "tgl_terima": "Tgl. Penerimaan",
-                    "indeks": "Indeks",
-                    "bicarakan_dengan": "Bicarakan dengan",
-                    "teruskan_kepada": "Teruskan kepada",
-                    "harap_selesai_tgl": "Harap Selesai Tanggal"
-                }
-                
-                # If snake_case key exists, also set the Title Case version
-                if k in field_mappings:
-                    merged_data[field_mappings[k]] = v
+                # Use consistent field mapping
+                if k in REVERSE_FIELD_MAPPING:
+                    merged_data[REVERSE_FIELD_MAPPING[k]] = v
 
         # Sinkronisasi kolom tanggal penyelesaian agar konsisten
         harap_selesai = merged_data.get("Harap Selesai Tanggal", merged_data.get("harap_selesai_tgl", ""))
         if harap_selesai:
             merged_data["Selesai Tgl."] = harap_selesai
 
-        # FIXED: Valid position labels only
+        # FIXED: Valid position labels only - match with ENHANCED_HEADER
         pejabat_labels = [
             "Direktur Utama", "Direktur Keuangan", "Direktur Teknik",
             "GM Keuangan & Administrasi", "GM Operasional & Pemeliharaan", 
@@ -158,7 +190,7 @@ def update_log_entry(data_lama, data_baru):
         # Initialize instruction map with valid positions only
         instruksi_map = {label: {"instruksi": "", "tanggal": ""} for label in pejabat_labels}
         
-        # Process instruction data
+        # Process instruction data from isi_instruksi
         isi_instruksi = merged_data.get("isi_instruksi", [])
         if isi_instruksi and isinstance(isi_instruksi, list):
             for instruksi_item in isi_instruksi:
@@ -167,6 +199,16 @@ def update_log_entry(data_lama, data_baru):
                     if posisi in instruksi_map:  # Only process valid positions
                         instruksi_map[posisi]["instruksi"] = safe_get_value(instruksi_item, "instruksi")
                         instruksi_map[posisi]["tanggal"] = normalize_date_format(instruksi_item.get("tanggal", ""))
+        
+        # Also process individual instruction fields if they exist in merged_data
+        for label in pejabat_labels:
+            instruksi_key = f"{label} Instruksi"
+            tanggal_key = f"{label} Tanggal"
+            
+            if instruksi_key in merged_data and merged_data[instruksi_key]:
+                instruksi_map[label]["instruksi"] = safe_get_value(merged_data, instruksi_key)
+            if tanggal_key in merged_data and merged_data[tanggal_key]:
+                instruksi_map[label]["tanggal"] = normalize_date_format(merged_data[tanggal_key])
 
         # Build row data with robust null handling
         row_data = []
@@ -185,11 +227,26 @@ def update_log_entry(data_lama, data_baru):
                 elif col.endswith(" Tanggal"):
                     # Extract position name by removing " Tanggal" suffix  
                     label = col.replace(" Tanggal", "")
-                    if label in instruksi_map:
+                    # Special handling for "Harap Selesai Tanggal" field
+                    if col == "Harap Selesai Tanggal":
+                        value = safe_get_value(merged_data, "harap_selesai_tgl")
+                        value = normalize_date_format(value)
+                        row_data.append(value)
+                    elif label in instruksi_map:
                         row_data.append(safe_get_value(instruksi_map[label], "tanggal"))
                     else:
                         print(f"[WARNING] Unknown position for date: {label}")
                         row_data.append("")
+                        
+                elif col in ["No. Agenda", "No. Surat", "Tgl. Surat", "Perihal", "Asal Surat", "Ditujukan", 
+                           "Kode Klasifikasi", "Tgl. Penerimaan", "Indeks", "Bicarakan dengan", 
+                           "Teruskan kepada", "Selesai Tgl."]:
+                    # Handle basic fields with null safety
+                    value = safe_get_value(merged_data, col)
+                    if col in ["Tgl. Surat", "Tgl. Penerimaan", "Selesai Tgl."]:
+                        value = normalize_date_format(value)
+                        print(f"[update_log_entry] Date field {col}: '{value}'")
+                    row_data.append(value)
                         
                 elif col == "Klasifikasi":
                     # Handle classification with null safety
@@ -203,17 +260,27 @@ def update_log_entry(data_lama, data_baru):
                         row_data.append("")
                         
                 elif col == "Disposisi kepada":
+                    # Handle disposisi checkboxes with abbreviation for managers
                     disposisi_labels = []
+                    manager_labels = []
+                    
                     if merged_data.get("dir_utama", 0): disposisi_labels.append("Direktur Utama")
                     if merged_data.get("dir_keu", 0): disposisi_labels.append("Direktur Keuangan")
                     if merged_data.get("dir_teknik", 0): disposisi_labels.append("Direktur Teknik")
                     if merged_data.get("gm_keu", 0): disposisi_labels.append("GM Keuangan & Administrasi")
                     if merged_data.get("gm_ops", 0): disposisi_labels.append("GM Operasional & Pemeliharaan")
-                    if merged_data.get("manager_pemeliharaan", 0): disposisi_labels.append("Manager Pemeliharaan")
-                    if merged_data.get("manager_operasional", 0): disposisi_labels.append("Manager Operasional")
-                    if merged_data.get("manager_administrasi", 0): disposisi_labels.append("Manager Administrasi")
-                    if merged_data.get("manager_keuangan", 0): disposisi_labels.append("Manager Keuangan")
-                    merged_data[col] = ", ".join(disposisi_labels)
+                    
+                    # Collect managers separately for abbreviation
+                    if merged_data.get("manager_pemeliharaan", 0): manager_labels.append("pml")
+                    if merged_data.get("manager_operasional", 0): manager_labels.append("ops")
+                    if merged_data.get("manager_administrasi", 0): manager_labels.append("adm")
+                    if merged_data.get("manager_keuangan", 0): manager_labels.append("keu")
+                    
+                    # Add abbreviated managers
+                    if manager_labels:
+                        disposisi_labels.append(f"Manager {', '.join(manager_labels)}")
+                    
+                    row_data.append(", ".join(disposisi_labels))
                     
                 elif col == "Untuk Di :":
                     # Handle action checkboxes
@@ -227,25 +294,28 @@ def update_log_entry(data_lama, data_baru):
                     if merged_data.get("bicarakan_saya", 0): untuk_di_labels.append("Bicarakan dengan Saya")
                     row_data.append(", ".join(untuk_di_labels))
                     
-                elif col in ["Tgl. Surat", "Tgl. Penerimaan", "Harap Selesai Tanggal", "Selesai Tgl."]:
-                    # Handle date fields with normalization
-                    date_value = safe_get_value(merged_data, col)
-                    row_data.append(normalize_date_format(date_value))
-                    
                 else:
-                    # Handle regular fields with null safety
-                    row_data.append(safe_get_value(merged_data, col))
+                    # Handle any remaining fields with null safety
+                    # Check if we have the field in merged_data, otherwise use empty string
+                    if col in merged_data:
+                        row_data.append(safe_get_value(merged_data, col))
+                    else:
+                        row_data.append("")
                     
             except Exception as e:
                 print(f"[WARNING] Error processing column {col}: {e}")
                 row_data.append("")  # Add empty value to maintain column alignment
 
         print(f"[update_log_entry] Updating row {idx+6} with {len(row_data)} columns")
+        print(f"[update_log_entry] Expected columns: {len(ENHANCED_HEADER)}")
         
-        # Ensure we have exactly 28 columns
-        while len(row_data) < 28:
+        # Ensure we have exactly 34 columns for Google Sheets (A-AH)
+        while len(row_data) < 34:
             row_data.append("")
-        row_data = row_data[:28]  # Trim if too many
+        row_data = row_data[:34]  # Trim if too many
+        
+        print(f"[update_log_entry] Final row data length: {len(row_data)} (should be 34)")
+        print(f"[update_log_entry] Row data preview: {row_data[:5]}...")  # Show first 5 columns
         
         # Update the row
         update_row_in_sheet(row_data, idx+1)  # idx+1 karena row_number mulai dari 1 = baris ke-6

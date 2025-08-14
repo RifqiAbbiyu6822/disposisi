@@ -1,11 +1,14 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 from datetime import datetime
 import traceback
+import threading
 
 # Import email sender dengan modifikasi untuk mengambil dari spreadsheet
 from email_sender.send_email import EmailSender
 from email_sender.template_handler import render_email_template
+# Import loading screen
+from .loading_screen import LoadingManager, LoadingMessageBox
 
 class FinishDialog(tk.Toplevel):
     def __init__(self, parent, disposisi_labels, callbacks):
@@ -17,6 +20,9 @@ class FinishDialog(tk.Toplevel):
         self.title("Finalisasi Disposisi")
         self.geometry("650x700")  # Slightly wider for better proportions
         self.grab_set()
+        
+        # Initialize loading manager
+        self.loading_manager = LoadingManager()
         
         # Center the window
         self.update_idletasks()
@@ -404,47 +410,97 @@ class FinishDialog(tk.Toplevel):
 
     def _process(self):
         try:
-            # Process save PDF if selected
-            if self.save_pdf_var.get() and callable(self.callbacks.get("save_pdf")):
-                self.callbacks["save_pdf"]()
+            # Show loading screen
+            loading = self.loading_manager.show_loading(self, "Memproses Disposisi...", show_progress=True)
             
-            # Process save to Sheet if selected
-            if self.save_sheet_var.get() and callable(self.callbacks.get("save_sheet")):
-                self.callbacks["save_sheet"]()
+            # Process operations in thread to avoid blocking UI
+            def process_operations():
+                try:
+                    progress = 0
+                    total_operations = 0
+                    
+                    # Count total operations
+                    if self.save_pdf_var.get():
+                        total_operations += 1
+                    if self.save_sheet_var.get():
+                        total_operations += 1
+                    if self.send_email_var.get():
+                        total_operations += 1
+                    
+                    if total_operations == 0:
+                        self.loading_manager.hide_loading()
+                        self.destroy()
+                        return
+                    
+                    # Process save PDF if selected
+                    if self.save_pdf_var.get() and callable(self.callbacks.get("save_pdf")):
+                        self.loading_manager.update_progress(progress, "Menyimpan PDF...")
+                        self.callbacks["save_pdf"]()
+                        progress += (100 // total_operations)
+                    
+                    # Process save to Sheet if selected
+                    if self.save_sheet_var.get() and callable(self.callbacks.get("save_sheet")):
+                        self.loading_manager.update_progress(progress, "Mengunggah ke Google Sheets...")
+                        self.callbacks["save_sheet"]()
+                        progress += (100 // total_operations)
+                    
+                    # Process send email if selected
+                    if self.send_email_var.get():
+                        selected_positions = self._get_selected_recipients()
+                        if not selected_positions:
+                            self.loading_manager.hide_loading()
+                            LoadingMessageBox.showwarning("Peringatan", "Pilih setidaknya satu penerima email.", parent=self)
+                            return
+                        
+                        # Show confirmation with all selected recipients
+                        abbreviation_map = {
+                            "Manager Pemeliharaan": "Manager pml",
+                            "Manager Operasional": "Manager ops",
+                            "Manager Administrasi": "Manager adm", 
+                            "Manager Keuangan": "Manager keu"
+                        }
+                        
+                        display_recipients = []
+                        for pos in selected_positions:
+                            display_name = abbreviation_map.get(pos, pos)
+                            display_recipients.append(display_name)
+                        
+                        confirm_msg = f"Kirim email ke {len(selected_positions)} penerima:\n\n"
+                        confirm_msg += "\n".join([f"• {name}" for name in display_recipients])
+                        confirm_msg += "\n\nLanjutkan pengiriman?"
+                        
+                        # Hide loading temporarily for confirmation
+                        self.loading_manager.hide_loading()
+                        
+                        if not LoadingMessageBox.askyesno("Konfirmasi Email", confirm_msg, parent=self):
+                            self.destroy()
+                            return
+                        
+                        # Show loading again for email sending
+                        loading = self.loading_manager.show_loading(self, "Mengirim Email...", show_progress=True)
+                        
+                        # Call the main callback from the parent app
+                        if callable(self.callbacks.get("send_email")):
+                            self.loading_manager.update_progress(progress, "Mengirim email...")
+                            self.callbacks["send_email"](selected_positions)
+                            progress += (100 // total_operations)
+                    
+                    # Complete
+                    self.loading_manager.update_progress(100, "Selesai!")
+                    
+                    # Hide loading and close dialog
+                    self.loading_manager.hide_loading()
+                    self.destroy()
+                    
+                except Exception as e:
+                    self.loading_manager.hide_loading()
+                    LoadingMessageBox.showerror("Error", f"Terjadi kesalahan: {e}", parent=self)
+                    traceback.print_exc()
             
-            # Process send email if selected
-            if self.send_email_var.get():
-                selected_positions = self._get_selected_recipients()
-                if not selected_positions:
-                    messagebox.showwarning("Peringatan", "Pilih setidaknya satu penerima email.", parent=self)
-                    return
-                
-                # Show confirmation with all selected recipients
-                abbreviation_map = {
-                    "Manager Pemeliharaan": "Manager pml",
-                    "Manager Operasional": "Manager ops",
-                    "Manager Administrasi": "Manager adm", 
-                    "Manager Keuangan": "Manager keu"
-                }
-                
-                display_recipients = []
-                for pos in selected_positions:
-                    display_name = abbreviation_map.get(pos, pos)
-                    display_recipients.append(display_name)
-                
-                confirm_msg = f"Kirim email ke {len(selected_positions)} penerima:\n\n"
-                confirm_msg += "\n".join([f"• {name}" for name in display_recipients])
-                confirm_msg += "\n\nLanjutkan pengiriman?"
-                
-                if not messagebox.askyesno("Konfirmasi Email", confirm_msg, parent=self):
-                    return
-                
-                # Call the main callback from the parent app
-                if callable(self.callbacks.get("send_email")):
-                    self.callbacks["send_email"](selected_positions)
-            
-            self.destroy()
+            # Start processing in thread
+            threading.Thread(target=process_operations, daemon=True).start()
 
         except Exception as e:
-            messagebox.showerror("Error", f"Terjadi kesalahan: {e}", parent=self)
+            self.loading_manager.hide_loading()
+            LoadingMessageBox.showerror("Error", f"Terjadi kesalahan: {e}", parent=self)
             traceback.print_exc()

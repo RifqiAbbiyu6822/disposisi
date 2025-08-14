@@ -404,10 +404,14 @@ class LogTab(ttk.Frame):
     def clear_filter(self):
         """Clear all filters and show all data."""
         self.filtered_data = self.data.copy()
-        self.refresh_table()
-        self.update_filter_values()
-        self.update_record_count()
-        update_status(self.status_label, "Filter cleared")
+        try:
+            self.refresh_table()
+            self.update_filter_values()
+            self.update_record_count()
+            update_status(self.status_label, "Filter cleared")
+        except Exception as e:
+            print(f"[WARNING] Error in clear_filter: {e}")
+            update_status(self.status_label, "Error clearing filter")
 
     def load_sheet_data(self, force_refresh=False):
         import threading
@@ -423,7 +427,7 @@ class LogTab(ttk.Frame):
                             values = LogTab._log_cache or []
                         else:
                             service = get_sheets_service()
-                            range_name = f'{SHEET_NAME}!A6:AB'  # A to AB = 28 columns
+                            range_name = f'{SHEET_NAME}!A6:AH'  # A to AH = 34 columns
                             result = service.spreadsheets().values().get(
                                 spreadsheetId=SHEET_ID,
                                 range=range_name
@@ -504,9 +508,15 @@ class LogTab(ttk.Frame):
                                 bulan_set.add(tgl_split[1])
                     self.data.append(data_row)
                 self.filtered_data = self.data.copy()
-                self.refresh_table()
-                self.update_filter_values()
-                self.update_record_count()
+                
+                # Refresh table with error handling
+                try:
+                    self.refresh_table()
+                    self.update_filter_values()
+                    self.update_record_count()
+                except Exception as e:
+                    print(f"[WARNING] Error refreshing table: {e}")
+                    # Continue even if table refresh fails
                 tahun_list = sorted(list(tahun_set))
                 bulan_list = sorted(list(bulan_set), key=lambda x: int(x) if x.isdigit() else 99)
                 self.year_combo['values'] = [''] + tahun_list
@@ -536,29 +546,62 @@ class LogTab(ttk.Frame):
         Refresh the table display with enhanced styling.
         Features:
         - Alternating row colors for better visual separation
-        - Proper data mapping to all 28 columns
+        - Proper data mapping to all 34 columns
         - Automatic column width adjustment
+        - Robust error handling for treeview operations
         """
-        for row in self.tree.get_children():
-            self.tree.delete(row)
-        
-        # Paging: hanya tampilkan data sesuai halaman
-        start_idx = (self.current_page - 1) * self.page_size
-        end_idx = start_idx + self.page_size
-        page_data = self.filtered_data[start_idx:end_idx]
-        for i, item in enumerate(page_data):
-            values = []
-            for col in ENHANCED_HEADER:
-                val = item.get(col, "")
-                values.append(str(val) if val is not None else "")
+        try:
+            # Clear existing items with better error handling
+            try:
+                # Use delete with all children at once to avoid individual item errors
+                children = self.tree.get_children()
+                if children:
+                    self.tree.delete(*children)
+            except Exception as e:
+                print(f"[WARNING] Error clearing tree items: {e}")
+                # Fallback: try to delete items one by one
+                try:
+                    children = self.tree.get_children()
+                    for row in children:
+                        try:
+                            self.tree.delete(row)
+                        except:
+                            pass  # Silently ignore individual deletion errors
+                except:
+                    pass  # If all else fails, continue anyway
             
-            # Apply alternating row colors for better readability
-            tag = 'evenrow' if i % 2 == 0 else 'oddrow'
-            self.tree.insert("", "end", values=values, tags=(tag,))
-        
-        # Update column widths to ensure proper display
-        self.tree.update_idletasks()
-        self.update_paging_info()
+            # Paging: hanya tampilkan data sesuai halaman
+            start_idx = (self.current_page - 1) * self.page_size
+            end_idx = start_idx + self.page_size
+            page_data = self.filtered_data[start_idx:end_idx]
+            
+            for i, item in enumerate(page_data):
+                try:
+                    values = []
+                    for col in ENHANCED_HEADER:
+                        val = item.get(col, "")
+                        values.append(str(val) if val is not None else "")
+                    
+                    # Apply alternating row colors for better readability
+                    tag = 'evenrow' if i % 2 == 0 else 'oddrow'
+                    self.tree.insert("", "end", values=values, tags=(tag,))
+                except Exception as e:
+                    print(f"[WARNING] Error inserting row {i}: {e}")
+                    # Continue with other rows even if one fails
+            
+            # Update column widths to ensure proper display
+            self.tree.update_idletasks()
+            self.update_paging_info()
+            
+        except Exception as e:
+            print(f"[ERROR] Error in refresh_table: {e}")
+            import traceback
+            traceback.print_exc()
+            # Try to recover by clearing and rebuilding
+            try:
+                self.tree.delete(*self.tree.get_children())
+            except:
+                pass
     
     def get_column_display_name(self, col_name):
         """Get a shorter display name for column headers."""
@@ -631,10 +674,16 @@ class LogTab(ttk.Frame):
             # Pencarian hanya pada kolom label, bukan instruksi
             self.filtered_data = [d for d in self.data if key in str(d.get(col, "")).lower()]
         self.current_page = 1
-        self.refresh_table()
-        self.update_filter_values()
-        self.update_record_count()
-        update_status(self.status_label, f"Found {len(self.filtered_data)} matching records")
+        
+        # Refresh table with error handling
+        try:
+            self.refresh_table()
+            self.update_filter_values()
+            self.update_record_count()
+            update_status(self.status_label, f"Found {len(self.filtered_data)} matching records")
+        except Exception as e:
+            print(f"[WARNING] Error in do_search: {e}")
+            update_status(self.status_label, "Error refreshing table")
 
     def update_filter_values(self, event=None):
         col = self.filter_col.get()
@@ -678,9 +727,15 @@ class LogTab(ttk.Frame):
             # Ubah: Filter data yang MENGANDUNG nilai (bukan persis sama)
             self.filtered_data = [d for d in self.data if val in str(d.get(col, ""))]
         self.current_page = 1
-        self.refresh_table()
-        self.update_record_count()
-        update_status(self.status_label, f"Filtered to {len(self.filtered_data)} records")
+        
+        # Refresh table with error handling
+        try:
+            self.refresh_table()
+            self.update_record_count()
+            update_status(self.status_label, f"Filtered to {len(self.filtered_data)} records")
+        except Exception as e:
+            print(f"[WARNING] Error in do_filter: {e}")
+            update_status(self.status_label, "Error refreshing table")
 
     def apply_year_month_filter(self, event=None):
         tahun = self.year_var.get()
@@ -704,8 +759,13 @@ class LogTab(ttk.Frame):
                             filtered.append(row)
             self.filtered_data = filtered
         self.current_page = 1
-        self.refresh_table()
-        self.update_record_count()
+        
+        # Refresh table with error handling
+        try:
+            self.refresh_table()
+            self.update_record_count()
+        except Exception as e:
+            print(f"[WARNING] Error in apply_year_month_filter: {e}")
 
     def on_double_click(self, event):
         selected = self.tree.selection()
@@ -801,9 +861,15 @@ class LogTab(ttk.Frame):
     def go_prev_page(self):
         if self.current_page > 1:
             self.current_page -= 1
-            self.refresh_table()
+            try:
+                self.refresh_table()
+            except Exception as e:
+                print(f"[WARNING] Error in go_prev_page: {e}")
 
     def go_next_page(self):
         if self.current_page < self.total_pages:
             self.current_page += 1
-            self.refresh_table()
+            try:
+                self.refresh_table()
+            except Exception as e:
+                print(f"[WARNING] Error in go_next_page: {e}")

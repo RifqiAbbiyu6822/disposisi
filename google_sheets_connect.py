@@ -300,14 +300,24 @@ def write_multilayer_header(sheet_id=None, sheet_name='Sheet1'):
 
 def update_row_in_sheet(row_data, row_number, sheet_id=None, sheet_name='Sheet1'):
     """
-    Overwrite baris ke-row_number (mulai dari 1 = baris A6) dengan row_data (list, 28 kolom).
+    Overwrite baris ke-row_number (mulai dari 1 = baris A6) dengan row_data (list, 34 kolom).
     row_number: 1 berarti baris ke-6 di sheet (A6), 2 = A7, dst.
     """
     service = get_sheets_service()
     if sheet_id is None:
         sheet_id = SHEET_ID
-    range_name = f'{sheet_name}!A{row_number+5}:AB{row_number+5}'
+    
+    # Ensure we have exactly 34 columns for Google Sheets (A-AH)
+    while len(row_data) < 34:
+        row_data.append("")
+    row_data = row_data[:34]  # Trim if too many
+    
+    range_name = f'{sheet_name}!A{row_number+5}:AH{row_number+5}'
     body = {'values': [row_data]}
+    
+    print(f"[update_row_in_sheet] Updating row {row_number+5} with {len(row_data)} columns")
+    print(f"[update_row_in_sheet] Range: {range_name}")
+    
     service.spreadsheets().values().update(
         spreadsheetId=sheet_id,
         range=range_name,
