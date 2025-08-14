@@ -11,13 +11,7 @@ Features:
 - Modern card-based layout
 """
 import os
-from pathlib import Path
 from jinja2 import Template
-
-# Get the path to the logo image if it exists
-CURRENT_DIR = Path(__file__).parent.parent
-LOGO_PATH = CURRENT_DIR / "kop.jpg"
-
 def get_enhanced_professional_template():
     """
     Returns the enhanced professional HTML template for emails
@@ -80,15 +74,6 @@ def get_enhanced_professional_template():
                 position: relative;
                 z-index: 2;
             }
-            
-            .header img {
-                max-width: 180px;
-                height: auto;
-                margin-bottom: 16px;
-                border-radius: 4px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-            }
-            
             .header h1 {
                 font-size: 28px;
                 font-weight: 700;
@@ -404,9 +389,6 @@ def get_enhanced_professional_template():
                 <!-- Header Section -->
                 <div class="header">
                     <div class="header-content">
-                        {% if logo_exists %}
-                        <img src="cid:logo" alt="Logo Organisasi">
-                        {% endif %}
                         <h1>LEMBAR DISPOSISI</h1>
                         <div class="subtitle">Sistem Manajemen Surat Digital</div>
                     </div>
@@ -631,7 +613,6 @@ def render_email_template(data):
     
     # Add default values and format data
     data.setdefault('tahun', '2025')
-    data.setdefault('logo_exists', LOGO_PATH.exists())
     
     # Ensure lists are properly formatted
     data.setdefault('klasifikasi', [])
@@ -733,7 +714,7 @@ def preview_enhanced_template():
     html_content = render_email_template(sample_data)
     
     # Save preview file
-    preview_path = CURRENT_DIR / "enhanced_email_preview.html"
+    preview_path = os.path.join(os.path.dirname(__file__), "enhanced_email_preview.html")
     with open(preview_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
     

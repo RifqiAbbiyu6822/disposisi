@@ -12,11 +12,9 @@ import os
 # Import from other files in the same package
 try:
     from . import config
-    from .template_handler import LOGO_PATH
 except ImportError:
     # Fallback for direct execution
     import config
-    from template_handler import LOGO_PATH
 
 class EmailSender:
     def __init__(self):
@@ -201,22 +199,9 @@ class EmailSender:
             msg['From'] = self.sender_email
             msg['To'] = ", ".join(valid_recipients)
 
-            # Attach the HTML part
+                        # Attach the HTML part
             html_part = MIMEText(html_body, 'html', 'utf-8')
             msg.attach(html_part)
-
-            # Attach the logo image if it exists
-            if LOGO_PATH.exists():
-                try:
-                    with open(LOGO_PATH, 'rb') as f:
-                        logo_data = f.read()
-                    from email.mime.image import MIMEImage
-                    logo = MIMEImage(logo_data)
-                    # This Content-ID must match the 'cid:' in the HTML template's <img> tag
-                    logo.add_header('Content-ID', '<logo>')
-                    msg.attach(logo)
-                except Exception as e:
-                    print(f"Warning: Could not attach logo file: {e}")
 
             # Attach PDF if provided
             if pdf_attachment and Path(pdf_attachment).exists():
