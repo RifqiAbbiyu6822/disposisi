@@ -1,0 +1,46 @@
+# Dependencies untuk Aplikasi Disposisi dan Test Suite
+
+# Core dependencies
+tkinter  # Usually comes with Python installation
+unittest  # Built-in Python module
+
+# PDF Generation
+reportlab>=3.6.0
+PyPDF2>=2.0.0
+
+# Google Sheets Integration
+google-auth>=2.0.0
+google-auth-oauthlib>=0.4.0
+google-auth-httplib2>=0.1.0
+google-api-python-client>=2.0.0
+
+# Email functionality
+smtplib  # Built-in Python module
+email  # Built-in Python module
+
+# Excel operations
+pandas>=1.3.0
+openpyxl>=3.0.0
+
+# Data handling
+numpy>=1.21.0
+
+# Testing dependencies
+pytest>=6.0.0
+pytest-cov>=2.12.0
+pytest-mock>=3.6.0
+
+# Development dependencies
+black>=21.0.0  # Code formatting
+flake8>=3.9.0  # Linting
+mypy>=0.910  # Type checking
+
+# Optional: GUI testing
+pyautogui>=0.9.53  # For automated GUI testing
+
+# Optional: Performance testing
+memory-profiler>=0.60.0  # Memory usage profiling
+psutil>=5.8.0  # System and process utilities
+
+# Optional: Coverage reporting
+coverage>=6.0.0  # Code coverage measurement 
