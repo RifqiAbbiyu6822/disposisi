@@ -28,19 +28,45 @@ class EmailSender:
         self.sheets_service = self._get_sheets_service()
         
         # ENHANCED: Position to cell mapping including senior officers
+        # Updated to use correct sheet structure: A=posisi, B=nama, C=email, D=last_updated
         self.position_cell_mapping = {
-            # Original positions
+            # Original positions - Email column (C)
+            "Direktur Utama": "C2",
+            "Direktur Keuangan": "C3", 
+            "Direktur Teknik": "C4",
+            "GM Keuangan & Administrasi": "C5",
+            "GM Operasional & Pemeliharaan": "C6",
+            "Manager Pemeliharaan": "C8",
+            "Manager Operasional": "C7",
+            "Manager Administrasi": "C9",
+            "Manager Keuangan": "C10",
+            
+            # ENHANCED: Senior Officers - Email column (C)
+            "Senior Officer Pemeliharaan 1": "C11",
+            "Senior Officer Pemeliharaan 2": "C12",
+            "Senior Officer Operasional 1": "C13",
+            "Senior Officer Operasional 2": "C14",
+            "Senior Officer Administrasi 1": "C15",
+            "Senior Officer Administrasi 2": "C16",
+            "Senior Officer Keuangan 1": "C17",
+            "Senior Officer Keuangan 2": "C18"
+        }
+        
+        # ENHANCED: Position to name cell mapping
+        # Updated to use correct sheet structure: A=posisi, B=nama, C=email, D=last_updated
+        self.position_name_cell_mapping = {
+            # Original positions - Name column (B)
             "Direktur Utama": "B2",
             "Direktur Keuangan": "B3", 
             "Direktur Teknik": "B4",
             "GM Keuangan & Administrasi": "B5",
             "GM Operasional & Pemeliharaan": "B6",
-            "Manager Pemeliharaan": "B7",
-            "Manager Operasional": "B8",
+            "Manager Pemeliharaan": "B8",
+            "Manager Operasional": "B7",
             "Manager Administrasi": "B9",
             "Manager Keuangan": "B10",
             
-            # ENHANCED: Senior Officers - Add new rows in the admin sheet
+            # ENHANCED: Senior Officers - Name column (B)
             "Senior Officer Pemeliharaan 1": "B11",
             "Senior Officer Pemeliharaan 2": "B12",
             "Senior Officer Operasional 1": "B13",
@@ -138,6 +164,42 @@ class EmailSender:
                 
         except Exception as e:
             error_msg = f"Error reading email data from admin sheet: {str(e)}"
+            print(f"[EmailSender] {error_msg}")
+            return None, error_msg
+
+    def get_recipient_name(self, position):
+        """ENHANCED: Fetch name from admin spreadsheet based on position (including senior officers)"""
+        if not self.sheets_service:
+            return None, "Google Sheets service not available. Check credentials/credentials.json file."
+        
+        # Get the cell reference for this position
+        cell_ref = self.position_name_cell_mapping.get(position)
+        if not cell_ref:
+            return None, f"Position '{position}' not found in mapping"
+        
+        try:
+            # Read the specific cell from admin sheet
+            range_name = f'Sheet1!{cell_ref}'
+            result = self.sheets_service.spreadsheets().values().get(
+                spreadsheetId=self.admin_sheet_id,
+                range=range_name
+            ).execute()
+            
+            values = result.get('values', [])
+            if not values or not values[0] or not values[0][0]:
+                return None, f"No name found in cell {cell_ref} for position: {position}"
+            
+            name = str(values[0][0]).strip()
+            
+            # Validate name format
+            if name and len(name) > 0:
+                print(f"✓ Found name for {position}: {name}")
+                return name, f"Name found: {name}"
+            else:
+                return None, f"No name configured for {position}"
+                
+        except Exception as e:
+            error_msg = f"Error reading name data from admin sheet: {str(e)}"
             print(f"[EmailSender] {error_msg}")
             return None, error_msg
 
@@ -259,27 +321,32 @@ class EmailSender:
         if not positions:
             return False, "No positions specified", []
         
-        # Fetch emails for the positions
+        # Fetch emails and names for the positions
         recipient_emails = []
+        recipient_names = []
         failed_lookups = []
         successful_lookups = []
         
-        print(f"[DEBUG] Looking up emails for positions: {positions}")
+        print(f"[DEBUG] Looking up emails and names for positions: {positions}")
         
         for position in positions:
-            print(f"[DEBUG] Looking up email for: {position}")
-            email, msg = self.get_recipient_email(position)
+            print(f"[DEBUG] Looking up email and name for: {position}")
+            email, email_msg = self.get_recipient_email(position)
+            name, name_msg = self.get_recipient_name(position)
+            
             if email:
                 recipient_emails.append(email)
-                successful_lookups.append(f"{position}: {email}")
+                recipient_names.append(name if name else position)
+                successful_lookups.append(f"{position}: {name if name else position} ({email})")
             else:
-                failed_lookups.append(f"{position} - {msg}")
+                failed_lookups.append(f"{position} - {email_msg}")
         
         # Prepare detailed results
         details = {
             'successful_lookups': successful_lookups,
             'failed_lookups': failed_lookups,
-            'emails_to_send': recipient_emails
+            'emails_to_send': recipient_emails,
+            'names_to_send': recipient_names
         }
         
         # Check if we have any valid emails
@@ -295,7 +362,13 @@ class EmailSender:
         )
         
         if success:
-            message = f"Email sent to {len(recipient_emails)} recipient(s): {', '.join(recipient_emails)}"
+            # Create display list with names
+            display_recipients = []
+            for i, email in enumerate(recipient_emails):
+                name = recipient_names[i] if i < len(recipient_names) else email
+                display_recipients.append(f"{name} ({email})")
+            
+            message = f"Email sent to {len(recipient_emails)} recipient(s): {', '.join(display_recipients)}"
             if failed_lookups:
                 # Use abbreviation for manager in message
                 abbreviation_map = {

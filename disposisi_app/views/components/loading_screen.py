@@ -134,22 +134,26 @@ class LoadingScreen(tk.Toplevel):
         if getattr(self, '_destroyed', False):
             return
             
-        # Update progress bar
-        if self.progress_fill:
-            container_width = self.progress_fill.master.winfo_width()
-            if container_width > 1:
-                target_width = int((value / 100) * container_width)
-                self.progress_fill.place(width=target_width)
+        try:
+            # Update progress bar
+            if self.progress_fill and self.progress_fill.winfo_exists():
+                container_width = self.progress_fill.master.winfo_width()
+                if container_width > 1:
+                    target_width = int((value / 100) * container_width)
+                    self.progress_fill.place(width=target_width)
+                
+                # Show percentage only if needed
+                if value > 0 and self.percent_label and self.percent_label.winfo_exists():
+                    self.percent_label.config(text=f"{value}%")
             
-            # Show percentage only if needed
-            if value > 0 and self.percent_label:
-                self.percent_label.config(text=f"{value}%")
-        
-        # Update status
-        if status_text:
-            self.status_label.config(text=status_text)
-        
-        self.update_idletasks()
+            # Update status
+            if status_text and self.status_label and self.status_label.winfo_exists():
+                self.status_label.config(text=status_text)
+            
+            self.update_idletasks()
+        except tk.TclError:
+            # Widget sudah dihancurkan
+            self._destroyed = True
 
     def destroy(self):
         """Clean destroy"""
@@ -188,7 +192,11 @@ class LoadingManager:
     def update_progress(self, value, status_text=None):
         """Update progress of current loading screen"""
         if self._current_loading and self._current_loading.winfo_exists():
-            self._current_loading.update_progress(value, status_text)
+            try:
+                self._current_loading.update_progress(value, status_text)
+            except tk.TclError:
+                # Widget sudah dihancurkan, reset current loading
+                self._current_loading = None
 
 def with_loading_screen(title="Processing...", show_progress=True):
     """Decorator to automatically show loading screen during threading operations"""

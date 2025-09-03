@@ -727,7 +727,23 @@ def send_email_with_disposisi(self, selected_positions):
         # Show results
         if success:
             self.update_status("Email berhasil dikirim!")
-            success_msg = f"Email berhasil dikirim ke:\n{chr(10).join([f'• {email}' for email in recipient_emails])}"
+            # Create display list with names
+            display_recipients = []
+            for i, email in enumerate(recipient_emails):
+                # Try to get name from admin sheet
+                try:
+                    from email_sender.send_email import EmailSender
+                    email_sender = EmailSender()
+                    position = selected_positions[i] if i < len(selected_positions) else ""
+                    name, _ = email_sender.get_recipient_name(position)
+                    if name:
+                        display_recipients.append(f"• {name} ({email})")
+                    else:
+                        display_recipients.append(f"• {email}")
+                except:
+                    display_recipients.append(f"• {email}")
+            
+            success_msg = f"Email berhasil dikirim ke:\n{chr(10).join(display_recipients)}"
             
             if successful_lookups:
                 # Gunakan singkatan untuk manager dalam successful lookups
@@ -741,6 +757,17 @@ def send_email_with_disposisi(self, selected_positions):
                 # Konversi successful lookups ke singkatan untuk display
                 display_successful_lookups = []
                 for lookup in successful_lookups:
+                    # Try to get name from admin sheet
+                    try:
+                        from email_sender.send_email import EmailSender
+                        email_sender = EmailSender()
+                        position = lookup.split(':')[0]
+                        name, _ = email_sender.get_recipient_name(position)
+                        if name:
+                            lookup = f"{name} ({lookup})"
+                    except:
+                        pass
+                    
                     for full_name, abbrev in abbreviation_map.items():
                         if full_name in lookup:
                             lookup = lookup.replace(full_name, f"Manager {abbrev}")
@@ -749,7 +776,7 @@ def send_email_with_disposisi(self, selected_positions):
                 
                 success_msg += f"\n\nDetail penerima:\n{chr(10).join([f'• {lookup}' for lookup in display_successful_lookups])}"
                 
-                # ENHANCED: Show breakdown of recipient types
+                # ENHANCED: Show breakdown of recipient types with names
                 managers = [p for p in selected_positions if p.startswith("Manager")]
                 senior_officers = [p for p in selected_positions if p.startswith("Senior Officer")]
                 others = [p for p in selected_positions if not p.startswith("Manager") and not p.startswith("Senior Officer")]
@@ -757,11 +784,50 @@ def send_email_with_disposisi(self, selected_positions):
                 if managers or senior_officers or others:
                     success_msg += "\n\nBreakdown penerima:"
                     if others:
-                        success_msg += f"\n• Directors & GM: {len(others)}"
+                        # Get names for directors & GM
+                        director_names = []
+                        for pos in others:
+                            try:
+                                from email_sender.send_email import EmailSender
+                                email_sender = EmailSender()
+                                name, _ = email_sender.get_recipient_name(pos)
+                                if name:
+                                    director_names.append(f"{name} ({pos})")
+                                else:
+                                    director_names.append(pos)
+                            except:
+                                director_names.append(pos)
+                        success_msg += f"\n• Directors & GM ({len(others)}): {', '.join(director_names)}"
                     if managers:
-                        success_msg += f"\n• Managers: {len(managers)}"
+                        # Get names for managers
+                        manager_names = []
+                        for pos in managers:
+                            try:
+                                from email_sender.send_email import EmailSender
+                                email_sender = EmailSender()
+                                name, _ = email_sender.get_recipient_name(pos)
+                                if name:
+                                    manager_names.append(f"{name} ({pos})")
+                                else:
+                                    manager_names.append(pos)
+                            except:
+                                manager_names.append(pos)
+                        success_msg += f"\n• Managers ({len(managers)}): {', '.join(manager_names)}"
                     if senior_officers:
-                        success_msg += f"\n• Senior Officers: {len(senior_officers)}"
+                        # Get names for senior officers
+                        senior_names = []
+                        for pos in senior_officers:
+                            try:
+                                from email_sender.send_email import EmailSender
+                                email_sender = EmailSender()
+                                name, _ = email_sender.get_recipient_name(pos)
+                                if name:
+                                    senior_names.append(f"{name} ({pos})")
+                                else:
+                                    senior_names.append(pos)
+                            except:
+                                senior_names.append(pos)
+                        success_msg += f"\n• Senior Officers ({len(senior_officers)}): {', '.join(senior_names)}"
             
             messagebox.showinfo("Email Sent Successfully", success_msg, parent=self)
         else:

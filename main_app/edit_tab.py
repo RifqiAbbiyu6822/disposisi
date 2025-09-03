@@ -560,6 +560,17 @@ class EditTab(ttk.Frame):
                     # Konversi failed lookups ke singkatan untuk display
                     display_failed_lookups = []
                     for lookup in details['failed_lookups']:
+                        # Try to get name from admin sheet
+                        try:
+                            from email_sender.send_email import EmailSender
+                            email_sender = EmailSender()
+                            position = lookup.split(' - ')[0]
+                            name, _ = email_sender.get_recipient_name(position)
+                            if name:
+                                lookup = f"{name} ({lookup})"
+                        except:
+                            pass
+                        
                         for full_name, abbrev in abbreviation_map.items():
                             if full_name in lookup:
                                 lookup = lookup.replace(full_name, f"Manager {abbrev}")

@@ -269,10 +269,22 @@ class FinishDialog(tk.Toplevel):
             
             self.email_vars[label] = var  # Keep original label for email lookup
             
+            # Try to get name from admin sheet
+            try:
+                from email_sender.send_email import EmailSender
+                email_sender = EmailSender()
+                name, _ = email_sender.get_recipient_name(label)
+                if name:
+                    display_text = f"📋 {display_label} - {name}"
+                else:
+                    display_text = f"📋 {display_label}"
+            except:
+                display_text = f"📋 {display_label}"
+            
             # Main checkbox on the left
             main_cb = ttk.Checkbutton(
                 position_frame, 
-                text=f"📋 {display_label}", 
+                text=display_text, 
                 variable=var,
                 style="Manager.TCheckbutton"
             )
@@ -334,9 +346,21 @@ class FinishDialog(tk.Toplevel):
                     officer_frame = ttk.Frame(officers_grid)
                     officer_frame.pack(fill="x", pady=3)
                     
+                    # Try to get name for senior officer
+                    try:
+                        from email_sender.send_email import EmailSender
+                        email_sender = EmailSender()
+                        name, _ = email_sender.get_recipient_name(senior_officer)
+                        if name:
+                            display_text = f"👤 {senior_officer} - {name}"
+                        else:
+                            display_text = f"👤 {senior_officer}"
+                    except:
+                        display_text = f"👤 {senior_officer}"
+                    
                     senior_cb = ttk.Checkbutton(
                         officer_frame, 
-                        text=f"👤 {senior_officer}", 
+                        text=display_text, 
                         variable=senior_var,
                         style="Senior.TCheckbutton"
                     )
@@ -441,7 +465,7 @@ class FinishDialog(tk.Toplevel):
             # Process operations in thread to avoid blocking UI
             def process_operations():
                 try:
-                    progress = 0
+                    self.current_progress = 0
                     total_operations = 0
                     
                     # Count total operations
@@ -453,28 +477,28 @@ class FinishDialog(tk.Toplevel):
                         total_operations += 1
                     
                     if total_operations == 0:
-                        self.loading_manager.hide_loading()
-                        self.destroy()
+                        self.after(0, self.loading_manager.hide_loading)
+                        self.after(100, self.destroy)
                         return
                     
                     # Process save PDF if selected
                     if self.save_pdf_var.get() and callable(self.callbacks.get("save_pdf")):
-                        self.loading_manager.update_progress(progress, "Menyimpan PDF...")
+                        self.after(0, lambda: self.loading_manager.update_progress(self.current_progress, "Menyimpan PDF..."))
                         self.callbacks["save_pdf"]()
-                        progress += (100 // total_operations)
+                        self.current_progress += (100 // total_operations)
                     
                     # Process save to Sheet if selected
                     if self.save_sheet_var.get() and callable(self.callbacks.get("save_sheet")):
-                        self.loading_manager.update_progress(progress, "Mengunggah ke Google Sheets...")
+                        self.after(0, lambda: self.loading_manager.update_progress(self.current_progress, "Mengunggah ke Google Sheets..."))
                         self.callbacks["save_sheet"]()
-                        progress += (100 // total_operations)
+                        self.current_progress += (100 // total_operations)
                     
                     # Process send email if selected
                     if self.send_email_var.get():
                         selected_positions = self._get_selected_recipients()
                         if not selected_positions:
-                            self.loading_manager.hide_loading()
-                            LoadingMessageBox.showwarning("Peringatan", "Pilih setidaknya satu penerima email.", parent=self)
+                            self.after(0, self.loading_manager.hide_loading)
+                            self.after(100, lambda: LoadingMessageBox.showwarning("Peringatan", "Pilih setidaknya satu penerima email.", parent=self))
                             return
                         
                         # Show confirmation with all selected recipients
@@ -485,9 +509,18 @@ class FinishDialog(tk.Toplevel):
                             "Manager Keuangan": "Manager keu"
                         }
                         
+                        # Get names from email sender
+                        from email_sender.send_email import EmailSender
+                        email_sender = EmailSender()
+                        
                         display_recipients = []
                         for pos in selected_positions:
-                            display_name = abbreviation_map.get(pos, pos)
+                            # Try to get name from admin sheet
+                            name, _ = email_sender.get_recipient_name(pos)
+                            if name:
+                                display_name = f"{name} ({abbreviation_map.get(pos, pos)})"
+                            else:
+                                display_name = abbreviation_map.get(pos, pos)
                             display_recipients.append(display_name)
                         
                         confirm_msg = f"Kirim email ke {len(selected_positions)} penerima:\n\n"
@@ -495,31 +528,43 @@ class FinishDialog(tk.Toplevel):
                         confirm_msg += "\n\nLanjutkan pengiriman?"
                         
                         # Hide loading temporarily for confirmation
-                        self.loading_manager.hide_loading()
+                        self.after(0, self.loading_manager.hide_loading)
                         
-                        if not LoadingMessageBox.askyesno("Konfirmasi Email", confirm_msg, parent=self):
-                            self.after(100, self.destroy)  # Delay destroy
-                            return
+                        # Use after to schedule confirmation dialog
+                        def show_confirmation():
+                            if not LoadingMessageBox.askyesno("Konfirmasi Email", confirm_msg, parent=self):
+                                self.after(100, self.destroy)
+                                return
+                            
+                            # Show loading again for email sending
+                            self.after(0, lambda: self.loading_manager.show_loading(self, "Mengirim Email...", show_progress=True))
+                            
+                            # Call the main callback from the parent app
+                            if callable(self.callbacks.get("send_email")):
+                                self.after(0, lambda: self.loading_manager.update_progress(self.current_progress, "Mengirim email..."))
+                                self.callbacks["send_email"](selected_positions)
+                                self.current_progress += (100 // total_operations)
+                            
+                            # Complete
+                            self.after(0, lambda: self.loading_manager.update_progress(100, "Selesai!"))
+                            
+                            # Hide loading and close dialog
+                            self.after(1000, self.loading_manager.hide_loading)
+                            self.after(1100, self.destroy)
                         
-                        # Show loading again for email sending
-                        loading = self.loading_manager.show_loading(self, "Mengirim Email...", show_progress=True)
-                        
-                        # Call the main callback from the parent app
-                        if callable(self.callbacks.get("send_email")):
-                            self.loading_manager.update_progress(progress, "Mengirim email...")
-                            self.callbacks["send_email"](selected_positions)
-                            progress += (100 // total_operations)
+                        self.after(100, show_confirmation)
+                        return
                     
                     # Complete
-                    self.loading_manager.update_progress(100, "Selesai!")
+                    self.after(0, lambda: self.loading_manager.update_progress(100, "Selesai!"))
                     
                     # Hide loading and close dialog
-                    self.loading_manager.hide_loading()
-                    self.after(100, self.destroy)  # Delay destroy to ensure loading is hidden
+                    self.after(1000, self.loading_manager.hide_loading)
+                    self.after(1100, self.destroy)
                     
                 except Exception as e:
-                    self.loading_manager.hide_loading()
-                    LoadingMessageBox.showerror("Error", f"Terjadi kesalahan: {e}", parent=self)
+                    self.after(0, self.loading_manager.hide_loading)
+                    self.after(100, lambda: LoadingMessageBox.showerror("Error", f"Terjadi kesalahan: {e}", parent=self))
                     traceback.print_exc()
             
             # Start processing in thread
